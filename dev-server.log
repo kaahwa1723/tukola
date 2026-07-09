@@ -1,0 +1,22 @@
+  ▲ Next.js 14.2.5
+  - Local:        http://localhost:3006
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 8.9s
+ ○ Compiling / ...
+The user aborted a request.
+
+Retrying 1/3...
+The user aborted a request.
+
+Retrying 1/3...
+ ✓ Compiled / in 15.9s (655 modules)
+ GET / 200 in 16713ms
+ ✓ Compiled in 386ms (327 modules)
+ GET / 200 in 51ms
+ ✓ Compiled in 2s (327 modules)
+ ✓ Compiled in 298ms (327 modules)
+ ✓ Compiled in 279ms (327 modules)
+ ✓ Compiled in 317ms (327 modules)
+ ✓ Compiled in 528ms (327 modules)

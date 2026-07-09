@@ -1,0 +1,227 @@
+'use client';
+
+import Link from 'next/link';
+import { Plus, Bell, ChevronRight, MapPin, Star, Users, Lightbulb, ShieldCheck, TrendingUp, Briefcase, Wrench } from 'lucide-react';
+import { useKola } from '@/lib/store';
+import { MOCK_WORKERS } from '@/lib/data';
+
+function WorkerCard({ worker }: { worker: (typeof MOCK_WORKERS)[0] }) {
+  return (
+    <div className="flex-shrink-0 w-36 lg:w-40 rounded-2xl p-3.5 bg-white border border-blue-100/40 hover:shadow-md transition-all">
+      {worker.avatar ? (
+        <div className="w-14 h-14 rounded-2xl overflow-hidden mx-auto mb-2.5" style={{ border: '1.5px solid rgba(41,82,232,0.12)' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={worker.avatar} alt={worker.name} className="w-full h-full object-cover" />
+        </div>
+      ) : (
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-2.5"
+          style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}>
+          <span className="text-white font-black text-xl">{worker.name.charAt(0)}</span>
+        </div>
+      )}
+      <div className="flex items-center justify-center gap-1 mb-0.5">
+        <p className="text-[#0A0F2C] font-bold text-sm text-center leading-tight truncate">{worker.name.split(' ')[0]}</p>
+        {worker.isVerified && <ShieldCheck size={11} color="#2952E8" strokeWidth={2} />}
+      </div>
+      <p className="text-[#8B94B8] text-[11px] text-center mb-2">{worker.skills?.[0]}</p>
+      <div className="flex items-center justify-center gap-1 mb-3">
+        <Star size={11} className="text-yellow-500 fill-yellow-500" />
+        <span className="text-[#0A0F2C] text-xs font-bold">{worker.rating}</span>
+        <span className="text-[#8B94B8] text-[10px]">({worker.completedJobs})</span>
+      </div>
+      <Link href={`/employer/hire/${worker.id}`}>
+        <button className="w-full py-1.5 rounded-xl text-xs font-black active:scale-95 transition-transform text-white"
+          style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}>
+          Hire
+        </button>
+      </Link>
+    </div>
+  );
+}
+
+export default function EmployerHomePage() {
+  const { user, jobs } = useKola();
+  const firstName = user?.name?.split(' ')[0] || 'there';
+
+  const myJobs = jobs.filter(j => j.employerId === user?.id || ['e1', 'e2'].includes(j.employerId));
+  const activeJobs = myJobs.filter(j => j.status === 'in_progress');
+  const pendingJobs = myJobs.filter(j => j.status === 'open');
+  const recentJobs = myJobs.slice(0, 3);
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+
+      {/* Welcome card */}
+      <div className="rounded-2xl lg:rounded-3xl p-5 lg:p-8 relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg,#00C8FF 0%,#2952E8 55%,#1A2DB8 100%)' }}>
+        <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full opacity-15"
+          style={{ background: 'radial-gradient(circle,#fff,transparent)' }} />
+        <div className="relative z-10">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <p className="text-white/60 text-sm font-semibold">Hello, {firstName}</p>
+              <h1 className="text-2xl lg:text-3xl font-black text-white mt-0.5">Manage your jobs</h1>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full"
+                style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                {activeJobs.length + pendingJobs.length} active
+              </span>
+              {pendingJobs.length > 0 && (
+                <span className="text-xs font-bold px-3 py-1.5 rounded-full"
+                  style={{ background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.85)' }}>
+                  {pendingJobs.length} pending
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Post job CTA */}
+      <Link href="/employer/post-job">
+        <button className="w-full text-white rounded-2xl py-4 text-base font-black flex items-center justify-center gap-2.5 active:scale-95 transition-all hover:opacity-90"
+          style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)', boxShadow: '0 6px 20px rgba(41,82,232,0.35)' }}>
+          <div className="w-6 h-6 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
+            <Plus size={16} />
+          </div>
+          Post a New Job
+        </button>
+      </Link>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Left column: Recent jobs */}
+        <div className="lg:col-span-2 space-y-6">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-slate-900 font-black text-base">My Recent Posts</h2>
+              <Link href="/employer/jobs" className="text-blue-600 text-sm font-semibold hover:text-blue-700">
+                View all
+              </Link>
+            </div>
+
+            {recentJobs.length === 0 ? (
+              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm text-center">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
+                  <Briefcase size={24} color="#2952E8" />
+                </div>
+                <p className="text-slate-600 font-semibold text-sm">No jobs posted yet</p>
+                <p className="text-slate-400 text-xs mt-1">Post your first job above</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {recentJobs.map(job => (
+                  <Link href={`/job/${job.id}`} key={job.id}>
+                    <div className="bg-white rounded-2xl overflow-hidden border border-slate-100 hover:shadow-md transition-all">
+                      {job.images && job.images.length > 0 && (
+                        <div className="relative h-28 w-full overflow-hidden">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={job.images[0]} alt={job.title} className="w-full h-full object-cover" />
+                          <div className="absolute bottom-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/90 text-[#0A0F2C] shadow-sm">
+                            {job.images.length} photo{job.images.length > 1 ? 's' : ''}
+                          </div>
+                        </div>
+                      )}
+                      <div className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <Wrench size={20} color="#2952E8" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <h3 className="font-bold text-slate-900 text-sm flex-1 truncate">{job.title}</h3>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                                job.urgency === 'immediate'
+                                  ? 'bg-orange-100 text-orange-600'
+                                  : 'bg-blue-100 text-blue-600'
+                              }`}>
+                                {job.urgency === 'immediate' ? 'Immediate' : 'Scheduled'}
+                              </span>
+                            </div>
+                            <p className="text-slate-500 text-xs flex items-center gap-1">
+                              <MapPin size={10} />
+                              {job.location} •{' '}
+                              {new Date(job.dateTime).toLocaleDateString('en-UG', { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
+                          {job.status === 'in_progress' && job.applicants.find(a => a.status === 'accepted') ? (
+                            <>
+                              <p className="text-slate-600 text-xs">
+                                <span className="font-semibold">Worker:</span>{' '}
+                                {job.applicants.find(a => a.status === 'accepted')?.workerName}
+                              </p>
+                              <span className="text-blue-600 text-xs font-bold flex items-center gap-0.5">
+                                Track <ChevronRight size={12} />
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-1.5">
+                                <Users size={13} className="text-slate-400" />
+                                <span className="text-slate-600 text-xs font-semibold">
+                                  {job.applicants.length} applicants
+                                </span>
+                              </div>
+                              <span className="text-blue-600 text-xs font-bold flex items-center gap-0.5">
+                                Review <ChevronRight size={12} />
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right column: Suggested workers + tips */}
+        <div className="space-y-6">
+          {/* Suggested workers */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-slate-900 font-black text-base">Suggested Nearby</h2>
+              <Link href="/employer/jobs" className="text-sm font-semibold text-blue-600 hover:text-blue-700">View all</Link>
+            </div>
+            <div className="flex lg:flex-col gap-3 overflow-x-auto lg:overflow-visible scrollbar-hide pb-2">
+              {MOCK_WORKERS.slice(0, 4).map(worker => (
+                <WorkerCard key={worker.id} worker={worker} />
+              ))}
+            </div>
+          </div>
+
+          {/* Tip */}
+          <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100 flex items-start gap-3">
+            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Lightbulb size={18} className="text-white" />
+            </div>
+            <div>
+              <p className="text-blue-900 font-bold text-sm">Tip for Employers</p>
+              <p className="text-blue-700 text-xs mt-0.5 leading-relaxed">
+                Adding a photo of your job site increases worker trust by 40%.
+              </p>
+            </div>
+          </div>
+
+          {/* Quick stats */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white rounded-2xl p-4 border border-slate-100 text-center">
+              <p className="text-2xl font-black text-blue-600">{myJobs.length}</p>
+              <p className="text-slate-500 text-xs font-medium mt-1">Total Jobs</p>
+            </div>
+            <div className="bg-white rounded-2xl p-4 border border-slate-100 text-center">
+              <p className="text-2xl font-black text-green-600">{activeJobs.length}</p>
+              <p className="text-slate-500 text-xs font-medium mt-1">Active</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

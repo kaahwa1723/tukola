@@ -1,0 +1,17 @@
+  ▲ Next.js 14.2.5
+  - Local:        http://localhost:3005
+
+ ✓ Starting...
+ ✓ Ready in 752ms
+ ⚠ For production Image Optimization with Next.js, the optional 'sharp' package is strongly recommended. Run 'npm i sharp', and Next.js will use it automatically for Image Optimization.
+Read more: https://nextjs.org/docs/messages/sharp-missing-in-production
+[GET /api/jobs] {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND nvuibeyzgmkbstodjprf.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND nvuibeyzgmkbstodjprf.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:121:26)',
+  hint: '',
+  code: ''
+}
