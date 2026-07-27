@@ -11,7 +11,8 @@ export default function RoleSelectionPage() {
   const [name, setName] = useState('');
   const [step, setStep] = useState<'role' | 'name'>('role');
   const [loading, setLoading] = useState(false);
-  const { login } = useKola();
+  const [error, setError] = useState('');
+  const { register } = useKola();
   const router = useRouter();
 
   const phone =
@@ -22,13 +23,17 @@ export default function RoleSelectionPage() {
     setTimeout(() => setStep('name'), 150);
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!name.trim() || !selected) return;
     setLoading(true);
-    setTimeout(() => {
-      login(phone, name.trim(), selected);
+    setError('');
+    const user = await register(phone, name.trim(), selected);
+    if (user) {
       router.push(selected === 'worker' ? '/worker' : '/employer');
-    }, 800);
+    } else {
+      setError('Could not create your account. Please verify your phone again.');
+      setLoading(false);
+    }
   };
 
   if (step === 'name') {
@@ -71,7 +76,7 @@ export default function RoleSelectionPage() {
 
             <h2 className="text-2xl font-black text-slate-900 mb-2">What&apos;s your name?</h2>
             <p className="text-slate-500 text-sm mb-8">
-              This is how {selected === 'worker' ? 'employers' : 'workers'} will see you on Kola.
+              This is how {selected === 'worker' ? 'employers' : 'workers'} will see you on TUKOLA.
             </p>
 
             <input
@@ -94,6 +99,10 @@ export default function RoleSelectionPage() {
             >
               {loading ? 'Setting up your account...' : `Continue as ${selected === 'worker' ? 'Worker' : 'Employer'}`}
             </button>
+
+            {error && (
+              <p className="text-red-500 text-sm font-medium text-center mt-3">{error}</p>
+            )}
 
             <button
               onClick={() => setStep('role')}
@@ -129,7 +138,7 @@ export default function RoleSelectionPage() {
           <TukolaLogo variant="full" size="sm" />
         </div>
 
-        <div className="px-5 lg:px-12 pt-2 pb-6">
+        <div className="px-5 lg:px-12 pt-2 pb-6 animate-slide-up">
           <h1 className="text-2xl font-black text-[#0A0F2C] mb-1.5">Welcome to TUKOLA</h1>
           <p className="text-[#4A5580] text-sm">Choose how you want to use the platform today.</p>
         </div>
@@ -139,7 +148,7 @@ export default function RoleSelectionPage() {
           {/* Worker card */}
           <button
             onClick={() => handleRoleSelect('worker')}
-            className={`w-full text-left bg-white rounded-2xl p-5 lg:p-6 border-2 transition-all active:scale-[0.98] shadow-sm ${
+            className={`w-full text-left bg-white rounded-2xl p-5 lg:p-6 border-2 transition-all active:scale-[0.98] shadow-sm animate-slide-up-d1 hover:shadow-[0_10px_36px_rgba(41,82,232,0.14)] hover:-translate-y-0.5 ${
               selected === 'worker' ? 'border-blue-600 shadow-blue-100' : 'border-slate-100'
             }`}
           >
@@ -166,7 +175,7 @@ export default function RoleSelectionPage() {
           {/* Employer card */}
           <button
             onClick={() => handleRoleSelect('employer')}
-            className={`w-full text-left bg-white rounded-2xl p-5 lg:p-6 border-2 transition-all active:scale-[0.98] shadow-sm ${
+            className={`w-full text-left bg-white rounded-2xl p-5 lg:p-6 border-2 transition-all active:scale-[0.98] shadow-sm animate-slide-up-d2 hover:shadow-[0_10px_36px_rgba(41,82,232,0.14)] hover:-translate-y-0.5 ${
               selected === 'employer' ? 'border-blue-600 shadow-blue-100' : 'border-slate-100'
             }`}
           >

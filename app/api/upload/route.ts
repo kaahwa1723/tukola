@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
+import { getSessionUser } from '@/lib/session';
+
+const ALLOWED_BUCKETS = new Set(['job-images', 'profile-images']);
 
 /**
  * POST /api/upload
  * Multipart form body:
  *   - file   : the image file
  *   - bucket : 'job-images' | 'profile-images'  (default: 'job-images')
- *   - folder : optional sub-folder (e.g. userId)
  *
  * Returns: { url: string }
+ *
+ * Requires a session; uploads are namespaced under the session user's ID.
+ * Bucket and folder come from the server, not the client.
  *
  * WARNING: Create the buckets in Supabase Storage (public) before using this route:
  *   • job-images
@@ -16,13 +21,21 @@ import { createServerSupabase } from '@/lib/supabase-server';
  */
 export async function POST(req: NextRequest) {
   try {
+    const user = await getSessionUser(req);
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
     const formData = await req.formData();
     const file     = formData.get('file') as File | null;
     const bucket   = (formData.get('bucket') as string) ?? 'job-images';
-    const folder   = (formData.get('folder') as string) ?? 'uploads';
 
     if (!file) {
       return NextResponse.json({ error: 'file is required' }, { status: 400 });
+    }
+
+    if (!ALLOWED_BUCKETS.has(bucket)) {
+      return NextResponse.json({ error: 'Invalid bucket' }, { status: 400 });
     }
 
     // Validate type
@@ -38,7 +51,7 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer      = Buffer.from(arrayBuffer);
     const ext         = file.name.split('.').pop() ?? 'jpg';
-    const fileName    = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const fileName    = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
     const sb = createServerSupabase();
     const { error: uploadError } = await sb.storage

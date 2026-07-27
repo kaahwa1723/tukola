@@ -34,6 +34,7 @@ export function mapJob(r: any): Job {
     employerName: r.employer_name,
     employerPhone: r.employer_phone ?? undefined,
     skills: r.skills ?? [],
+    category: r.category ?? undefined,
     images: r.images ?? [],
     estimatedHours: r.estimated_hours ?? undefined,
     distanceKm: r.distance_km ?? undefined,
@@ -43,7 +44,7 @@ export function mapJob(r: any): Job {
       workerId: a.worker_id,
       workerName: a.worker_name,
       workerAvatar: a.worker_avatar ?? undefined,
-      rating: a.rating ?? 4.5,
+      rating: a.rating != null ? Number(a.rating) : 0,
       completedJobs: a.completed_jobs ?? 0,
       skills: a.skills ?? [],
       appliedAt: a.applied_at,
@@ -60,12 +61,13 @@ export function mapUser(r: any): User {
     role: r.role,
     location: r.location ?? undefined,
     avatar: r.avatar ?? undefined,
-    rating: r.rating ? Number(r.rating) : 4.5,
+    // Honest trust fields: NULL stays NULL until the system measures them
+    rating: r.rating != null ? Number(r.rating) : undefined,
     completedJobs: r.completed_jobs ?? 0,
     skills: r.skills ?? [],
     about: r.about ?? '',
-    responseTime: r.response_time ?? '< 30 mins',
-    lastActive: r.last_active ?? 'Just now',
+    responseTime: r.response_time ?? undefined,
+    lastActive: r.last_active ?? undefined,
     isVerified: r.is_verified ?? false,
     company: r.company ?? undefined,
     portfolioImages: r.portfolio_images ?? [],
@@ -74,19 +76,28 @@ export function mapUser(r: any): User {
 
 export function mapConversation(r: any, currentUserId: string): Conversation {
   const isUser1 = r.user1_id === currentUserId;
+  const msgs: any[] = Array.isArray(r.messages) ? r.messages : [];
+  // Per-user unread: count messages addressed to the requester that are unread.
+  // (unread_count is a single shared counter — using it directly shows the
+  // sender's own messages as unread on their badge.)
+  const unread = msgs.length
+    ? msgs.filter(m => m.to_id === currentUserId && !m.read).length
+    : (r.unread_count ?? 0);
   return {
     id: r.id,
     otherUserId: isUser1 ? r.user2_id : r.user1_id,
-    otherUserName: r.other_user_name,
+    // Counterparty name from the perspective of the requesting user,
+    // falling back to the legacy other_user_name column
+    otherUserName: (isUser1 ? r.user2_name : r.user1_name) ?? r.other_user_name,
     otherUserAvatar: r.other_user_avatar ?? undefined,
     lastMessage: r.last_message ?? '',
     lastMessageTime: r.last_message_time
       ? new Date(r.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : '',
-    unread: r.unread_count ?? 0,
+    unread,
     jobTitle: r.job_title ?? undefined,
     jobId: r.job_id ?? undefined,
-    messages: (r.messages ?? []).map(mapMessage),
+    messages: msgs.map(mapMessage),
   };
 }
 

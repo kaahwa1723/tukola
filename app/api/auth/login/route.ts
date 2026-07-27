@@ -1,59 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase, mapUser } from '@/lib/supabase-server';
+import { NextResponse } from 'next/server';
 
 /**
- * POST /api/auth/login
- * Body: { phone, name, role }
- * Returns the user profile (creates it if new).
+ * POST /api/auth/login — RETIRED.
+ *
+ * This route used to mint `user_${timestamp}` identities for any phone +
+ * name posted to it, with no verification — it destroyed returning-user
+ * identity and let anyone claim any phone number.
+ *
+ * The real flow is:
+ *   1. POST /api/auth/otp/request  { phone }
+ *   2. POST /api/auth/otp/verify   { phone, code }
+ *   3. POST /api/auth/register     { phone, name, role }  (new users only)
  */
-export async function POST(req: NextRequest) {
-  try {
-    const { phone, name, role } = await req.json();
-
-    if (!phone || !name || !role) {
-      return NextResponse.json({ error: 'phone, name and role are required' }, { status: 400 });
-    }
-
-    const sb = createServerSupabase();
-
-    // Try to find existing profile by phone
-    const { data: existing } = await sb
-      .from('profiles')
-      .select('*')
-      .eq('phone', phone)
-      .single();
-
-    if (existing) {
-      return NextResponse.json({ user: mapUser(existing) });
-    }
-
-    // Create new profile
-    const newId = `user_${Date.now()}`;
-    const { data: created, error } = await sb
-      .from('profiles')
-      .insert({
-        id: newId,
-        name,
-        phone,
-        role,
-        location: 'Kampala, Uganda',
-        rating: 4.5,
-        completed_jobs: 0,
-        skills: [],
-        about: '',
-        response_time: '< 30 mins',
-        last_active: 'Just now',
-        is_verified: false,
-        portfolio_images: [],
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return NextResponse.json({ user: mapUser(created) }, { status: 201 });
-  } catch (err: any) {
-    console.error('[POST /api/auth/login]', err);
-    return NextResponse.json({ error: err.message ?? 'Server error' }, { status: 500 });
-  }
+export async function POST() {
+  return NextResponse.json(
+    { error: 'This endpoint is retired. Use /api/auth/otp/request to sign in.' },
+    { status: 410 }
+  );
 }

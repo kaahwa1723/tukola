@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { DesktopSidebar } from './DesktopSidebar';
 import { MobileNav } from './MobileNav';
 import { useKola } from '@/lib/store';
@@ -13,13 +13,40 @@ interface ResponsiveLayoutProps {
 
 export function ResponsiveLayout({ children, basePath, messageBadge = 0 }: ResponsiveLayoutProps) {
   const { user } = useKola();
+  const [unread, setUnread] = useState(0);
+
+  // Real unread badge: sum unread_count across the user's conversations
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+
+    const load = () => {
+      fetch('/api/messages')
+        .then(r => (r.ok ? r.json() : null))
+        .then(data => {
+          if (cancelled || !data?.conversations) return;
+          const total = data.conversations.reduce(
+            (sum: number, c: { unread?: number }) => sum + (c.unread ?? 0),
+            0
+          );
+          setUnread(total);
+        })
+        .catch(() => {});
+    };
+
+    load();
+    const interval = setInterval(load, 30000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [user?.id]);
+
+  const badge = unread || messageBadge;
 
   return (
     <div className="flex min-h-screen bg-[#F0F4FF]">
       {/* Desktop Sidebar — hidden on mobile */}
       <DesktopSidebar
         basePath={basePath}
-        messageBadge={messageBadge}
+        messageBadge={badge}
         userName={user?.name}
         userRole={user?.role}
       />
@@ -52,7 +79,7 @@ export function ResponsiveLayout({ children, basePath, messageBadge = 0 }: Respo
 
       {/* Mobile Bottom Nav — hidden on desktop */}
       <div className="lg:hidden">
-        <MobileNav basePath={basePath} messageBadge={messageBadge} />
+        <MobileNav basePath={basePath} messageBadge={badge} />
       </div>
     </div>
   );

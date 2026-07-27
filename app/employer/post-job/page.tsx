@@ -38,10 +38,8 @@ export default function PostJobPage() {
         workersNeeded: form.workersNeeded,
         pay: form.pay ? parseInt(form.pay) : undefined,
         urgency: form.urgency,
-        employerId: user?.id || 'e1',
-        employerName: user?.name || 'Employer',
-        employerPhone: user?.phone,
         skills: form.category ? [form.category] : [],
+        category: form.category || undefined,
         images: jobImages,
       });
       setLoading(false);
@@ -87,7 +85,7 @@ export default function PostJobPage() {
         </div>
 
         {/* Fields */}
-        <div className="bg-white rounded-2xl lg:rounded-3xl p-4 lg:p-6 border border-blue-100/40 space-y-5"
+        <div className="bg-white rounded-2xl lg:rounded-3xl p-4 lg:p-6 border border-blue-100/40 space-y-5 animate-slide-up"
           style={{ boxShadow: '0 2px 16px rgba(41,82,232,0.06)' }}>
           <div>
             <label className="text-[#0A0F2C] font-semibold text-sm mb-1.5 block">Job Title *</label>

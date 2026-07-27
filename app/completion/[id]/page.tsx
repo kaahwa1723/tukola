@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ThumbsUp, ThumbsDown, ChevronLeft, Star, Search, PartyPopper } from 'lucide-react';
 import { useKola } from '@/lib/store';
@@ -17,6 +17,10 @@ export default function CompletionPage() {
   const [comment, setComment] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Tracks explicit star taps so thumbs can suggest a star default without
+  // clobbering a choice the user already made (thumbs-down + untouched stars
+  // must not submit the default 5 stars = "great")
+  const starsTouched = useRef(false);
 
   if (!job) {
     return (
@@ -30,17 +34,56 @@ export default function CompletionPage() {
     );
   }
 
-  const isEmployer = user?.role === 'employer';
-  const workerName = job.applicants.find(a => a.status === 'accepted')?.workerName || 'Worker';
+  const isEmployer = user?.role === 'employer' && job.employerId === user?.id;
+  const acceptedWorker = job.applicants.find(a => a.status === 'accepted');
+  const isAcceptedWorker = user?.role === 'worker' && acceptedWorker?.workerId === user?.id;
+  const workerName = acceptedWorker?.workerName || 'Worker';
 
-  const handleSubmit = () => {
-    if (!rating) return;
+  // Anyone else: explanatory empty state, no actions
+  if (!isEmployer && !isAcceptedWorker) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-6">
+        <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mb-3">
+          <Search size={28} color="#2952E8" />
+        </div>
+        <p className="text-slate-600 font-semibold">Nothing to do here</p>
+        <p className="text-slate-400 text-sm mt-1 text-center max-w-xs">
+          Only the employer who posted this job and the worker assigned to it can view the completion page.
+        </p>
+        <button onClick={() => router.back()} className="mt-4 text-blue-600 font-semibold">Go Back</button>
+      </div>
+    );
+  }
+
+  const handleSubmit = async () => {
+    if (!rating || !user) return;
     setLoading(true);
-    setTimeout(() => {
-      completeJob(job.id);
-      setLoading(false);
-      setSubmitted(true);
-    }, 1200);
+
+    // Employer completing rates the accepted worker; the worker rates the employer
+    const targetId = isEmployer ? acceptedWorker?.workerId : job.employerId;
+    const targetType = isEmployer ? 'worker' : 'employer';
+
+    try {
+      if (targetId) {
+        await fetch('/api/ratings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jobId: job.id,
+            targetId,
+            stars,
+            comment: comment.trim() || undefined,
+          }),
+        });
+      }
+    } catch (e) {
+      console.warn('[rating]', e);
+    }
+
+    // Only the owning employer marks the job complete
+    if (isEmployer) completeJob(job.id);
+    setLoading(false);
+    setSubmitted(true);
   };
 
   if (submitted) {
@@ -52,7 +95,7 @@ export default function CompletionPage() {
           </div>
           <h2 className="text-2xl font-black text-slate-900 mb-2">Job Complete!</h2>
           <p className="text-slate-500 text-sm mb-8">
-            Thanks for your feedback. Your rating helps keep Kola trusted.
+            Thanks for your feedback. Your rating helps keep TUKOLA trusted.
           </p>
           <div className="space-y-3">
             <button
@@ -99,7 +142,9 @@ export default function CompletionPage() {
         <div className="px-4 lg:px-12 py-5 space-y-5 max-w-2xl lg:mx-auto">
           {/* Job summary */}
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
-            <p className="text-slate-500 text-xs font-semibold uppercase tracking-wide mb-1">Completing</p>
+            <p className="text-slate-500 text-xs font-semibold uppercase tracking-wide mb-1">
+              {isEmployer ? 'Completing' : `Status: ${job.status.replace('_', ' ')}`}
+            </p>
             <h2 className="text-lg font-black text-slate-900">{job.title}</h2>
             <p className="text-slate-500 text-sm mt-0.5">{job.location}</p>
             {job.pay && (
@@ -129,7 +174,7 @@ export default function CompletionPage() {
             {/* Thumbs rating */}
             <div className="flex gap-4 mb-5">
               <button
-                onClick={() => setRating('up')}
+                onClick={() => { setRating('up'); if (!starsTouched.current) setStars(5); }}
                 className={`flex-1 py-4 rounded-2xl flex flex-col items-center gap-2 border-2 transition-all active:scale-95 ${
                   rating === 'up'
                     ? 'border-green-500 bg-green-50'
@@ -145,7 +190,7 @@ export default function CompletionPage() {
                 </span>
               </button>
               <button
-                onClick={() => setRating('down')}
+                onClick={() => { setRating('down'); if (!starsTouched.current) setStars(2); }}
                 className={`flex-1 py-4 rounded-2xl flex flex-col items-center gap-2 border-2 transition-all active:scale-95 ${
                   rating === 'down'
                     ? 'border-red-400 bg-red-50'
@@ -169,7 +214,7 @@ export default function CompletionPage() {
                 {[1, 2, 3, 4, 5].map(n => (
                   <button
                     key={n}
-                    onClick={() => setStars(n)}
+                    onClick={() => { starsTouched.current = true; setStars(n); }}
                     className="active:scale-90 transition-transform"
                   >
                     <Star
@@ -203,7 +248,7 @@ export default function CompletionPage() {
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed'
             }`}
           >
-            {loading ? 'Submitting...' : 'Submit & Complete Job'}
+            {loading ? 'Submitting...' : isEmployer ? 'Submit & Complete Job' : 'Submit Rating'}
           </button>
         </div>
       </div>

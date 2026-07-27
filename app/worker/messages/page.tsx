@@ -4,22 +4,26 @@ import { useState, useEffect } from 'react';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { MOCK_CONVERSATIONS } from '@/lib/data';
 import { useKola } from '@/lib/store';
-import { Send, MessageSquareDashed } from 'lucide-react';
+import { Send, MessageCircle } from 'lucide-react';
 import type { Conversation } from '@/lib/types';
+
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 export default function WorkerMessagesPage() {
   const { user } = useKola();
   const [activeConv, setActiveConv] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
-  const [messages, setMessages] = useState<Conversation[]>(MOCK_CONVERSATIONS);
+  const [messages, setMessages] = useState<Conversation[]>(DEMO_MODE ? MOCK_CONVERSATIONS : []);
   const [apiLoaded, setApiLoaded] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
-    fetch(`/api/messages?userId=${user.id}`)
+    fetch('/api/messages')
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data?.conversations?.length) {
+        // Replace whatever we had (incl. demo mocks) with the server's truth,
+        // even when that is an empty list
+        if (data?.conversations) {
           setMessages(data.conversations);
         }
         setApiLoaded(true);
@@ -28,6 +32,23 @@ export default function WorkerMessagesPage() {
   }, [user?.id]);
 
   const conversation = messages.find(c => c.id === activeConv);
+
+  // Open a conversation: clear its unread badge locally and mark incoming
+  // messages read on the server (GET …?userId= does the marking)
+  const openConversation = (convId: string) => {
+    setActiveConv(convId);
+    if (!user?.id) return;
+    setMessages(prev => prev.map(c => (c.id === convId ? { ...c, unread: 0 } : c)));
+    fetch(`/api/messages/${convId}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (!data?.messages) return;
+        setMessages(prev =>
+          prev.map(c => (c.id === convId ? { ...c, messages: data.messages, unread: 0 } : c))
+        );
+      })
+      .catch(() => {});
+  };
 
   const handleSend = () => {
     if (!newMessage.trim() || !activeConv) return;
@@ -60,17 +81,12 @@ export default function WorkerMessagesPage() {
     );
     setNewMessage('');
 
-    // Persist to backend
+    // Persist to backend (server derives from/to/name from the session)
     if (user && conv) {
       fetch(`/api/messages/${activeConv}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fromId: user.id,
-          toId: conv.otherUserId,
-          fromName: user.name,
-          text,
-        }),
+        body: JSON.stringify({ text }),
       }).catch(e => console.warn('[send message]', e));
     }
   };
@@ -117,7 +133,7 @@ export default function WorkerMessagesPage() {
                 style={msg.fromId === (user?.id ?? 'current') ? { background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' } : undefined}
               >
                 <p>{msg.text}</p>
-                <p className={`text-[10px] mt-1 ${msg.fromId === 'current' ? 'text-blue-200' : 'text-slate-400'}`}>
+                <p className={`text-[10px] mt-1 ${msg.fromId === (user?.id ?? 'current') ? 'text-blue-200' : 'text-slate-400'}`}>
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
@@ -153,13 +169,13 @@ export default function WorkerMessagesPage() {
 
       <div className="px-4 lg:px-6 py-4 max-w-4xl lg:mx-auto">
         {messages.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#EEF2FF' }}>
-              <MessageSquareDashed size={28} color="#2952E8" strokeWidth={1.5} />
+          <div className="empty-state">
+            <div className="empty-icon">
+              <MessageCircle size={30} color="#2952E8" />
             </div>
-            <p className="font-bold text-[#0A0F2C]">No messages yet</p>
-            <p className="text-slate-400 text-sm mt-1">
-              Messages from employers will appear here
+            <p className="empty-title">No messages yet</p>
+            <p className="empty-sub">
+              Start a conversation from a job or an applicant.
             </p>
           </div>
         ) : (
@@ -167,8 +183,8 @@ export default function WorkerMessagesPage() {
             {messages.map(conv => (
               <button
                 key={conv.id}
-                onClick={() => setActiveConv(conv.id)}
-                className="w-full text-left bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-3 active:bg-slate-50 transition-colors"
+                onClick={() => openConversation(conv.id)}
+                className="w-full text-left bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-3 active:bg-slate-50 transition-all hover:shadow-[0_8px_30px_rgba(41,82,232,0.12)] active:scale-[0.99]"
               >
                 <div className="relative flex-shrink-0">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -177,7 +193,7 @@ export default function WorkerMessagesPage() {
                     </span>
                   </div>
                   {conv.unread > 0 && (
-                    <div className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center ring-2 ring-white">
                       <span className="text-white text-[10px] font-bold">{conv.unread}</span>
                     </div>
                   )}

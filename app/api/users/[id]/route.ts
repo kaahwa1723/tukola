@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, mapUser } from '@/lib/supabase-server';
+import { getSessionUser } from '@/lib/session';
 
 type Params = { params: { id: string } };
 
@@ -25,13 +26,25 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
 /**
  * PATCH /api/users/[id]
- * Accepts any subset of profile fields (camelCase).
+ * Accepts a subset of SELF-SERVICE profile fields (camelCase).
+ *
+ * Identity comes from the server session: users can only update their own
+ * profile. Trust fields (isVerified, rating, completedJobs) are NOT
+ * self-service — they are set by admin actions and system events only.
  */
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
+    const user = await getSessionUser(req);
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+    if (user.id !== params.id) {
+      return NextResponse.json({ error: 'You can only update your own profile' }, { status: 403 });
+    }
+
     const body = await req.json();
 
-    // Map camelCase → snake_case
+    // Map camelCase → snake_case (self-service fields only)
     const updates: Record<string, any> = {};
     if (body.name             !== undefined) updates.name              = body.name;
     if (body.location         !== undefined) updates.location          = body.location;
@@ -39,11 +52,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (body.about            !== undefined) updates.about             = body.about;
     if (body.skills           !== undefined) updates.skills            = body.skills;
     if (body.company          !== undefined) updates.company           = body.company;
-    if (body.responseTime     !== undefined) updates.response_time     = body.responseTime;
-    if (body.lastActive       !== undefined) updates.last_active       = body.lastActive;
-    if (body.isVerified       !== undefined) updates.is_verified       = body.isVerified;
-    if (body.rating           !== undefined) updates.rating            = body.rating;
-    if (body.completedJobs    !== undefined) updates.completed_jobs    = body.completedJobs;
     if (body.portfolioImages  !== undefined) updates.portfolio_images  = body.portfolioImages;
 
     if (Object.keys(updates).length === 0) {

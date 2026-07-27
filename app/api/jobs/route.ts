@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, mapJob } from '@/lib/supabase-server';
+import { getSessionUser } from '@/lib/session';
 
 /**
  * GET /api/jobs
@@ -43,18 +44,25 @@ export async function GET(req: NextRequest) {
 /**
  * POST /api/jobs
  * Body: Job fields (minus id, createdAt, applicants, status)
+ *
+ * Employer identity comes from the server session — client-supplied
+ * employerId / employerName / employerPhone are ignored.
  */
 export async function POST(req: NextRequest) {
   try {
+    const user = await getSessionUser(req);
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
     const body = await req.json();
     const {
       title, description, location, dateTime, workersNeeded,
-      pay, urgency, employerId, employerName, employerPhone,
-      skills, images, estimatedHours,
+      pay, urgency, skills, category, images, estimatedHours,
     } = body;
 
-    if (!title || !location || !employerName) {
-      return NextResponse.json({ error: 'title, location and employerName are required' }, { status: 400 });
+    if (!title || !location) {
+      return NextResponse.json({ error: 'title and location are required' }, { status: 400 });
     }
 
     const sb = createServerSupabase();
@@ -69,10 +77,11 @@ export async function POST(req: NextRequest) {
         pay: pay ?? null,
         urgency: urgency ?? 'scheduled',
         status: 'open',
-        employer_id: employerId,
-        employer_name: employerName,
-        employer_phone: employerPhone ?? null,
+        employer_id: user.id,
+        employer_name: user.name,
+        employer_phone: user.phone ?? null,
         skills: skills ?? [],
+        category: category ?? null,
         images: images ?? [],
         estimated_hours: estimatedHours ?? null,
       })

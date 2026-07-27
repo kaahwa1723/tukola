@@ -1,11 +1,13 @@
 'use client';
 
+import { useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   MapPin, Calendar, Banknote, Phone, Users, Clock, ChevronLeft, CheckCircle,
   Images, Star, Briefcase, ShieldCheck, Wrench, Sparkles, Zap, Car, ChefHat,
-  Leaf, Shield, Paintbrush, Package, Scissors, Truck, Hammer, Building2, Search
+  Leaf, Shield, Paintbrush, Package, Scissors, Truck, Hammer, Building2, Search,
+  MessageCircle
 } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { MOCK_WORKERS } from '@/lib/data';
@@ -55,12 +57,35 @@ export default function JobDetailsPage() {
   const isWorker = user?.role === 'worker';
   const isEmployer = user?.role === 'employer';
   const hasApplied = applications.includes(job.id);
-  const isMyJob = isEmployer && (job.employerId === user?.id || ['e1', 'e2'].includes(job.employerId));
+  const isMyJob = isEmployer && job.employerId === user?.id;
 
   const JobIcon = getJobIcon(job.title);
 
   const handleApply = () => applyToJob(job.id);
   const handleAccept = (applicantId: string) => acceptApplicant(job.id, applicantId);
+
+  // Start (or reopen) a conversation with the counterparty, then go to messages.
+  // Guarded against double-clicks — two parallel POSTs could both miss the
+  // existing-conversation check and insert duplicates.
+  const startingConv = useRef(false);
+  const startConversation = async (otherUserId: string, otherUserName: string) => {
+    if (!user || startingConv.current) return;
+    startingConv.current = true;
+    try {
+      await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: job.id,
+          jobTitle: job.title,
+          user2Id: otherUserId,
+        }),
+      });
+    } catch (e) {
+      console.warn('[start conversation]', e);
+    }
+    router.push(isEmployer ? '/employer/messages' : '/worker/messages');
+  };
 
   return (
     <div className="min-h-screen bg-[#F0F4FF]">
@@ -186,12 +211,20 @@ export default function JobDetailsPage() {
                   </p>
                 </div>
               </div>
-              {job.employerPhone && (
-                <a href={`tel:${job.employerPhone}`}
-                  className="w-11 h-11 bg-green-50 rounded-2xl flex items-center justify-center active:scale-95 transition-transform hover:bg-green-100">
-                  <Phone size={18} className="text-green-600" />
-                </a>
-              )}
+              <div className="flex items-center gap-2">
+                <button onClick={() => startConversation(job.employerId, job.employerName)}
+                  aria-label="Message Employer"
+                  className="w-11 h-11 bg-blue-50 rounded-2xl flex items-center justify-center active:scale-95 transition-transform hover:bg-blue-100">
+                  <MessageCircle size={18} className="text-blue-600" />
+                </button>
+                {job.employerPhone && (
+                  <a href={`tel:${job.employerPhone}`}
+                    aria-label="Call Employer"
+                    className="w-11 h-11 bg-green-50 rounded-2xl flex items-center justify-center active:scale-95 transition-transform hover:bg-green-100">
+                    <Phone size={18} className="text-green-600" />
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -228,17 +261,24 @@ export default function JobDetailsPage() {
                           </div>
                         </div>
                       </div>
-                      {applicant.status === 'accepted' ? (
-                        <span className="flex items-center gap-1 text-green-600 text-xs font-bold bg-green-50 px-3 py-1.5 rounded-xl">
-                          <CheckCircle size={12} /> Accepted
-                        </span>
-                      ) : (
-                        <button onClick={() => handleAccept(applicant.workerId)}
-                          className="text-white text-xs font-black px-4 py-2 rounded-xl active:scale-95 transition-transform hover:opacity-90"
-                          style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}>
-                          Accept
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button onClick={() => startConversation(applicant.workerId, applicant.workerName)}
+                          aria-label={`Message ${applicant.workerName}`}
+                          className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center active:scale-95 transition-transform hover:bg-blue-100">
+                          <MessageCircle size={15} className="text-blue-600" />
                         </button>
-                      )}
+                        {applicant.status === 'accepted' ? (
+                          <span className="flex items-center gap-1 text-green-600 text-xs font-bold bg-green-50 px-3 py-1.5 rounded-xl">
+                            <CheckCircle size={12} /> Accepted
+                          </span>
+                        ) : (
+                          <button onClick={() => handleAccept(applicant.workerId)}
+                            className="text-white text-xs font-black px-4 py-2 rounded-xl active:scale-95 transition-transform hover:opacity-90"
+                            style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}>
+                            Accept
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {portfolio.length > 0 && (
                       <div className="flex gap-1.5 mt-2 overflow-x-auto scrollbar-hide">

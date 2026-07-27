@@ -1,18 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, mapMessage } from '@/lib/supabase-server';
+import { getSessionUser } from '@/lib/session';
 
 type Params = { params: { conversationId: string } };
 
 /**
+ * Load the conversation and verify the session user is a participant.
+ * Returns the conversation row when authorized, null otherwise.
+ */
+async function getAuthorizedConversation(req: NextRequest, conversationId: string) {
+  const user = await getSessionUser(req);
+  if (!user) return { user: null, conv: null };
+
+  const sb = createServerSupabase();
+  const { data: conv } = await sb
+    .from('conversations')
+    .select('*')
+    .eq('id', conversationId)
+    .maybeSingle();
+
+  if (!conv || (conv.user1_id !== user.id && conv.user2_id !== user.id)) {
+    return { user, conv: null };
+  }
+  return { user, conv };
+}
+
+/**
  * GET /api/messages/[conversationId]
- * Returns all messages in the conversation and marks them as read.
- * Query param: userId (the reading user — their messages get marked read)
+ * Returns all messages in the conversation and marks the session user's
+ * incoming messages as read. Participants only.
  */
 export async function GET(req: NextRequest, { params }: Params) {
   try {
-    const userId = req.nextUrl.searchParams.get('userId');
-    const sb = createServerSupabase();
+    const { user, conv } = await getAuthorizedConversation(req, params.conversationId);
+    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    if (!conv) return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
 
+    const sb = createServerSupabase();
     const { data, error } = await sb
       .from('messages')
       .select('*')
@@ -21,21 +45,19 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     if (error) throw error;
 
-    // Mark unread messages as read for this user
-    if (userId) {
-      await sb
-        .from('messages')
-        .update({ read: true })
-        .eq('conversation_id', params.conversationId)
-        .eq('to_id', userId)
-        .eq('read', false);
+    // Mark unread messages addressed to me as read
+    await sb
+      .from('messages')
+      .update({ read: true })
+      .eq('conversation_id', params.conversationId)
+      .eq('to_id', user.id)
+      .eq('read', false);
 
-      // Reset unread count on conversation
-      await sb
-        .from('conversations')
-        .update({ unread_count: 0 })
-        .eq('id', params.conversationId);
-    }
+    // Reset unread count on conversation
+    await sb
+      .from('conversations')
+      .update({ unread_count: 0 })
+      .eq('id', params.conversationId);
 
     return NextResponse.json({ messages: (data ?? []).map(mapMessage) });
   } catch (err: any) {
@@ -45,17 +67,21 @@ export async function GET(req: NextRequest, { params }: Params) {
 
 /**
  * POST /api/messages/[conversationId]
- * Sends a message and updates conversation last_message.
- * Body: { fromId, toId, fromName, text }
+ * Sends a message from the SESSION user to the other participant.
+ * Body: { text } — fromId/toId/fromName are all server-derived.
  */
 export async function POST(req: NextRequest, { params }: Params) {
   try {
-    const { fromId, toId, fromName, text } = await req.json();
+    const { user, conv } = await getAuthorizedConversation(req, params.conversationId);
+    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    if (!conv) return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
 
-    if (!fromId || !toId || !fromName || !text?.trim()) {
-      return NextResponse.json({ error: 'fromId, toId, fromName and text are required' }, { status: 400 });
+    const { text } = await req.json();
+    if (!text?.trim()) {
+      return NextResponse.json({ error: 'text is required' }, { status: 400 });
     }
 
+    const toId = conv.user1_id === user.id ? conv.user2_id : conv.user1_id;
     const sb = createServerSupabase();
     const timestamp = new Date().toISOString();
 
@@ -64,9 +90,9 @@ export async function POST(req: NextRequest, { params }: Params) {
       .from('messages')
       .insert({
         conversation_id: params.conversationId,
-        from_id: fromId,
+        from_id: user.id,
         to_id: toId,
-        from_name: fromName,
+        from_name: user.name,
         text: text.trim(),
         timestamp,
         read: false,
@@ -76,17 +102,11 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     if (msgError) throw msgError;
 
-    // Update conversation last_message and bump unread for recipient
-    await sb
-      .from('conversations')
-      .update({
-        last_message: text.trim(),
-        last_message_time: timestamp,
-        unread_count: sb.rpc('increment_unread', { conv_id: params.conversationId }) as any,
-      })
-      .eq('id', params.conversationId);
+    // Bump unread for the recipient (own call — never inside update())
+    const { error: unreadError } = await sb.rpc('increment_unread', { conv_id: params.conversationId });
+    if (unreadError) console.warn('[increment_unread]', unreadError.message);
 
-    // Simpler fallback — just update text and time
+    // Update conversation last_message / last_message_time
     await sb
       .from('conversations')
       .update({ last_message: text.trim(), last_message_time: timestamp })

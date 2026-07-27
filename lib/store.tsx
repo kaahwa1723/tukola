@@ -4,6 +4,12 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { User, Job, Role } from './types';
 import { MOCK_JOBS } from './data';
 
+// ─── Demo mode ───────────────────────────────────────────────────────────────
+// When true, mock jobs/workers are shown (for demos). When false/omitted,
+// jobs come only from the DB/API — nothing mock enters the jobs list.
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+const MOCK_JOB_IDS = new Set(MOCK_JOBS.map(j => j.id));
+
 // ─── localStorage helpers ────────────────────────────────────────────────────
 const safeGet = (key: string): string | null => {
   if (typeof window === 'undefined') return null;
@@ -36,9 +42,12 @@ interface KolaContextType {
   jobs: Job[];
   isLoading: boolean;
   applications: string[];
-  login: (phone: string, name: string, role: Role) => void;
+  /** Adopt a server-issued user (after OTP verify or register). */
+  setSessionUser: (user: User) => void;
+  /** New-user signup after OTP verify — calls /api/auth/register. */
+  register: (phone: string, name: string, role: Role) => Promise<User | null>;
   logout: () => void;
-  postJob: (jobData: Omit<Job, 'id' | 'createdAt' | 'applicants' | 'status'>) => Job;
+  postJob: (jobData: Omit<Job, 'id' | 'createdAt' | 'applicants' | 'status' | 'employerId' | 'employerName' | 'employerPhone'>) => Job;
   applyToJob: (jobId: string) => void;
   completeJob: (jobId: string) => void;
   acceptApplicant: (jobId: string, workerId: string) => void;
@@ -51,7 +60,7 @@ const KolaContext = createContext<KolaContextType | null>(null);
 // ─── Provider ────────────────────────────────────────────────────────────────
 export function KolaProvider({ children }: { children: ReactNode }) {
   const [user, setUser]               = useState<User | null>(null);
-  const [jobs, setJobs]               = useState<Job[]>(MOCK_JOBS);
+  const [jobs, setJobs]               = useState<Job[]>(DEMO_MODE ? MOCK_JOBS : []);
   const [applications, setApplications] = useState<string[]>([]);
   const [isLoading, setIsLoading]     = useState(true);
 
@@ -64,7 +73,7 @@ export function KolaProvider({ children }: { children: ReactNode }) {
       if (remoteJobs?.length) {
         setJobs(prev => {
           const remoteIds = new Set(remoteJobs.map((j: Job) => j.id));
-          return [...remoteJobs, ...prev.filter((j: Job) => !remoteIds.has(j.id))];
+          return [...remoteJobs, ...prev.filter((j: Job) => !remoteIds.has(j.id) && (DEMO_MODE || !MOCK_JOB_IDS.has(j.id)))];
         });
       }
     } catch (e) {
@@ -73,77 +82,82 @@ export function KolaProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Restore cached user + applications
-    const storedUser = safeGet('kola_user');
+    // Identity comes from the SERVER SESSION — never from localStorage.
+    // /api/auth/me resolves the HttpOnly session cookie to a real profile.
     const storedApps = safeGet('kola_applications');
-
-    if (storedUser) {
-      try { setUser(JSON.parse(storedUser)); } catch {}
-    }
     if (storedApps) {
       try { setApplications(JSON.parse(storedApps)); } catch {}
     }
 
-    // Load live jobs from API
-    refreshJobs().finally(() => setIsLoading(false));
+    fetch('/api/auth/me')
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (data?.user) setUser(data.user); })
+      .catch(() => {})
+      .finally(() => {
+        // Load live jobs from API
+        refreshJobs().finally(() => setIsLoading(false));
+      });
   }, [refreshJobs]);
 
-  // ── login ──────────────────────────────────────────────────────────────────
-  const login = useCallback((phone: string, name: string, role: Role) => {
-    // Optimistic: set user immediately
-    const optimisticUser: User = {
-      id: `user_${Date.now()}`,
-      name, phone, role,
-      location: 'Kampala, Uganda',
-      rating: 4.5, completedJobs: 0,
-      skills: [], about: '',
-      responseTime: '< 30 mins',
-      lastActive: 'Just now',
-      isVerified: false,
-      portfolioImages: [],
-    };
-    setUser(optimisticUser);
-    safeSet('kola_user', JSON.stringify(optimisticUser));
-
-    // Persist to backend; on success, update the stored ID with the server's canonical ID
-    fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, name, role }),
-    })
-      .then(r => r.json())
-      .then(({ user: serverUser }) => {
-        if (serverUser) {
-          setUser(serverUser);
-          safeSet('kola_user', JSON.stringify(serverUser));
-        }
-      })
-      .catch(e => console.warn('[login API]', e));
+  // ── setSessionUser ─────────────────────────────────────────────────────────
+  // Called by /verify (returning users) and /role (new users) after the
+  // server has issued a session — the client never invents identity.
+  const setSessionUser = useCallback((serverUser: User) => {
+    setUser(serverUser);
+    safeSet('kola_onboarded', 'true');
   }, []);
+
+  // ── register ───────────────────────────────────────────────────────────────
+  // New-user signup. The server independently requires proof that the phone
+  // was OTP-verified moments ago; it returns the canonical profile.
+  const register = useCallback(async (phone: string, name: string, role: Role): Promise<User | null> => {
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, name, role }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.user) {
+        console.warn('[register]', data?.error ?? res.statusText);
+        return null;
+      }
+      setSessionUser(data.user);
+      return data.user as User;
+    } catch (e) {
+      console.warn('[register]', e);
+      return null;
+    }
+  }, [setSessionUser]);
 
   // ── logout ─────────────────────────────────────────────────────────────────
   const logout = useCallback(() => {
     setUser(null);
     setApplications([]);
-    safeDel('kola_user');
     safeDel('kola_applications');
-    safeDel('kola_user_jobs');
     safeDel('kola_onboarded');
+    // Tell the server to clear the session cookie
+    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
   }, []);
 
   // ── postJob ────────────────────────────────────────────────────────────────
   const postJob = useCallback(
-    (jobData: Omit<Job, 'id' | 'createdAt' | 'applicants' | 'status'>): Job => {
+    (jobData: Omit<Job, 'id' | 'createdAt' | 'applicants' | 'status' | 'employerId' | 'employerName' | 'employerPhone'>): Job => {
       const newJob: Job = {
         ...jobData,
         id: `job_${Date.now()}`,
         createdAt: new Date().toISOString(),
         applicants: [],
         status: 'open',
+        // Employer identity is filled by the server from the session;
+        // shown optimistically from the current user
+        employerId: user?.id ?? '',
+        employerName: user?.name ?? '',
+        employerPhone: user?.phone,
       };
       setJobs(prev => [newJob, ...prev]);
 
-      // Persist to backend
+      // Persist to backend (server derives employer from session)
       fetch('/api/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -160,7 +174,7 @@ export function KolaProvider({ children }: { children: ReactNode }) {
 
       return newJob;
     },
-    []
+    [user]
   );
 
   // ── applyToJob ─────────────────────────────────────────────────────────────
@@ -193,11 +207,7 @@ export function KolaProvider({ children }: { children: ReactNode }) {
 
       api(`/api/jobs/${jobId}/apply`, {
         method: 'POST',
-        body: JSON.stringify({
-          workerId: user.id, workerName: user.name,
-          rating: user.rating, completedJobs: user.completedJobs,
-          skills: user.skills,
-        }),
+        body: JSON.stringify({}),
       });
     },
     [user, applications]
@@ -225,8 +235,12 @@ export function KolaProvider({ children }: { children: ReactNode }) {
     setJobs(prev =>
       prev.map(j => j.id === jobId ? { ...j, status: 'completed' as const, completedAt } : j)
     );
-    api(`/api/jobs/${jobId}/complete`, { method: 'POST' });
-  }, []);
+    const job = jobs.find(j => j.id === jobId);
+    // Only the owning employer may complete a job via the API
+    if (user?.role === 'employer' && job?.employerId === user.id) {
+      api(`/api/jobs/${jobId}/complete`, { method: 'POST', body: JSON.stringify({}) });
+    }
+  }, [user, jobs]);
 
   // ── updateUser ─────────────────────────────────────────────────────────────
   const updateUser = useCallback((updates: Partial<User>) => {
@@ -249,7 +263,7 @@ export function KolaProvider({ children }: { children: ReactNode }) {
     <KolaContext.Provider
       value={{
         user, jobs, isLoading, applications,
-        login, logout, postJob, applyToJob, completeJob, acceptApplicant, updateUser,
+        setSessionUser, register, logout, postJob, applyToJob, completeJob, acceptApplicant, updateUser,
         refreshJobs,
       }}
     >

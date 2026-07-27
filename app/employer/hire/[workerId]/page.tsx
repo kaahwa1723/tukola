@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MapPin, Star, CheckCircle, Clock, Zap, ChevronLeft, Send, ShieldCheck, Images } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { MOCK_WORKERS } from '@/lib/data';
-import { ImagePicker } from '@/components/ImagePicker';
+import type { User } from '@/lib/types';
+import { UploadImagePicker } from '@/components/UploadImagePicker';
+
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 export default function HireWorkerPage() {
   const { workerId } = useParams<{ workerId: string }>();
@@ -14,7 +17,22 @@ export default function HireWorkerPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const worker = MOCK_WORKERS.find(w => w.id === workerId);
+  // Look up the real worker profile first; mock workers only in demo mode
+  const [worker, setWorker] = useState<User | null>(null);
+  const [workerLoaded, setWorkerLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/users/${workerId}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (data?.user) setWorker(data.user);
+        else if (DEMO_MODE) setWorker(MOCK_WORKERS.find(w => w.id === workerId) ?? null);
+      })
+      .catch(() => {
+        if (DEMO_MODE) setWorker(MOCK_WORKERS.find(w => w.id === workerId) ?? null);
+      })
+      .finally(() => setWorkerLoaded(true));
+  }, [workerId]);
 
   const [form, setForm] = useState({
     title: '',
@@ -34,6 +52,14 @@ export default function HireWorkerPage() {
     e.target.style.borderColor = '#E2E6F0';
   };
 
+  if (!workerLoaded) {
+    return (
+      <div className="mobile-container min-h-screen flex items-center justify-center">
+        <p className="text-gray-400 font-semibold text-sm">Loading worker…</p>
+      </div>
+    );
+  }
+
   if (!worker) {
     return (
       <div className="mobile-container min-h-screen flex flex-col items-center justify-center gap-3">
@@ -43,28 +69,62 @@ export default function HireWorkerPage() {
     );
   }
 
-  const handleHire = () => {
+  const handleHire = async () => {
     if (!form.title.trim() || !form.location.trim()) return;
+    // A hire request without a logged-in employer would post an orphaned job
+    // and silently fail the invite — send them to login instead
+    if (!user) {
+      router.push('/login');
+      return;
+    }
     setLoading(true);
-    setTimeout(() => {
-      postJob({
-        title: form.title,
-        description: form.description,
-        location: form.location,
-        dateTime: form.dateTime || new Date().toISOString(),
-        workersNeeded: 1,
-        pay: form.pay ? parseInt(form.pay) : undefined,
-        urgency: form.urgency,
-        employerId: user?.id || 'e1',
-        employerName: user?.name || 'Employer',
-        employerPhone: user?.phone,
-        skills: worker.skills || [],
-        images: jobImages,
+
+    const jobTitle = form.title.trim();
+    const job = postJob({
+      title: jobTitle,
+      description: form.description,
+      location: form.location,
+      dateTime: form.dateTime || new Date().toISOString(),
+      workersNeeded: 1,
+      pay: form.pay ? parseInt(form.pay) : undefined,
+      urgency: form.urgency,
+      skills: worker.skills || [],
+      images: jobImages,
+    });
+
+    // Notify the worker: open a conversation on this job and send the invite
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: job.id,
+          jobTitle,
+          user2Id: worker.id,
+        }),
       });
-      setLoading(false);
-      setSuccess(true);
-      setTimeout(() => router.push('/employer'), 2500);
-    }, 1000);
+      const data = await res.json().catch(() => null);
+      const convId = data?.conversation?.id;
+
+      if (convId && user) {
+        const when = new Date(form.dateTime || Date.now()).toLocaleDateString('en-UG', {
+          month: 'short', day: 'numeric',
+        });
+        await fetch(`/api/messages/${convId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: `Hi ${worker.name}, I'd like to hire you for '${jobTitle}' on ${when} in ${form.location} — UGX ${form.pay || 'negotiable'}. Reply here to confirm.`,
+          }),
+        });
+      }
+    } catch (e) {
+      console.warn('[hire invite]', e);
+    }
+
+    setLoading(false);
+    setSuccess(true);
+    setTimeout(() => router.push('/employer/messages'), 2500);
   };
 
   if (success) {
@@ -79,8 +139,8 @@ export default function HireWorkerPage() {
             </svg>
           </div>
           <h2 className="text-3xl font-black text-white mb-2">Request Sent!</h2>
-          <p className="text-blue-200 mb-1">{worker.name} is being notified.</p>
-          <p className="text-blue-300/60 text-xs">Redirecting to your dashboard…</p>
+          <p className="text-blue-200 mb-1">Your invitation was sent to {worker.name}&apos;s inbox.</p>
+          <p className="text-blue-300/60 text-xs">Redirecting to your messages…</p>
         </div>
       </div>
     );
@@ -236,10 +296,12 @@ export default function HireWorkerPage() {
 
           {/* Job photos */}
           <div>
-            <ImagePicker
+            <UploadImagePicker
               images={jobImages}
               onChange={setJobImages}
               maxImages={6}
+              bucket="job-images"
+              folder={`jobs/${user?.id || 'guest'}`}
               label="Job Photos (optional)"
               hint="Show the worker what needs doing"
             />

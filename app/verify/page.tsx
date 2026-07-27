@@ -3,20 +3,27 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Shield, Check } from 'lucide-react';
+import { useKola } from '@/lib/store';
 
 export default function VerifyPage() {
-  const [digits, setDigits] = useState(['', '', '', '']);
+  const [digits, setDigits] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resent, setResent] = useState(false);
   const [phone, setPhone] = useState('+256...');
+  const [devCode, setDevCode] = useState<string | null>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
+  const { setSessionUser } = useKola();
 
   useEffect(() => {
     // Read after mount so SSR HTML matches first client render (no hydration error).
     const stored = localStorage.getItem('kola_phone');
     if (stored) setPhone(stored);
+    try {
+      const code = sessionStorage.getItem('kola_dev_code');
+      if (code) setDevCode(code);
+    } catch {}
     inputRefs.current[0]?.focus();
   }, []);
 
@@ -27,10 +34,10 @@ export default function VerifyPage() {
     setDigits(updated);
     setError('');
 
-    if (value && index < 3) {
+    if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
-    if (value && index === 3) {
+    if (value && index === 5) {
       handleVerify([...updated]);
     }
   };
@@ -41,29 +48,72 @@ export default function VerifyPage() {
     }
   };
 
-  const handleVerify = (code = digits) => {
+  const handleVerify = async (code = digits) => {
     const otp = code.join('');
-    if (otp.length < 4) {
-      setError('Enter the full 4-digit code');
+    if (otp.length < 6) {
+      setError('Enter the full 6-digit code');
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      const user = typeof window !== 'undefined' ? localStorage.getItem('kola_user') : null;
-      if (user) {
-        const parsed = JSON.parse(user);
-        router.push(parsed.role === 'worker' ? '/worker' : '/employer');
-      } else {
-        router.push('/role');
+    setError('');
+    try {
+      const res = await fetch('/api/auth/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code: otp }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setError(data?.error ?? 'Verification failed. Please try again.');
+        setLoading(false);
+        return;
       }
-    }, 1200);
+
+      try { sessionStorage.removeItem('kola_dev_code'); } catch {}
+
+      if (data?.isNewUser) {
+        // New phone — collect name + role, then /api/auth/register
+        router.push('/role');
+        return;
+      }
+
+      // Returning user — the server resumed their existing account and
+      // issued a session; adopt the canonical profile
+      if (data?.user) {
+        setSessionUser(data.user);
+        router.push(data.user.role === 'worker' ? '/worker' : '/employer');
+        return;
+      }
+
+      setError('Unexpected response. Please try again.');
+      setLoading(false);
+    } catch {
+      setError('Network error. Please try again.');
+      setLoading(false);
+    }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     setResent(true);
-    setDigits(['', '', '', '']);
+    setDigits(['', '', '', '', '', '']);
+    setError('');
     inputRefs.current[0]?.focus();
+    try {
+      const res = await fetch('/api/auth/otp/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json().catch(() => null);
+      if (data?.devCode) {
+        setDevCode(data.devCode);
+        try { sessionStorage.setItem('kola_dev_code', data.devCode); } catch {}
+      }
+      if (!res.ok) setError(data?.error ?? 'Could not resend the code.');
+    } catch {
+      setError('Network error. Please try again.');
+    }
     setTimeout(() => setResent(false), 3000);
   };
 
@@ -107,12 +157,12 @@ export default function VerifyPage() {
 
           <h2 className="text-2xl font-black text-slate-900 text-center mb-2">Enter your code</h2>
           <p className="text-slate-500 text-sm text-center mb-1">
-            We sent a 4-digit code to
+            We sent a 6-digit code to
           </p>
           <p className="text-slate-800 font-bold text-center mb-8">{phone}</p>
 
           {/* OTP inputs */}
-          <div className="flex gap-3 mb-5">
+          <div className="flex gap-2 mb-5">
             {digits.map((digit, i) => (
               <input
                 key={i}
@@ -123,7 +173,7 @@ export default function VerifyPage() {
                 value={digit}
                 onChange={e => handleDigit(i, e.target.value)}
                 onKeyDown={e => handleKeyDown(i, e)}
-                className={`w-16 h-16 lg:w-20 lg:h-20 text-center text-2xl font-black rounded-2xl border-2 focus:outline-none transition-all ${
+                className={`w-12 h-14 lg:w-14 lg:h-16 text-center text-xl font-black rounded-2xl border-2 focus:outline-none transition-all ${
                   digit
                     ? 'border-blue-600 bg-blue-50 text-blue-700'
                     : error
@@ -144,18 +194,19 @@ export default function VerifyPage() {
             </p>
           )}
 
-          {/* Demo hint — demo mode only, never rendered in production builds */}
-          {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
+          {/* Demo hint — mock SMS provider in non-production only.
+              NEVER rendered in production builds. */}
+          {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && devCode && (
             <p className="text-slate-400 text-xs text-center mb-6 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2">
-              Demo: enter any 4 digits to continue
+              Demo code: <span className="font-bold tracking-widest">{devCode}</span>
             </p>
           )}
 
           <button
             onClick={() => handleVerify()}
-            disabled={loading || digits.join('').length < 4}
+            disabled={loading || digits.join('').length < 6}
             className={`w-full max-w-sm py-4 rounded-2xl font-bold text-base transition-all active:scale-95 ${
-              digits.join('').length === 4 && !loading
+              digits.join('').length === 6 && !loading
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed'
             }`}
