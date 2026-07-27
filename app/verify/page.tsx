@@ -9,13 +9,14 @@ export default function VerifyPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resent, setResent] = useState(false);
+  const [phone, setPhone] = useState('+256...');
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
 
-  const phone =
-    typeof window !== 'undefined' ? localStorage.getItem('kola_phone') || '+256...' : '+256...';
-
   useEffect(() => {
+    // Read after mount so SSR HTML matches first client render (no hydration error).
+    const stored = localStorage.getItem('kola_phone');
+    if (stored) setPhone(stored);
     inputRefs.current[0]?.focus();
   }, []);
 
@@ -143,10 +144,12 @@ export default function VerifyPage() {
             </p>
           )}
 
-          {/* Hint for demo */}
-          <p className="text-slate-400 text-xs text-center mb-6 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2">
-            Demo: enter any 4 digits to continue
-          </p>
+          {/* Demo hint — demo mode only, never rendered in production builds */}
+          {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
+            <p className="text-slate-400 text-xs text-center mb-6 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2">
+              Demo: enter any 4 digits to continue
+            </p>
+          )}
 
           <button
             onClick={() => handleVerify()}

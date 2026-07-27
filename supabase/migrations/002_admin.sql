@@ -10,5 +10,5 @@ ALTER TABLE profiles
 -- Index for quickly querying non-blocked users
 CREATE INDEX IF NOT EXISTS profiles_blocked_idx ON profiles (blocked);
 
--- Also add ADMIN_PIN note to env example:
--- ADMIN_PIN=tukola2025
+-- Note: the admin portal PIN is configured via the ADMIN_PIN environment
+-- variable (see .env.local.example). Never hardcode a PIN in the repo.
