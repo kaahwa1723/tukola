@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
+import { track } from '@/lib/analytics';
 
 /**
  * POST /api/ratings
@@ -105,6 +106,8 @@ export async function POST(req: NextRequest) {
       );
 
     if (ratingError) throw ratingError;
+
+    track('rating_submitted', fromId, { jobId, targetId: toId, stars, score });
 
     // Update the recipient's rolling average rating
     const { data: allRatings } = await sb

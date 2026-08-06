@@ -4,6 +4,7 @@ import { getSmsProvider } from '@/lib/sms/provider';
 import { createServerSupabase, mapUser } from '@/lib/supabase-server';
 import { setSessionCookie } from '@/lib/session';
 import { hit } from '@/lib/rate-limit';
+import { track } from '@/lib/analytics';
 
 /**
  * POST /api/auth/otp/verify
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (!existing) {
+      track('otp_verified', phone, { returning: false });
       return NextResponse.json({ verified: true, isNewUser: true, phone });
     }
 
@@ -58,6 +60,7 @@ export async function POST(req: NextRequest) {
     // Returning user — resume their existing account
     const res = NextResponse.json({ verified: true, isNewUser: false, user: mapUser(existing) });
     setSessionCookie(res, existing.id);
+    track('otp_verified', existing.id, { returning: true });
     return res;
   } catch (err: any) {
     console.error('[POST /api/auth/otp/verify]', err);

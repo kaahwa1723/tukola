@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, mapJob } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
+import { track } from '@/lib/analytics';
 
 /**
  * GET /api/jobs
@@ -90,6 +91,7 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error;
 
+    track('job_posted', user.id, { jobId: data.id, pay: pay ?? null, urgency: urgency ?? 'scheduled', category: category ?? null });
     return NextResponse.json({ job: mapJob(data) }, { status: 201 });
   } catch (err: any) {
     console.error('[POST /api/jobs]', err);

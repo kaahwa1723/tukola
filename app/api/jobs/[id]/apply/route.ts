@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
+import { track } from '@/lib/analytics';
 
 type Params = { params: { id: string } };
 
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     if (error) throw error;
 
+    track('application_sent', user.id, { jobId: params.id });
     return NextResponse.json({ success: true });
   } catch (err: any) {
     console.error('[POST /api/jobs/[id]/apply]', err);

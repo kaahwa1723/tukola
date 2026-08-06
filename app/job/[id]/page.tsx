@@ -10,7 +10,6 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { useKola } from '@/lib/store';
-import { MOCK_WORKERS } from '@/lib/data';
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Plumbing: Wrench, Electrical: Zap, Cleaning: Sparkles, Construction: Building2,
@@ -235,8 +234,6 @@ export default function JobDetailsPage() {
             <h3 className="font-bold text-[#0A0F2C] mb-3">Applicants ({job.applicants.length})</h3>
             <div className="space-y-4">
               {job.applicants.map(applicant => {
-                const workerData = MOCK_WORKERS.find(w => w.id === applicant.workerId);
-                const portfolio = workerData?.portfolioImages || [];
                 return (
                   <div key={applicant.workerId} className="py-3 border-b border-slate-50 last:border-0">
                     <div className="flex items-center justify-between mb-2">
@@ -280,16 +277,6 @@ export default function JobDetailsPage() {
                         )}
                       </div>
                     </div>
-                    {portfolio.length > 0 && (
-                      <div className="flex gap-1.5 mt-2 overflow-x-auto scrollbar-hide">
-                        {portfolio.slice(0, 5).map((src, i) => (
-                          <div key={i} className="flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden"
-                            style={{ border: '1px solid rgba(41,82,232,0.1)' }}>
-                            <img src={src} alt="Portfolio" className="w-full h-full object-cover" />
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 );
               })}

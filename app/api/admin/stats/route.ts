@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
+import { isAdmin } from '@/lib/admin-auth';
 
 /** GET /api/admin/stats — real platform counts */
-export async function GET() {
+export async function GET(req: Request) {
+  if (!isAdmin(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const sb = createServerSupabase();
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
 import { transitionPayment } from '@/lib/escrow';
+import { track } from '@/lib/analytics';
 
 type Params = { params: { id: string } };
 
@@ -92,6 +93,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       .single();
     if (error) throw error;
 
+    track('dispute_opened', user.id, { jobId: params.id, paymentId: payment.id });
     return NextResponse.json({
       success: true,
       disputeId: dispute.id,

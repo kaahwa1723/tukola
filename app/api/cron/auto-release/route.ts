@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { releasePayment } from '@/lib/escrow';
+import { track } from '@/lib/analytics';
 import { timingSafeEqual } from 'node:crypto';
 
 const AUTO_RELEASE_AFTER_MS = 48 * 60 * 60 * 1000; // 48 hours
@@ -62,6 +63,7 @@ export async function GET(req: NextRequest) {
           .update({ status: 'completed', completed_at: new Date().toISOString() })
           .eq('id', payment.job_id)
           .neq('status', 'completed');
+        track('job_completed', 'system', { jobId: payment.job_id, via: 'auto_release_48h' });
         released.push(payment.id);
       } catch (e: any) {
         skipped.push({ id: payment.id, reason: e.message });

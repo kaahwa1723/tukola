@@ -1,5 +1,6 @@
 import { createServerSupabase } from './supabase-server';
 import { getPaymentProvider } from './payments/provider';
+import { track } from './analytics';
 
 /**
  * Escrow — state machine + money math.
@@ -61,7 +62,7 @@ export class IllegalTransitionError extends Error {
  */
 export async function transitionPayment(paymentId: number, to: string): Promise<void> {
   const sb = createServerSupabase();
-  const { data: payment } = await sb.from('payments').select('status').eq('id', paymentId).single();
+  const { data: payment } = await sb.from('payments').select('status, payer_id, job_id, amount').eq('id', paymentId).single();
   if (!payment) throw new Error(`Payment ${paymentId} not found`);
 
   if (payment.status === to) return; // idempotent no-op
@@ -77,6 +78,10 @@ export async function transitionPayment(paymentId: number, to: string): Promise<
 
   const { error } = await sb.from('payments').update(stamp).eq('id', paymentId);
   if (error) throw error;
+
+  if (to === 'held') {
+    track('payment_held', payment.payer_id, { paymentId, jobId: payment.job_id, amount: payment.amount });
+  }
 }
 
 /**
@@ -146,6 +151,16 @@ export async function releasePayment(paymentId: number): Promise<{
     })
     .eq('id', payment.id);
   if (error) throw error;
+
+  track('payment_released', payment.payer_id, {
+    paymentId: payment.id,
+    jobId: payment.job_id,
+    amount: payment.amount,
+    fundiPayout: split.fundiPayout,
+    commission: split.commission,
+    guaranteeAccrual: split.guaranteeAccrual,
+    receiptNumber,
+  });
 
   return { receiptNumber, split };
 }

@@ -5,6 +5,7 @@ import { hasRecentVerification } from '@/lib/otp';
 import { createServerSupabase, mapUser } from '@/lib/supabase-server';
 import { setSessionCookie } from '@/lib/session';
 import { hit, clientIp } from '@/lib/rate-limit';
+import { track } from '@/lib/analytics';
 
 /**
  * POST /api/auth/register
@@ -99,6 +100,7 @@ export async function POST(req: NextRequest) {
 
     const res = NextResponse.json({ user: mapUser(created) }, { status: 201 });
     setSessionCookie(res, created.id);
+    track('signup', created.id, { role });
     return res;
   } catch (err: any) {
     console.error('[POST /api/auth/register]', err);

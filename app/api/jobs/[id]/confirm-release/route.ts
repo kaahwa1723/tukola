@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
 import { releasePayment } from '@/lib/escrow';
+import { track } from '@/lib/analytics';
 
 type Params = { params: { id: string } };
 
@@ -45,6 +46,8 @@ export async function POST(req: NextRequest, { params }: Params) {
         .update({ status: 'completed', completed_at: new Date().toISOString() })
         .eq('id', params.id);
       if (jobError) throw jobError;
+
+      track('job_completed', user.id, { jobId: params.id, via: 'employer_confirm' });
 
       const { data: accepted } = await sb
         .from('applications')
