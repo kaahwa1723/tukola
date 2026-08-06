@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ThumbsUp, ThumbsDown, ChevronLeft, Star, Search, PartyPopper } from 'lucide-react';
 import { useKola } from '@/lib/store';
+import { EscrowPanel } from '@/components/EscrowPanel';
 
 export default function CompletionPage() {
   const { id } = useParams<{ id: string }>();
@@ -153,6 +154,16 @@ export default function CompletionPage() {
               </p>
             )}
           </div>
+
+          {/* Escrow: two-tap completion + payment */}
+          {user && (
+            <EscrowPanel
+              job={job}
+              user={user}
+              isEmployer={isEmployer}
+              isAcceptedWorker={isAcceptedWorker}
+            />
+          )}
 
           {/* Who to rate */}
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">

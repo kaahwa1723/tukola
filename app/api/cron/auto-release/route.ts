@@ -1,0 +1,81 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerSupabase } from '@/lib/supabase-server';
+import { releasePayment } from '@/lib/escrow';
+import { timingSafeEqual } from 'node:crypto';
+
+const AUTO_RELEASE_AFTER_MS = 48 * 60 * 60 * 1000; // 48 hours
+
+/**
+ * GET /api/cron/auto-release
+ *
+ * The 48h auto-release safety net: a fundi's work can never be held
+ * hostage by an unresponsive employer. Any payment in 'held' whose job
+ * was marked done more than 48h ago (with no dispute opened) releases
+ * automatically with normal splits.
+ *
+ * Secured by the CRON_SECRET header — schedule with Vercel Cron or an
+ * external scheduler (e.g. every 30 minutes).
+ */
+export async function GET(req: NextRequest) {
+  const secret = process.env.CRON_SECRET;
+  const provided = req.headers.get('x-cron-secret') ?? '';
+  const a = Buffer.from(provided, 'utf8');
+  const b = Buffer.from(secret ?? '', 'utf8');
+  if (!secret || a.length !== b.length || !timingSafeEqual(a, b)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const sb = createServerSupabase();
+    const cutoff = new Date(Date.now() - AUTO_RELEASE_AFTER_MS).toISOString();
+
+    // Held payments whose job was marked done >48h ago
+    const { data: candidates } = await sb
+      .from('payments')
+      .select('id, job_id, jobs!inner(worker_done_at)')
+      .eq('status', 'held')
+      .lt('jobs.worker_done_at', cutoff);
+
+    const released: number[] = [];
+    const skipped: { id: number; reason: string }[] = [];
+
+    for (const payment of candidates ?? []) {
+      // Never auto-release a disputed payment
+      const { data: openDispute } = await sb
+        .from('disputes')
+        .select('id')
+        .eq('job_id', payment.job_id)
+        .eq('status', 'open')
+        .limit(1)
+        .maybeSingle();
+
+      if (openDispute) {
+        skipped.push({ id: payment.id, reason: 'open dispute' });
+        continue;
+      }
+
+      try {
+        await releasePayment(payment.id);
+        // Ensure the job closes out too
+        await sb
+          .from('jobs')
+          .update({ status: 'completed', completed_at: new Date().toISOString() })
+          .eq('id', payment.job_id)
+          .neq('status', 'completed');
+        released.push(payment.id);
+      } catch (e: any) {
+        skipped.push({ id: payment.id, reason: e.message });
+      }
+    }
+
+    return NextResponse.json({
+      checked: (candidates ?? []).length,
+      released,
+      skipped,
+      ranAt: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    console.error('[GET /api/cron/auto-release]', err);
+    return NextResponse.json({ error: 'Auto-release job failed.' }, { status: 500 });
+  }
+}
