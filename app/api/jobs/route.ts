@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, mapJob } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
+import { canSeeEmployerPhoneInList } from '@/lib/contact-visibility';
 import { track } from '@/lib/analytics';
 
 /**
@@ -35,7 +36,19 @@ export async function GET(req: NextRequest) {
     const { data, error } = await query;
     if (error) throw error;
 
-    return NextResponse.json({ jobs: (data ?? []).map(mapJob) });
+    // Hard Rule 3: strip employer phones in list views for everyone
+    // except the employer themselves and admins (detail view runs the
+    // full escrow check).
+    const viewer = await getSessionUser(req);
+    const jobs = (data ?? []).map(row => {
+      const job = mapJob(row);
+      if (!canSeeEmployerPhoneInList(row, viewer, req)) {
+        job.employerPhone = undefined;
+      }
+      return job;
+    });
+
+    return NextResponse.json({ jobs });
   } catch (err: any) {
     console.error('[GET /api/jobs]', err);
     return NextResponse.json({ error: err.message }, { status: 500 });

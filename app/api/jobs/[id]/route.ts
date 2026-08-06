@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, mapJob } from '@/lib/supabase-server';
+import { getSessionUser } from '@/lib/session';
+import { canSeeEmployerPhone } from '@/lib/contact-visibility';
 
 type Params = { params: { id: string } };
 
 /** GET /api/jobs/[id] — fetch single job with applicants */
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
   try {
     const sb = createServerSupabase();
     const { data, error } = await sb
@@ -17,7 +19,16 @@ export async function GET(_req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ job: mapJob(data) });
+    const job = mapJob(data);
+
+    // Hard Rule 3: employer phone unlocks only for the employer, admins,
+    // or once payment is captured in escrow.
+    const viewer = await getSessionUser(req);
+    if (!(await canSeeEmployerPhone(sb, data, viewer, req))) {
+      job.employerPhone = undefined;
+    }
+
+    return NextResponse.json({ job });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -54,7 +65,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     if (error) throw error;
 
-    return NextResponse.json({ job: mapJob(data) });
+    const job = mapJob(data);
+    const viewer = await getSessionUser(req);
+    if (!(await canSeeEmployerPhone(sb, data, viewer, req))) {
+      job.employerPhone = undefined;
+    }
+
+    return NextResponse.json({ job });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

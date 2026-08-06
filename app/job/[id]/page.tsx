@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  MapPin, Calendar, Banknote, Phone, Users, Clock, ChevronLeft, CheckCircle,
+  MapPin, Calendar, Banknote, Phone, Users, Lock, ChevronLeft, CheckCircle,
   Images, Star, Briefcase, ShieldCheck, Wrench, Sparkles, Zap, Car, ChefHat,
   Leaf, Shield, Paintbrush, Package, Scissors, Truck, Hammer, Building2, Search,
   MessageCircle
@@ -205,9 +205,11 @@ export default function JobDetailsPage() {
                 </div>
                 <div>
                   <p className="font-bold text-[#0A0F2C] text-sm">{job.employerName}</p>
-                  <p className="text-slate-400 text-xs flex items-center gap-1">
-                    <Clock size={10} /> Usually replies fast
-                  </p>
+                  {!job.employerPhone && (
+                    <p className="text-slate-400 text-xs flex items-center gap-1">
+                      <Lock size={10} /> Phone unlocks after payment is held in escrow
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">
