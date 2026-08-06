@@ -44,6 +44,9 @@ export async function GET(req: NextRequest) {
       const job = mapJob(row);
       if (!canSeeEmployerPhoneInList(row, viewer, req)) {
         job.employerPhone = undefined;
+        // Applicant identities belong to the employer's hiring pipeline;
+        // a worker sees only their own application
+        job.applicants = viewer ? job.applicants.filter(a => a.workerId === viewer.id) : [];
       }
       return job;
     });

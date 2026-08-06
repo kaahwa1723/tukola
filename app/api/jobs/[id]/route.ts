@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, mapJob } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
 import { canSeeEmployerPhone } from '@/lib/contact-visibility';
+import { isAdmin } from '@/lib/admin-auth';
 
 type Params = { params: { id: string } };
 
@@ -20,12 +21,19 @@ export async function GET(req: NextRequest, { params }: Params) {
     }
 
     const job = mapJob(data);
+    const viewer = await getSessionUser(req);
 
     // Hard Rule 3: employer phone unlocks only for the employer, admins,
     // or once payment is captured in escrow.
-    const viewer = await getSessionUser(req);
     if (!(await canSeeEmployerPhone(sb, data, viewer, req))) {
       job.employerPhone = undefined;
+    }
+
+    // Applicant identities are the employer's private hiring pipeline —
+    // visible to the job's employer and admins only. A worker sees only
+    // their OWN application (needed for the re-book invite accept flow).
+    if (!isAdmin(req) && (!viewer || viewer.id !== data.employer_id)) {
+      job.applicants = viewer ? job.applicants.filter(a => a.workerId === viewer.id) : [];
     }
 
     return NextResponse.json({ job });
@@ -34,11 +42,16 @@ export async function GET(req: NextRequest, { params }: Params) {
   }
 }
 
-/** PATCH /api/jobs/[id] — update status or other fields */
+/** PATCH /api/jobs/[id] — update fields. Employer (owner) or admin only. */
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
+    const user = await getSessionUser(req);
+    const admin = isAdmin(req);
+    if (!user && !admin) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
     const body = await req.json();
-    const allowed = ['status', 'description', 'location', 'date_time', 'pay', 'workers_needed', 'images'];
     const updates: Record<string, any> = {};
 
     // Map camelCase → snake_case
@@ -49,13 +62,66 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (body.pay !== undefined) updates.pay        = body.pay;
     if (body.workersNeeded) updates.workers_needed = body.workersNeeded;
     if (body.images)        updates.images        = body.images;
-    if (body.completedAt)   updates.completed_at  = body.completedAt;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
     }
 
+    // Status transitions do NOT go through this generic route: 'completed'
+    // is set only by the completion/release flow. Here an employer may
+    // only cancel.
+    if (updates.status && updates.status !== 'cancelled') {
+      return NextResponse.json(
+        { error: 'Status can only be changed to cancelled here' },
+        { status: 400 }
+      );
+    }
+    if (updates.pay !== undefined && (typeof updates.pay !== 'number' || updates.pay <= 0)) {
+      return NextResponse.json({ error: 'pay must be a positive number' }, { status: 400 });
+    }
+    if (updates.workers_needed !== undefined && updates.workers_needed < 1) {
+      return NextResponse.json({ error: 'workersNeeded must be at least 1' }, { status: 400 });
+    }
+
     const sb = createServerSupabase();
+
+    // Ownership: only the employer who posted the job (or an admin)
+    const { data: existing } = await sb
+      .from('jobs')
+      .select('employer_id, status')
+      .eq('id', params.id)
+      .maybeSingle();
+    if (!existing) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+    if (!admin && (!user || existing.employer_id !== user.id)) {
+      return NextResponse.json({ error: 'Only the employer who posted this job can edit it' }, { status: 403 });
+    }
+    // Field edits only while the job is still open; cancellation is allowed
+    // until the job is completed.
+    const editingFields = Object.keys(updates).some(k => k !== 'status');
+    if (editingFields && existing.status !== 'open') {
+      return NextResponse.json({ error: 'Only open jobs can be edited' }, { status: 409 });
+    }
+    if (existing.status === 'completed' || existing.status === 'cancelled') {
+      return NextResponse.json({ error: `This job is already ${existing.status}` }, { status: 409 });
+    }
+    // Cancelling a job with money captured in escrow must go through the
+    // dispute/refund flow — never a silent edit.
+    if (updates.status === 'cancelled') {
+      const { count } = await sb
+        .from('payments')
+        .select('*', { count: 'exact', head: true })
+        .eq('job_id', params.id)
+        .in('status', ['held', 'disputed']);
+      if ((count ?? 0) > 0) {
+        return NextResponse.json(
+          { error: 'This job has money in escrow — open a dispute to cancel and refund' },
+          { status: 409 }
+        );
+      }
+    }
+
     const { data, error } = await sb
       .from('jobs')
       .update(updates)
@@ -66,9 +132,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (error) throw error;
 
     const job = mapJob(data);
-    const viewer = await getSessionUser(req);
-    if (!(await canSeeEmployerPhone(sb, data, viewer, req))) {
+    if (!(await canSeeEmployerPhone(sb, data, user, req))) {
       job.employerPhone = undefined;
+    }
+    if (!admin && (!user || data.employer_id !== user.id)) {
+      job.applicants = user ? job.applicants.filter(a => a.workerId === user.id) : [];
     }
 
     return NextResponse.json({ job });
@@ -77,10 +145,43 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
 }
 
-/** DELETE /api/jobs/[id] — cancel a job */
-export async function DELETE(_req: NextRequest, { params }: Params) {
+/** DELETE /api/jobs/[id] — cancel a job. Employer (owner) or admin only. */
+export async function DELETE(req: NextRequest, { params }: Params) {
   try {
+    const user = await getSessionUser(req);
+    const admin = isAdmin(req);
+    if (!user && !admin) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
     const sb = createServerSupabase();
+    const { data: job } = await sb
+      .from('jobs')
+      .select('employer_id, status')
+      .eq('id', params.id)
+      .maybeSingle();
+    if (!job) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+    if (!admin && (!user || job.employer_id !== user.id)) {
+      return NextResponse.json({ error: 'Only the employer who posted this job can cancel it' }, { status: 403 });
+    }
+    if (job.status === 'completed' || job.status === 'cancelled') {
+      return NextResponse.json({ error: `This job is already ${job.status}` }, { status: 409 });
+    }
+    // Escrow safety: money in escrow requires the dispute/refund flow
+    const { count } = await sb
+      .from('payments')
+      .select('*', { count: 'exact', head: true })
+      .eq('job_id', params.id)
+      .in('status', ['held', 'disputed']);
+    if ((count ?? 0) > 0) {
+      return NextResponse.json(
+        { error: 'This job has money in escrow — open a dispute to cancel and refund' },
+        { status: 409 }
+      );
+    }
+
     const { error } = await sb
       .from('jobs')
       .update({ status: 'cancelled' })

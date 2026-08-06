@@ -20,7 +20,8 @@ export type FunnelEvent =
   | 'job_completed'
   | 'payment_released'
   | 'rating_submitted'
-  | 'dispute_opened';
+  | 'dispute_opened'
+  | 'leakage_signal';
 
 export function track(
   event: FunnelEvent,

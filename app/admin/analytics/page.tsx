@@ -39,6 +39,10 @@ interface FunnelResponse {
     gmvUgx: number;
     commissionRevenueUgx: number;
     guaranteeReserveBalanceUgx: number;
+    repeatHireRate90d: number;
+    hiringEmployers90d: number;
+    repeatEmployers90d: number;
+    leakageSignals: number;
   };
 }
 
@@ -224,6 +228,26 @@ export default function AdminAnalyticsPage() {
               <div>
                 <p className="font-bold text-slate-900 text-lg">{metrics ? ugx(metrics.guaranteeReserveBalanceUgx) : '—'}</p>
                 <p className="text-slate-500 text-xs">Guarantee reserve balance</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center">
+                <Handshake size={22} className="text-teal-600" />
+              </div>
+              <div>
+                <p className="font-bold text-slate-900 text-lg">{metrics ? `${metrics.repeatHireRate90d}%` : '—'}</p>
+                <p className="text-slate-500 text-xs">
+                  90-day repeat-hire rate{metrics ? ` (${metrics.repeatEmployers90d}/${metrics.hiringEmployers90d} employers)` : ''}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                <Flag size={22} className="text-amber-600" />
+              </div>
+              <div>
+                <p className="font-bold text-slate-900 text-lg">{metrics ? metrics.leakageSignals : '—'}</p>
+                <p className="text-slate-500 text-xs">Off-platform signals in chat this week</p>
               </div>
             </div>
           </div>

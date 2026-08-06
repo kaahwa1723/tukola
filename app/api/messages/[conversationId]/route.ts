@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, mapMessage } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
+import { scanForLeakage } from '@/lib/leakage';
+import { track } from '@/lib/analytics';
 
 type Params = { params: { conversationId: string } };
 
@@ -112,7 +114,39 @@ export async function POST(req: NextRequest, { params }: Params) {
       .update({ last_message: text.trim(), last_message_time: timestamp })
       .eq('id', params.conversationId);
 
-    return NextResponse.json({ message: mapMessage(msg) }, { status: 201 });
+    // Leakage guard (log, don't block): record off-platform signals so the
+    // weekly metrics can measure leakage. The message always sends.
+    const signals = scanForLeakage(text);
+    let leakageWarning: string | null = null;
+    if (signals.length > 0) {
+      try {
+        let hadCapturedPayment = false;
+        if (conv.job_id) {
+          const { count } = await sb
+            .from('payments')
+            .select('*', { count: 'exact', head: true })
+            .eq('job_id', conv.job_id)
+            .in('status', ['held', 'disputed', 'released']);
+          hadCapturedPayment = (count ?? 0) > 0;
+        }
+        await sb.from('leakage_events').insert({
+          conversation_id: params.conversationId,
+          job_id: conv.job_id ?? null,
+          from_id: user.id,
+          matched: signals.join(','),
+          had_captured_payment: hadCapturedPayment,
+        });
+        track('leakage_signal', user.id, { jobId: conv.job_id ?? null, signals, hadCapturedPayment });
+        if (!hadCapturedPayment) {
+          leakageWarning =
+            'Heads up: jobs taken off-platform lose the payment guarantee, escrow protection, and ratings.';
+        }
+      } catch (e) {
+        console.warn('[leakage guard]', e); // never let measurement break chat
+      }
+    }
+
+    return NextResponse.json({ message: mapMessage(msg), leakageWarning }, { status: 201 });
   } catch (err: any) {
     console.error('[POST /api/messages/[conversationId]]', err);
     return NextResponse.json({ error: err.message }, { status: 500 });

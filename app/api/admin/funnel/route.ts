@@ -78,6 +78,26 @@ export async function GET(req: Request) {
     const gmv = (releasedRows ?? []).reduce((sum, r) => sum + r.amount, 0);
     const commissionRevenue = (releasedRows ?? []).reduce((sum, r) => sum + (r.commission ?? 0), 0);
 
+    // Repeat-hire rate (90-day, demand side) — the retention gate (≥20%):
+    // of employers with a completed job in the last 90 days, the share who
+    // completed ≥2 jobs in that window.
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: completedRows } = await sb
+      .from('jobs')
+      .select('employer_id')
+      .eq('status', 'completed')
+      .gte('completed_at', ninetyDaysAgo);
+    const byEmployer = new Map<string, number>();
+    (completedRows ?? []).forEach(r => {
+      byEmployer.set(r.employer_id, (byEmployer.get(r.employer_id) ?? 0) + 1);
+    });
+    const hiringEmployers = byEmployer.size;
+    const repeatEmployers = Array.from(byEmployer.values()).filter(n => n >= 2).length;
+    const repeatHireRate90d = hiringEmployers > 0 ? Math.round((repeatEmployers / hiringEmployers) * 100) : 0;
+
+    // Leakage signals this week (chat off-platform attempts, log-don't-block)
+    const leakageSignals = await count('leakage_events', 'created_at');
+
     return NextResponse.json({
       weekStarting: since,
       funnel: {
@@ -98,6 +118,10 @@ export async function GET(req: Request) {
         gmvUgx: gmv,
         commissionRevenueUgx: commissionRevenue,
         guaranteeReserveBalanceUgx: guaranteeReserveBalance,
+        repeatHireRate90d,
+        hiringEmployers90d: hiringEmployers,
+        repeatEmployers90d: repeatEmployers,
+        leakageSignals,
       },
     });
   } catch (err: any) {

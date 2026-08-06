@@ -37,6 +37,34 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Job is no longer accepting applications' }, { status: 409 });
     }
 
+    // Re-book invitation? The employer already chose this worker — one tap
+    // accepts, the application goes straight to 'accepted' and the job
+    // starts (in_progress) with no further employer step.
+    const { data: existing } = await sb
+      .from('applications')
+      .select('status')
+      .eq('job_id', params.id)
+      .eq('worker_id', user.id)
+      .maybeSingle();
+
+    if (existing?.status === 'invited') {
+      const { error: acceptError } = await sb
+        .from('applications')
+        .update({ status: 'accepted', applied_at: new Date().toISOString() })
+        .eq('job_id', params.id)
+        .eq('worker_id', user.id);
+      if (acceptError) throw acceptError;
+
+      const { error: startError } = await sb
+        .from('jobs')
+        .update({ status: 'in_progress' })
+        .eq('id', params.id);
+      if (startError) throw startError;
+
+      track('applicant_accepted', user.id, { jobId: params.id, via: 'rebook_invite' });
+      return NextResponse.json({ success: true, accepted: true, message: 'Invitation accepted — the job has started.' });
+    }
+
     // Snapshot the worker's REAL profile data onto the application
     const { error } = await sb
       .from('applications')

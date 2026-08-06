@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, mapUser } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
+import { isAdmin } from '@/lib/admin-auth';
 
 type Params = { params: { id: string } };
 
-/** GET /api/users/[id] */
-export async function GET(_req: NextRequest, { params }: Params) {
+/** GET /api/users/[id] — public profile. Phone numbers are private:
+    only the owner themselves or an admin ever receives them. */
+export async function GET(req: NextRequest, { params }: Params) {
   try {
     const sb = createServerSupabase();
     const { data, error } = await sb
@@ -18,7 +20,13 @@ export async function GET(_req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ user: mapUser(data) });
+    const user = mapUser(data);
+    const viewer = await getSessionUser(req);
+    if (!isAdmin(req) && (!viewer || viewer.id !== data.id)) {
+      user.phone = '';
+    }
+
+    return NextResponse.json({ user });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

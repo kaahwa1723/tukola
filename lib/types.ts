@@ -20,7 +20,7 @@ export interface User {
 
 export type JobUrgency = 'immediate' | 'scheduled';
 export type JobStatus = 'open' | 'in_progress' | 'completed' | 'cancelled';
-export type ApplicationStatus = 'pending' | 'accepted' | 'rejected';
+export type ApplicationStatus = 'pending' | 'accepted' | 'rejected' | 'invited';
 
 export interface Applicant {
   workerId: string;
@@ -49,6 +49,7 @@ export interface Job {
   employerPhone?: string;
   applicants: Applicant[];
   skills?: string[];
+  category?: string;
   estimatedHours?: number;
   imageUrl?: string;
   images?: string[];

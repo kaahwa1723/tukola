@@ -1,13 +1,13 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   MapPin, Calendar, Banknote, Phone, Users, Lock, ChevronLeft, CheckCircle,
   Images, Star, Briefcase, ShieldCheck, Wrench, Sparkles, Zap, Car, ChefHat,
   Leaf, Shield, Paintbrush, Package, Scissors, Truck, Hammer, Building2, Search,
-  MessageCircle
+  MessageCircle, RotateCcw
 } from 'lucide-react';
 import { useKola } from '@/lib/store';
 
@@ -38,6 +38,7 @@ export default function JobDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const { jobs, user, applyToJob, applications, acceptApplicant } = useKola();
   const router = useRouter();
+  const [rebooking, setRebooking] = useState(false);
 
   const job = jobs.find(j => j.id === id);
 
@@ -57,11 +58,34 @@ export default function JobDetailsPage() {
   const isEmployer = user?.role === 'employer';
   const hasApplied = applications.includes(job.id);
   const isMyJob = isEmployer && job.employerId === user?.id;
+  // Re-book invitation for THIS worker (server includes only their own row)
+  const myApplication = isWorker ? job.applicants.find(a => a.workerId === user?.id) : undefined;
+  const isInvited = myApplication?.status === 'invited';
 
   const JobIcon = getJobIcon(job.title);
 
   const handleApply = () => applyToJob(job.id);
   const handleAccept = (applicantId: string) => acceptApplicant(job.id, applicantId);
+
+  // "Book the same fundi again" — one tap clones the completed job and
+  // invites the same worker back; they accept with one tap on their side.
+  const handleRebook = async () => {
+    if (rebooking) return;
+    setRebooking(true);
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/rebook`, { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.job?.id) {
+        router.push(`/job/${data.job.id}`);
+      } else {
+        alert(data.error || 'Could not re-book this fundi. Please try again.');
+      }
+    } catch {
+      alert('Network error. Please try again.');
+    } finally {
+      setRebooking(false);
+    }
+  };
 
   // Start (or reopen) a conversation with the counterparty, then go to messages.
   // Guarded against double-clicks — two parallel POSTs could both miss the
@@ -298,7 +322,12 @@ export default function JobDetailsPage() {
         <div className="lg:flex lg:justify-end lg:gap-3">
           {isWorker && job.status === 'open' && (
             <>
-              {hasApplied ? (
+              {isInvited ? (
+                <button onClick={handleApply}
+                  className="lg:w-auto w-full py-4 px-8 bg-green-600 text-white rounded-2xl font-bold text-base active:scale-95 transition-transform shadow-lg shadow-green-200 hover:bg-green-700 flex items-center justify-center gap-2">
+                  <CheckCircle size={18} /> Accept Invitation — Start Job
+                </button>
+              ) : hasApplied ? (
                 <div className="lg:w-auto w-full py-4 bg-green-50 rounded-2xl text-center text-green-600 font-bold text-base flex items-center justify-center gap-2">
                   <CheckCircle size={18} /> Applied Successfully
                 </div>
@@ -316,6 +345,13 @@ export default function JobDetailsPage() {
               className="lg:w-auto w-full block py-4 px-8 bg-green-600 text-white rounded-2xl font-bold text-base text-center active:scale-95 transition-transform shadow-lg shadow-green-200 hover:bg-green-700">
               Mark Job as Complete
             </Link>
+          )}
+
+          {isMyJob && job.status === 'completed' && (
+            <button onClick={handleRebook} disabled={rebooking}
+              className="lg:w-auto w-full py-4 px-8 bg-blue-600 text-white rounded-2xl font-bold text-base active:scale-95 transition-transform shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-2">
+              <RotateCcw size={18} /> {rebooking ? 'Inviting fundi…' : 'Book this fundi again'}
+            </button>
           )}
         </div>
       </div>
