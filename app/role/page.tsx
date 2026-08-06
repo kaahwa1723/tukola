@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Briefcase, UserSearch, ShieldCheck } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { TukolaLogo } from '@/components/TukolaLogo';
+import LanguageSwitch from '@/components/LanguageSwitch';
+import { useI18n } from '@/lib/i18n';
 
 export default function RoleSelectionPage() {
   const [selected, setSelected] = useState<'worker' | 'employer' | null>(null);
@@ -14,6 +16,7 @@ export default function RoleSelectionPage() {
   const [error, setError] = useState('');
   const { register } = useKola();
   const router = useRouter();
+  const { t } = useI18n();
 
   const phone =
     typeof window !== 'undefined' ? localStorage.getItem('kola_phone') || '+256000000000' : '+256000000000';
@@ -31,7 +34,7 @@ export default function RoleSelectionPage() {
     if (user) {
       router.push(selected === 'worker' ? '/worker' : '/employer');
     } else {
-      setError('Could not create your account. Please verify your phone again.');
+      setError(t('role.errorCreate'));
       setLoading(false);
     }
   };
@@ -54,10 +57,10 @@ export default function RoleSelectionPage() {
               )}
             </div>
             <h2 className="text-2xl font-black text-white mb-2">
-              {selected === 'worker' ? 'Welcome, Worker!' : 'Welcome, Employer!'}
+              {selected === 'worker' ? t('role.welcomeWorker') : t('role.welcomeEmployer')}
             </h2>
             <p className="text-white/70 text-sm">
-              {selected === 'worker' ? 'Let employers know who you are.' : 'Let workers know who you are.'}
+              {selected === 'worker' ? t('role.nameSubWorker') : t('role.nameSubEmployer')}
             </p>
           </div>
         </div>
@@ -74,16 +77,16 @@ export default function RoleSelectionPage() {
               )}
             </div>
 
-            <h2 className="text-2xl font-black text-slate-900 mb-2">What&apos;s your name?</h2>
+            <h2 className="text-2xl font-black text-slate-900 mb-2">{t('role.yourName')}</h2>
             <p className="text-slate-500 text-sm mb-8">
-              This is how {selected === 'worker' ? 'employers' : 'workers'} will see you on TUKOLA.
+              {selected === 'worker' ? t('role.nameSubWorker') : t('role.nameSubEmployer')}
             </p>
 
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder={selected === 'worker' ? 'e.g. Peter Mukasa' : 'e.g. Mukasa John'}
+              placeholder={t('role.namePlaceholder')}
               autoFocus
               className="w-full border-2 border-slate-200 rounded-2xl px-4 py-4 text-slate-900 text-lg font-semibold placeholder-slate-400 focus:border-blue-500 focus:ring-0 transition-colors bg-white mb-6"
             />
@@ -97,7 +100,7 @@ export default function RoleSelectionPage() {
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
             >
-              {loading ? 'Setting up your account...' : `Continue as ${selected === 'worker' ? 'Worker' : 'Employer'}`}
+              {loading ? t('role.setup') : t('role.finish')}
             </button>
 
             {error && (
@@ -108,7 +111,7 @@ export default function RoleSelectionPage() {
               onClick={() => setStep('role')}
               className="text-slate-400 text-sm text-center mt-4 active:opacity-70 w-full"
             >
-              ← Change role
+              {t('role.changeRole')}
             </button>
           </div>
         </div>
@@ -128,19 +131,21 @@ export default function RoleSelectionPage() {
           <div className="mt-3">
             <TukolaLogo variant="wordmark" size="md" onDark={true} />
           </div>
-          <p className="text-white/60 text-xs font-semibold tracking-wider uppercase mt-4">Uganda&apos;s #1 Gig Platform</p>
+          <p className="text-white/60 text-xs font-semibold tracking-wider uppercase mt-4">{t('login.tagline')}</p>
+          <div className="mt-4 flex justify-center"><LanguageSwitch onDark /></div>
         </div>
       </div>
 
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="px-5 lg:px-12 pt-12 lg:pt-16 pb-4 flex items-center">
+        <div className="px-5 lg:px-12 pt-12 lg:pt-16 pb-4 flex items-center justify-between">
           <TukolaLogo variant="full" size="sm" />
+          <LanguageSwitch />
         </div>
 
         <div className="px-5 lg:px-12 pt-2 pb-6 animate-slide-up">
-          <h1 className="text-2xl font-black text-[#0A0F2C] mb-1.5">Welcome to TUKOLA</h1>
-          <p className="text-[#4A5580] text-sm">Choose how you want to use the platform today.</p>
+          <h1 className="text-2xl font-black text-[#0A0F2C] mb-1.5">{t('role.welcome')}</h1>
+          <p className="text-[#4A5580] text-sm">{t('role.choose')}</p>
         </div>
 
         {/* Role cards */}
@@ -157,9 +162,9 @@ export default function RoleSelectionPage() {
                 <Briefcase size={26} className="text-blue-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-black text-slate-900 mb-1">I need Work</h3>
+                <h3 className="text-lg font-black text-slate-900 mb-1">{t('role.needWork')}</h3>
                 <p className="text-slate-500 text-sm leading-relaxed">
-                  Browse available jobs, apply for gigs, and earn money for your skills.
+                  {t('role.needWorkSub')}
                 </p>
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {['Cleaning', 'Plumbing', 'Moving', 'Building'].map(tag => (
@@ -184,9 +189,9 @@ export default function RoleSelectionPage() {
                 <UserSearch size={26} className="text-orange-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-black text-slate-900 mb-1">I want to Hire</h3>
+                <h3 className="text-lg font-black text-slate-900 mb-1">{t('role.wantHire')}</h3>
                 <p className="text-slate-500 text-sm leading-relaxed">
-                  Post a job description, find reliable workers, and get your tasks done.
+                  {t('role.wantHireSub')}
                 </p>
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {['Post Jobs', 'Quick Hiring', 'Rated Workers'].map(tag => (
@@ -203,7 +208,7 @@ export default function RoleSelectionPage() {
         {/* Footer */}
         <div className="px-5 lg:px-12 pb-10 pt-6 flex items-center justify-center gap-2 text-xs" style={{ color: '#8B94B8' }}>
           <ShieldCheck size={14} />
-          <span>Secured by TUKOLA Trust Network</span>
+          <span>{t('role.secureNote')}</span>
         </div>
       </div>
     </div>

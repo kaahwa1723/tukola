@@ -4,12 +4,15 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Search, Zap, Banknote } from 'lucide-react';
 import { TukolaLogo } from '@/components/TukolaLogo';
+import LanguageSwitch from '@/components/LanguageSwitch';
+import { useI18n } from '@/lib/i18n';
 
 export default function LoginPage() {
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { t } = useI18n();
 
   // First-time visitors go through onboarding before login.
   // Returning users (server session will resolve on /api/auth/me) must NOT
@@ -23,7 +26,7 @@ export default function LoginPage() {
   const handleContinue = async () => {
     const cleaned = phone.replace(/[\s\-]/g, '');
     if (cleaned.length < 9) {
-      setError('Enter a valid 9-digit Uganda phone number');
+      setError(t('login.invalidPhone'));
       return;
     }
     setLoading(true);
@@ -36,7 +39,7 @@ export default function LoginPage() {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(data?.error ?? 'Could not send the code. Please try again.');
+        setError(data?.error ?? t('login.sendError'));
         setLoading(false);
         return;
       }
@@ -47,7 +50,7 @@ export default function LoginPage() {
       }
       router.push('/verify');
     } catch {
-      setError('Network error. Please try again.');
+      setError(t('login.networkError'));
       setLoading(false);
     }
   };
@@ -69,7 +72,8 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col items-center gap-4 text-center px-8">
           <TukolaLogo variant="mark" size="lg" />
           <TukolaLogo variant="wordmark" size="md" onDark={true} />
-          <p className="text-white/60 text-xs font-semibold tracking-wider uppercase mt-2">Uganda&apos;s #1 Gig Platform</p>
+          <p className="text-white/60 text-xs font-semibold tracking-wider uppercase mt-2">{t('login.tagline')}</p>
+          <div className="mt-4"><LanguageSwitch onDark /></div>
           <div className="mt-8 space-y-3 text-left">
             {[
               { icon: <Search size={18} className="text-white/90" />, text: 'Find trusted workers near you' },
@@ -99,15 +103,16 @@ export default function LoginPage() {
           <div className="relative z-10 flex flex-col items-center gap-3">
             <TukolaLogo variant="mark" size="lg" />
             <TukolaLogo variant="wordmark" size="md" onDark={true} />
-            <p className="text-white/60 text-xs font-semibold tracking-wider uppercase">Uganda&apos;s #1 Gig Platform</p>
+            <p className="text-white/60 text-xs font-semibold tracking-wider uppercase">{t('login.tagline')}</p>
+            <LanguageSwitch onDark />
           </div>
         </div>
 
         {/* Form card */}
         <div className="w-full max-w-md mx-auto">
           <div className="rounded-3xl p-6 lg:p-8 mb-4" style={{ background: '#fff', boxShadow: '0 8px 40px rgba(41,82,232,0.12)', border: '1px solid rgba(41,82,232,0.06)' }}>
-            <h2 className="text-lg font-black text-[#0A0F2C] mb-1">Welcome back</h2>
-            <p className="text-sm text-[#8B94B8] mb-5 font-medium">Enter your phone number to continue</p>
+            <h2 className="text-lg font-black text-[#0A0F2C] mb-1">{t('login.welcome')}</h2>
+            <p className="text-sm text-[#8B94B8] mb-5 font-medium">{t('login.subtitle')}</p>
 
             {/* Phone input */}
             <div className="mb-1.5">
@@ -137,20 +142,20 @@ export default function LoginPage() {
             </div>
 
             {error && <p className="text-[10px] font-semibold mb-3 mt-1.5" style={{ color: '#EF4444' }}>{error}</p>}
-            {!error && <p className="text-[11px] text-[#8B94B8] mb-5 mt-2 font-medium">We&apos;ll send a 6-digit verification code.</p>}
+            {!error && <p className="text-[11px] text-[#8B94B8] mb-5 mt-2 font-medium">{t('login.codeHint')}</p>}
 
             <button onClick={handleContinue} disabled={loading}
               className="w-full text-white rounded-2xl py-4 font-bold text-base flex items-center justify-center gap-2 btn-scale disabled:opacity-60"
               style={{ background: 'linear-gradient(135deg, #00C8FF 0%, #2952E8 50%, #1A2DB8 100%)', boxShadow: '0 8px 24px rgba(41,82,232,0.4)' }}>
-              {loading ? 'Sending code...' : <>Continue <ArrowRight size={18} /></>}
+              {loading ? t('login.sending') : <>{t('common.continue')} <ArrowRight size={18} /></>}
             </button>
           </div>
         </div>
 
         <p className="text-center text-[11px] px-6 pb-6 pt-2 max-w-md" style={{ color: '#8B94B8' }}>
-          By continuing, you agree to TUKOLA&apos;s{' '}
-          <span style={{ color: '#2952E8' }} className="font-semibold">Terms</span> &{' '}
-          <span style={{ color: '#2952E8' }} className="font-semibold">Privacy Policy</span>
+          {t('login.termsPrefix')}{' '}
+          <span style={{ color: '#2952E8' }} className="font-semibold">{t('login.terms')}</span> {t('login.and')}{' '}
+          <span style={{ color: '#2952E8' }} className="font-semibold">{t('login.privacy')}</span>
         </p>
       </div>
     </div>

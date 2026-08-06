@@ -39,6 +39,7 @@ export default function JobDetailsPage() {
   const { jobs, user, applyToJob, applications, acceptApplicant } = useKola();
   const router = useRouter();
   const [rebooking, setRebooking] = useState(false);
+  const [recurringMsg, setRecurringMsg] = useState<string | null>(null);
 
   const job = jobs.find(j => j.id === id);
 
@@ -84,6 +85,32 @@ export default function JobDetailsPage() {
       alert('Network error. Please try again.');
     } finally {
       setRebooking(false);
+    }
+  };
+
+  // "Make it recurring" — the same fundi is auto-invited every week /
+  // every 2 weeks. Payment stays per-instance (MoMo needs a PIN each time).
+  const handleRecurring = async (frequency: 'weekly' | 'biweekly') => {
+    setRecurringMsg(null);
+    try {
+      const dayOfWeek = new Date(job.dateTime || Date.now()).getDay();
+      const res = await fetch('/api/recurring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId: job.id, frequency, dayOfWeek }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setRecurringMsg(
+          frequency === 'weekly'
+            ? 'Set! This fundi will be invited back every week.'
+            : 'Set! This fundi will be invited back every 2 weeks.'
+        );
+      } else {
+        setRecurringMsg(data.error || 'Could not set up the recurring booking.');
+      }
+    } catch {
+      setRecurringMsg('Network error. Please try again.');
     }
   };
 
@@ -348,10 +375,26 @@ export default function JobDetailsPage() {
           )}
 
           {isMyJob && job.status === 'completed' && (
-            <button onClick={handleRebook} disabled={rebooking}
-              className="lg:w-auto w-full py-4 px-8 bg-blue-600 text-white rounded-2xl font-bold text-base active:scale-95 transition-transform shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-2">
-              <RotateCcw size={18} /> {rebooking ? 'Inviting fundi…' : 'Book this fundi again'}
-            </button>
+            <div className="w-full lg:w-auto space-y-2">
+              <button onClick={handleRebook} disabled={rebooking}
+                className="lg:w-auto w-full py-4 px-8 bg-blue-600 text-white rounded-2xl font-bold text-base active:scale-95 transition-transform shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-2">
+                <RotateCcw size={18} /> {rebooking ? 'Inviting fundi…' : 'Book this fundi again'}
+              </button>
+              <div className="flex items-center gap-2 justify-center lg:justify-start">
+                <span className="text-slate-500 text-xs font-semibold">Repeat automatically:</span>
+                <button onClick={() => handleRecurring('weekly')}
+                  className="text-xs font-black px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 active:scale-95 transition-transform">
+                  Weekly
+                </button>
+                <button onClick={() => handleRecurring('biweekly')}
+                  className="text-xs font-black px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 active:scale-95 transition-transform">
+                  Every 2 weeks
+                </button>
+              </div>
+              {recurringMsg && (
+                <p className="text-green-600 text-xs font-bold text-center lg:text-left">{recurringMsg}</p>
+              )}
+            </div>
           )}
         </div>
       </div>

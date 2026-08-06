@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { getPaymentProvider } from '@/lib/payments/provider';
-import { timingSafeEqual } from 'node:crypto';
+import { isCronAuthorized } from '@/lib/cron-auth';
 
 /**
  * GET /api/cron/reconcile
@@ -11,15 +11,10 @@ import { timingSafeEqual } from 'node:crypto';
  * provider says SUCCESSFUL (or vice versa) means money moved that our
  * ledger doesn't reflect — those get flagged for manual review.
  *
- * Secured by the CRON_SECRET header. The report is also where
- * webhook-failure alerting hooks in (Layer 9).
+ * Secured by CRON_SECRET (x-cron-secret header or Authorization: Bearer).
  */
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  const provided = req.headers.get('x-cron-secret') ?? '';
-  const a = Buffer.from(provided, 'utf8');
-  const b = Buffer.from(secret ?? '', 'utf8');
-  if (!secret || a.length !== b.length || !timingSafeEqual(a, b)) {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { releasePayment } from '@/lib/escrow';
 import { track } from '@/lib/analytics';
-import { timingSafeEqual } from 'node:crypto';
+import { isCronAuthorized } from '@/lib/cron-auth';
 
 const AUTO_RELEASE_AFTER_MS = 48 * 60 * 60 * 1000; // 48 hours
 
@@ -14,15 +14,11 @@ const AUTO_RELEASE_AFTER_MS = 48 * 60 * 60 * 1000; // 48 hours
  * was marked done more than 48h ago (with no dispute opened) releases
  * automatically with normal splits.
  *
- * Secured by the CRON_SECRET header — schedule with Vercel Cron or an
- * external scheduler (e.g. every 30 minutes).
+ * Secured by CRON_SECRET (x-cron-secret header or Authorization: Bearer —
+ * the latter is what Vercel Cron sends).
  */
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  const provided = req.headers.get('x-cron-secret') ?? '';
-  const a = Buffer.from(provided, 'utf8');
-  const b = Buffer.from(secret ?? '', 'utf8');
-  if (!secret || a.length !== b.length || !timingSafeEqual(a, b)) {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

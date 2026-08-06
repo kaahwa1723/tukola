@@ -4,10 +4,13 @@ import Link from 'next/link';
 import { Plus, Bell, ChevronRight, MapPin, Star, Users, Lightbulb, ShieldCheck, TrendingUp, Briefcase, Wrench } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { MOCK_WORKERS } from '@/lib/data';
+import FundiFinder from '@/app/components/FundiFinder';
+
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 function WorkerCard({ worker }: { worker: (typeof MOCK_WORKERS)[0] }) {
   return (
-    <div className="flex-shrink-0 w-36 lg:w-40 rounded-2xl p-3.5 bg-white border border-blue-100/40 hover:shadow-md transition-all">
+    <div className="flex-shrink-0 w-36 lg:w-40 rounded-2xl p-3.5 bg-white border border-blue-100/40 hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(41,82,232,0.16)] transition-all duration-200 active:scale-[0.98]">
       {worker.avatar ? (
         <div className="w-14 h-14 rounded-2xl overflow-hidden mx-auto mb-2.5" style={{ border: '1.5px solid rgba(41,82,232,0.12)' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -43,7 +46,7 @@ export default function EmployerHomePage() {
   const { user, jobs } = useKola();
   const firstName = user?.name?.split(' ')[0] || 'there';
 
-  const myJobs = jobs.filter(j => j.employerId === user?.id || ['e1', 'e2'].includes(j.employerId));
+  const myJobs = jobs.filter(j => j.employerId === user?.id);
   const activeJobs = myJobs.filter(j => j.status === 'in_progress');
   const pendingJobs = myJobs.filter(j => j.status === 'open');
   const recentJobs = myJobs.slice(0, 3);
@@ -52,10 +55,8 @@ export default function EmployerHomePage() {
     <div className="space-y-6 animate-fade-in">
 
       {/* Welcome card */}
-      <div className="rounded-2xl lg:rounded-3xl p-5 lg:p-8 relative overflow-hidden"
+      <div className="rounded-2xl lg:rounded-3xl p-5 lg:p-8 relative overflow-hidden header-mesh animate-slide-up"
         style={{ background: 'linear-gradient(135deg,#00C8FF 0%,#2952E8 55%,#1A2DB8 100%)' }}>
-        <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full opacity-15"
-          style={{ background: 'radial-gradient(circle,#fff,transparent)' }} />
         <div className="relative z-10">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
@@ -80,7 +81,7 @@ export default function EmployerHomePage() {
       </div>
 
       {/* Post job CTA */}
-      <Link href="/employer/post-job">
+      <Link href="/employer/post-job" className="block animate-slide-up-d1">
         <button className="w-full text-white rounded-2xl py-4 text-base font-black flex items-center justify-center gap-2.5 active:scale-95 transition-all hover:opacity-90"
           style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)', boxShadow: '0 6px 20px rgba(41,82,232,0.35)' }}>
           <div className="w-6 h-6 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
@@ -90,9 +91,9 @@ export default function EmployerHomePage() {
         </button>
       </Link>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column: Recent jobs */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 min-w-0 animate-slide-up-d2">
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-slate-900 font-black text-base">My Recent Posts</h2>
@@ -181,20 +182,25 @@ export default function EmployerHomePage() {
           </div>
         </div>
 
-        {/* Right column: Suggested workers + tips */}
-        <div className="space-y-6">
-          {/* Suggested workers */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-slate-900 font-black text-base">Suggested Nearby</h2>
-              <Link href="/employer/jobs" className="text-sm font-semibold text-blue-600 hover:text-blue-700">View all</Link>
+        {/* Right column: Fundi finder + tips */}
+        <div className="space-y-6 min-w-0 animate-slide-up-d3">
+          {/* Real fundi search — location-first, merit-ranked */}
+          <FundiFinder />
+
+          {/* Suggested workers — demo mode only */}
+          {DEMO_MODE && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-slate-900 font-black text-base">Suggested Nearby</h2>
+                <Link href="/employer/jobs" className="text-sm font-semibold text-blue-600 hover:text-blue-700">View all</Link>
+              </div>
+              <div className="flex lg:flex-col gap-3 overflow-x-auto lg:overflow-visible scrollbar-hide pt-1 pb-2">
+                {MOCK_WORKERS.slice(0, 4).map(worker => (
+                  <WorkerCard key={worker.id} worker={worker} />
+                ))}
+              </div>
             </div>
-            <div className="flex lg:flex-col gap-3 overflow-x-auto lg:overflow-visible scrollbar-hide pb-2">
-              {MOCK_WORKERS.slice(0, 4).map(worker => (
-                <WorkerCard key={worker.id} worker={worker} />
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Tip */}
           <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100 flex items-start gap-3">

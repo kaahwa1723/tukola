@@ -1,17 +1,54 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, MapPin, Users, ChevronRight, Briefcase } from 'lucide-react';
+import { Plus, MapPin, Users, ChevronRight, Briefcase, Repeat, Pause, Play } from 'lucide-react';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { useKola } from '@/lib/store';
+
+interface RecurringTemplate {
+  id: string;
+  title: string;
+  location: string;
+  pay: number | null;
+  frequency: 'weekly' | 'biweekly';
+  next_run_on: string;
+  active: boolean;
+  worker?: { name: string };
+}
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function EmployerJobsPage() {
   const { jobs, user } = useKola();
   const [filter, setFilter] = useState<'all' | 'open' | 'in_progress' | 'completed'>('all');
+  const [templates, setTemplates] = useState<RecurringTemplate[]>([]);
 
-  const myJobs = jobs.filter(j => j.employerId === user?.id || ['e1', 'e2'].includes(j.employerId));
+  const myJobs = jobs.filter(j => j.employerId === user?.id);
   const filtered = filter === 'all' ? myJobs : myJobs.filter(j => j.status === filter);
+
+  const loadTemplates = async () => {
+    try {
+      const res = await fetch('/api/recurring');
+      if (res.ok) {
+        const data = await res.json();
+        setTemplates(data.templates ?? []);
+      }
+    } catch { /* non-fatal */ }
+  };
+
+  useEffect(() => { loadTemplates(); }, []);
+
+  const toggleTemplate = async (t: RecurringTemplate) => {
+    try {
+      const res = await fetch(`/api/recurring/${t.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !t.active }),
+      });
+      if (res.ok) loadTemplates();
+    } catch { /* non-fatal */ }
+  };
 
   const statusLabel: Record<string, { label: string; color: string }> = {
     open: { label: 'OPEN', color: 'bg-blue-100 text-blue-700' },
@@ -45,21 +82,55 @@ export default function EmployerJobsPage() {
       </div>
 
       <div className="px-4 lg:px-6 py-4 space-y-3 max-w-4xl lg:mx-auto">
-        {filtered.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
-              <Briefcase size={28} color="#2952E8" />
+        {/* Recurring bookings */}
+        {templates.length > 0 && (
+          <div className="mb-5">
+            <h2 className="text-slate-900 font-black text-sm mb-2 flex items-center gap-1.5">
+              <Repeat size={14} className="text-blue-600" /> Recurring Bookings
+            </h2>
+            <div className="space-y-2">
+              {templates.map(t => (
+                <div key={t.id} className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-900 text-sm truncate">{t.title}</p>
+                    <p className="text-slate-500 text-xs mt-0.5">
+                      {t.worker?.name ?? 'Fundi'} · {t.frequency === 'weekly' ? 'Weekly' : 'Every 2 weeks'}
+                      {t.pay ? ` · UGX ${t.pay.toLocaleString()}` : ''}
+                    </p>
+                    <p className="text-slate-400 text-[11px] mt-0.5">
+                      {t.active ? `Next: ${DAY_NAMES[new Date(`${t.next_run_on}T00:00:00`).getDay()]} ${t.next_run_on}` : 'Paused'}
+                    </p>
+                  </div>
+                  <button onClick={() => toggleTemplate(t)}
+                    className={`flex items-center gap-1 text-xs font-black px-3 py-2 rounded-xl active:scale-95 transition-transform flex-shrink-0 ${
+                      t.active ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600'
+                    }`}>
+                    {t.active ? <><Pause size={12} /> Pause</> : <><Play size={12} /> Resume</>}
+                  </button>
+                </div>
+              ))}
             </div>
-            <p className="text-slate-600 font-semibold">No {filter !== 'all' ? filter.replace('_', ' ') : ''} jobs</p>
+          </div>
+        )}
+
+        {filtered.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">
+              <Briefcase size={30} color="#2952E8" />
+            </div>
+            <p className="empty-title">No {filter !== 'all' ? filter.replace('_', ' ') : ''} jobs</p>
+            {filter === 'all' && (
+              <p className="empty-sub">Post your first job to start hiring.</p>
+            )}
             <Link
               href="/employer/post-job"
-              className="inline-flex items-center gap-2 mt-4 bg-blue-600 text-white px-5 py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform"
+              className="btn-gradient mt-5 px-6 py-3 rounded-xl text-sm inline-flex items-center gap-2"
             >
               <Plus size={16} /> Post a Job
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 animate-slide-up-d1">
             {filtered.map(job => {
               const stat = statusLabel[job.status] || statusLabel.open;
               return (

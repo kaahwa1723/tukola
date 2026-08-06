@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Shield, Check } from 'lucide-react';
 import { useKola } from '@/lib/store';
+import { useI18n } from '@/lib/i18n';
 
 export default function VerifyPage() {
   const [digits, setDigits] = useState(['', '', '', '', '', '']);
@@ -15,6 +16,7 @@ export default function VerifyPage() {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
   const { setSessionUser } = useKola();
+  const { t } = useI18n();
 
   useEffect(() => {
     // Read after mount so SSR HTML matches first client render (no hydration error).
@@ -131,8 +133,8 @@ export default function VerifyPage() {
             style={{ border: '1px solid rgba(255,255,255,0.2)' }}>
             <Shield size={36} className="text-white" />
           </div>
-          <h2 className="text-2xl font-black text-white mb-2">Secure Verification</h2>
-          <p className="text-white/70 text-sm">We verify every user to keep the platform safe and trusted.</p>
+          <h2 className="text-2xl font-black text-white mb-2">{t('verify.title')}</h2>
+          <p className="text-white/70 text-sm">{t('verify.subtitle')} {phone}</p>
         </div>
       </div>
 
@@ -146,7 +148,7 @@ export default function VerifyPage() {
           >
             <ChevronLeft size={24} className="text-blue-600" />
           </button>
-          <span className="text-blue-600 font-bold text-lg">Verify Number</span>
+          <span className="text-blue-600 font-bold text-lg">{t('verify.title')}</span>
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center px-6 pb-20 lg:pb-0">
@@ -155,9 +157,9 @@ export default function VerifyPage() {
             <Shield size={36} className="text-blue-600" />
           </div>
 
-          <h2 className="text-2xl font-black text-slate-900 text-center mb-2">Enter your code</h2>
+          <h2 className="text-2xl font-black text-slate-900 text-center mb-2">{t('verify.title')}</h2>
           <p className="text-slate-500 text-sm text-center mb-1">
-            We sent a 6-digit code to
+            {t('verify.subtitle')}
           </p>
           <p className="text-slate-800 font-bold text-center mb-8">{phone}</p>
 
@@ -198,7 +200,7 @@ export default function VerifyPage() {
               NEVER rendered in production builds. */}
           {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && devCode && (
             <p className="text-slate-400 text-xs text-center mb-6 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2">
-              Demo code: <span className="font-bold tracking-widest">{devCode}</span>
+              {t('verify.demoCode')} <span className="font-bold tracking-widest">{devCode}</span>
             </p>
           )}
 
@@ -220,7 +222,7 @@ export default function VerifyPage() {
                 Verifying...
               </span>
             ) : (
-              'Verify & Continue'
+              `${t('verify.verify')} →`
             )}
           </button>
 
@@ -228,7 +230,7 @@ export default function VerifyPage() {
             onClick={handleResend}
             className="mt-4 text-blue-600 text-sm font-semibold active:opacity-70"
           >
-            Didn&apos;t get a code? Resend
+            {t('verify.resend')}
           </button>
         </div>
       </div>

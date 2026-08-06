@@ -1,15 +1,18 @@
 import type { Metadata, Viewport } from 'next';
-import { Plus_Jakarta_Sans, Orbitron } from 'next/font/google';
+import { Inter, Orbitron } from 'next/font/google';
 import './globals.css';
 import { KolaProvider } from '@/lib/store';
+import { I18nProvider } from '@/lib/i18n';
+import BootSplash from '@/components/BootSplash';
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-jakarta', display: 'swap', weight: ['400','500','600','700','800'] });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap', weight: ['400','500','600','700','800'] });
 const orbitron = Orbitron({ subsets: ['latin'], variable: '--font-orbitron', weight: ['700', '800', '900'], display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'TUKOLA — Find Work. Hire Workers.',
-  description: "Uganda's #1 blue-collar gig marketplace. Connecting workers and employers instantly.",
+  description: "Kampala's fundi marketplace. Hire rated fundis with escrow-protected payments, or find work and get paid on release.",
   manifest: '/manifest.json',
+  icons: { icon: '/favicon.png', apple: '/favicon.png' },
 };
 
 export const viewport: Viewport = {
@@ -23,9 +26,12 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${jakarta.variable} ${orbitron.variable} antialiased`} style={{ fontFamily: 'var(--font-jakarta), Plus Jakarta Sans, sans-serif' }}>
+      <body className={`${inter.variable} ${orbitron.variable} antialiased`} style={{ fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
         <KolaProvider>
-          <div className="min-h-screen bg-[#F0F4FF]">{children}</div>
+          <I18nProvider>
+            <BootSplash />
+            <div className="min-h-screen bg-[#F0F4FF]">{children}</div>
+          </I18nProvider>
         </KolaProvider>
       </body>
     </html>
