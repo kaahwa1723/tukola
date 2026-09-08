@@ -204,7 +204,7 @@ export function KolaProvider({ children }: { children: ReactNode }) {
                 ...j.applicants,
                 {
                   workerId: user.id, workerName: user.name,
-                  rating: user.rating ?? 4.5, completedJobs: user.completedJobs ?? 0,
+                  rating: user.rating, completedJobs: user.completedJobs ?? 0,
                   skills: user.skills ?? [], appliedAt, status: 'pending' as const,
                 },
               ],

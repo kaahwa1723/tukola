@@ -172,7 +172,7 @@ export default function EmployerHomePage() {
                               <div className="flex items-center gap-1.5">
                                 <Users size={13} className="text-slate-400" />
                                 <span className="text-slate-600 text-xs font-semibold">
-                                  {t('ed.applicants', { n: job.applicants.length })}
+                                  {t(job.applicants.length === 1 ? 'ed.applicant' : 'ed.applicants', { n: job.applicants.length })}
                                 </span>
                               </div>
                               <span className="text-blue-600 text-xs font-bold flex items-center gap-0.5">

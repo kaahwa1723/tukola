@@ -43,6 +43,9 @@ export default function JobDetailsPage() {
   const router = useRouter();
   const [rebooking, setRebooking] = useState(false);
   const [recurringMsg, setRecurringMsg] = useState<string | null>(null);
+  // Double-click guard for startConversation — a hook, so it MUST stay above
+  // the `if (!job) return` early return below (rules of hooks).
+  const startingConv = useRef(false);
 
   const job = jobs.find(j => j.id === id);
 
@@ -120,7 +123,6 @@ export default function JobDetailsPage() {
   // Start (or reopen) a conversation with the counterparty, then go to messages.
   // Guarded against double-clicks — two parallel POSTs could both miss the
   // existing-conversation check and insert duplicates.
-  const startingConv = useRef(false);
   const startConversation = async (otherUserId: string, otherUserName: string) => {
     if (!user || startingConv.current) return;
     startingConv.current = true;
@@ -301,9 +303,13 @@ export default function JobDetailsPage() {
                         <div>
                           <p className="font-bold text-[#0A0F2C] text-sm">{applicant.workerName}</p>
                           <div className="flex items-center gap-2">
-                            <span className="flex items-center gap-0.5 text-xs text-yellow-600">
-                              <Star size={11} className="fill-yellow-500 text-yellow-500" /> {applicant.rating}
-                            </span>
+                            {applicant.rating != null && applicant.rating > 0 ? (
+                              <span className="flex items-center gap-0.5 text-xs text-yellow-600">
+                                <Star size={11} className="fill-yellow-500 text-yellow-500" /> {applicant.rating.toFixed(1)}
+                              </span>
+                            ) : (
+                              <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">New</span>
+                            )}
                             <span className="text-xs text-slate-400">{t('job.jobsCount', { n: applicant.completedJobs ?? 0 })}</span>
                           </div>
                           <div className="flex flex-wrap gap-1 mt-1">

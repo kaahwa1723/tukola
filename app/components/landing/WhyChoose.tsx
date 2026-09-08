@@ -4,9 +4,9 @@ import { motion } from 'framer-motion';
 import { Shield, Zap, Star, MapPin } from 'lucide-react';
 
 const features = [
-  { icon: Shield, title: "Verified Profiles", desc: "Every worker is background-checked and vetted before they join." },
-  { icon: Zap, title: "Hire in 5 Minutes", desc: "Our matching algorithm connects you to the right talent instantly." },
-  { icon: Star, title: "Transparent Ratings", desc: "Read real reviews from previous employers before you hire." },
+  { icon: Shield, title: "Verified Profiles", desc: "Every account is verified by SMS code — no anonymous strangers." },
+  { icon: Zap, title: "Hire in Minutes", desc: "Post a job and it reaches available fundis near you right away." },
+  { icon: Star, title: "Transparent Ratings", desc: "Ratings are earned on real completed jobs — never bought, never invented." },
   { icon: MapPin, title: "Location-First", desc: "Find workers in your exact neighborhood to save time and money." }
 ];
 
@@ -19,7 +19,7 @@ export default function WhyChoose() {
           <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="lg:w-1/2">
             <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden shadow-2xl">
               <img src="/images/opt/market.webp" alt="Uganda Market" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-navy/80 via-transparent to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-navy/95 via-navy/35 to-navy/10"></div>
               <div className="absolute bottom-8 left-8 right-8">
                 <h2 className="text-3xl md:text-4xl font-bold font-heading text-white mb-4 leading-tight">Why Choose Tukola?</h2>
                 <p className="text-white/90 text-lg leading-relaxed">We're building more than just a job board. We're building a foundation of trust for Uganda's blue-collar economy.</p>

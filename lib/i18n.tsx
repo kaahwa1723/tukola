@@ -194,6 +194,7 @@ const dict: Record<string, { en: string; lg: string; sw: string; luo: string }> 
   'ed.noJobsSub':       { en: 'Post your first job above',   lg: 'Yatula omulimu gwo ogusoose waggulu', sw: 'Tangaza kazi yako ya kwanza hapo juu', luo: 'Yab tic mera me munyu malo' },
   'ed.workerLabel':     { en: 'Worker:',                     lg: 'Fundi:',                sw: 'Fundi:',                luo: 'Fundi:' },
   'ed.track':           { en: 'Track',                       lg: 'Linda',                 sw: 'Fuatilia',              luo: 'Lub kor' },
+  'ed.applicant':       { en: '{n} applicant',               lg: 'abasabye {n}',          sw: 'waombaji {n}',          luo: 'jo {n} openyo' },
   'ed.applicants':      { en: '{n} applicants',              lg: 'abasabye {n}',          sw: 'waombaji {n}',          luo: 'jo {n} openyo' },
   'ed.review':          { en: 'Review',                      lg: 'Kebera',                sw: 'Kagua',                 luo: 'Nen' },
   'ed.suggested':       { en: 'Suggested Nearby',            lg: 'Abasoboka Okumpi',      sw: 'Mapendekezo Karibu',    luo: 'Ma cok kedwu' },

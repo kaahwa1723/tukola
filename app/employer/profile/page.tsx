@@ -22,7 +22,7 @@ export default function EmployerProfilePage() {
   const hiredCount = myJobs.reduce(
     (n, j) => n + j.applicants.filter(a => a.status === 'accepted').length, 0
   );
-  const rating = user?.rating ?? 4.5;
+  const rating = user?.rating ?? null; // honest: null = no ratings yet (never fabricate)
 
   const handleLogout = () => {
     logout();
@@ -120,9 +120,9 @@ export default function EmployerProfilePage() {
           <div className="rounded-2xl p-4 text-center hover:shadow-[0_8px_30px_rgba(41,82,232,0.12)] transition-shadow" style={{ background: '#FEF3C7', border: '1px solid rgba(217,119,6,0.1)' }}>
             <div className="flex items-center justify-center gap-1 mb-1">
               <Star size={16} color="#D97706" strokeWidth={2} />
-              <span className="text-2xl font-black" style={{ color: '#0A0F2C' }}>{rating}</span>
+              <span className="text-2xl font-black" style={{ color: '#0A0F2C' }}>{rating != null && rating > 0 ? rating : '—'}</span>
             </div>
-            <p className="text-xs font-semibold" style={{ color: '#4A5580' }}>Avg Rating</p>
+            <p className="text-xs font-semibold" style={{ color: '#4A5580' }}>{rating != null && rating > 0 ? 'Avg Rating' : 'No ratings yet'}</p>
           </div>
           <div className="rounded-2xl p-4 text-center hover:shadow-[0_8px_30px_rgba(41,82,232,0.12)] transition-shadow" style={{ background: '#F3E8FF', border: '1px solid rgba(147,51,234,0.1)' }}>
             <div className="flex items-center justify-center gap-1 mb-1">

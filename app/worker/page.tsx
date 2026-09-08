@@ -202,7 +202,7 @@ export default function WorkerHomePage() {
               </div>
               <div className="rounded-2xl px-4 py-2.5" style={{ background: 'rgba(255,255,255,0.15)' }}>
                 <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide">{t('wh.rating')}</p>
-                <p className="text-white text-xl font-extrabold">{user?.rating?.toFixed(1) ?? '—'}</p>
+                <p className="text-white text-xl font-extrabold">{(user?.rating ?? 0) > 0 ? user!.rating!.toFixed(1) : '—'}</p>
               </div>
               <Link href="/worker/jobs" className="hidden lg:flex items-center gap-1 text-white/80 text-xs font-bold cursor-pointer hover:text-white transition-colors">
                 {t('worker.myJobs')} <ChevronRight size={13} />

@@ -69,7 +69,7 @@ export default function StatsBar() {
   return (
     <section className="bg-gradient-to-r from-[#1A2DB8] via-primary to-accent py-16">
       <div className="container mx-auto px-4">
-        <div className={`grid grid-cols-2 ${items.length > 2 ? 'md:grid-cols-3' : ''} gap-8 md:gap-4 text-center`}>
+        <div className={`grid grid-cols-2 ${items.length > 2 ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-8 md:gap-4 text-center`}>
           {items.map((stat, idx) => (
             <motion.div
               key={idx}

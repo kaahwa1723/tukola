@@ -28,7 +28,7 @@ export interface Applicant {
   workerId: string;
   workerName: string;
   workerAvatar?: string;
-  rating: number;
+  rating?: number; // optional — undefined = no ratings yet (show "New", never a fake number)
   completedJobs?: number;
   skills?: string[];
   appliedAt: string;

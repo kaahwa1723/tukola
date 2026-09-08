@@ -2,7 +2,7 @@
 
 const jobTypes = [
   "Cleaner", "Plumber", "Electrician", "Driver", "Cook", 
-  "Gardner", "Builder", "Security Guard", "Tailor", 
+  "Gardener", "Builder", "Security Guard", "Tailor", 
   "Delivery", "Events", "Beauty", "Mechanic", "Farmer", 
   "Painter", "Welder", "Mason", "Carpenter"
 ];

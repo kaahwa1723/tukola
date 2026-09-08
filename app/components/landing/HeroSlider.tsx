@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const slides = [
   {
@@ -67,6 +68,8 @@ const slides = [
 const pills = ["Cleaner", "Plumber", "Driver", "Electrician", "Cook"];
 
 export default function HeroSlider() {
+  const router = useRouter();
+  const [query, setQuery] = useState('');
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const { scrollY } = useScroll();
@@ -167,27 +170,37 @@ export default function HeroSlider() {
                 transition={{ delay: 0.8, duration: 0.6 }}
                 className="w-full max-w-xl"
               >
-                <div className="flex flex-col sm:flex-row gap-3 bg-white p-2 rounded-2xl shadow-xl mb-6">
+                <form
+                  className="flex flex-col sm:flex-row gap-3 bg-white p-2 rounded-2xl shadow-xl mb-6"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    router.push('/login');
+                  }}
+                >
                   <div className="flex-1 flex items-center px-4 py-2 border-b sm:border-b-0 sm:border-r border-gray-100">
                     <Search className="text-gray-400 w-5 h-5 mr-3 shrink-0" aria-hidden="true" />
                     <label htmlFor="hero-search" className="sr-only">What service do you need?</label>
                     <input
                       id="hero-search"
                       type="text"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
                       placeholder="What service do you need?"
                       className="w-full bg-transparent text-gray-900 focus:outline-none placeholder-gray-400"
                     />
                   </div>
-                  <button className="btn-gradient px-8 py-4 rounded-xl whitespace-nowrap text-[15px]">
+                  <button type="submit" className="btn-gradient px-8 py-4 rounded-xl whitespace-nowrap text-[15px]">
                     Search Jobs
                   </button>
-                </div>
+                </form>
 
                 <div className="flex items-center gap-2.5 flex-nowrap overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1 sm:flex-wrap sm:overflow-visible">
                   <span className="text-sm text-gray-300 font-medium shrink-0">Popular:</span>
                   {pills.map((pill) => (
                     <button
                       key={pill}
+                      type="button"
+                      onClick={() => router.push('/login')}
                       className="shrink-0 text-sm bg-white/10 hover:bg-white/25 hover:border-white/40 backdrop-blur-sm border border-white/20 px-4 py-1.5 rounded-full transition-all duration-200 active:scale-95"
                     >
                       {pill}

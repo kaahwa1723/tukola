@@ -20,10 +20,12 @@ export default function WorkerProfilePage() {
   const [portfolioImages, setPortfolioImages] = useState<string[]>(user?.portfolioImages || []);
 
   const profile = {
-    rating: user?.rating || 4.5,
+    // Honest trust surface: undefined rating = "New", never a fake 4.5.
+    // Response time / last active are not measured yet — don't display invented values.
+    rating: user?.rating,
     completedJobs: user?.completedJobs || 0,
-    responseTime: user?.responseTime || '< 30 mins',
-    lastActive: user?.lastActive || 'Just now',
+    responseTime: user?.responseTime || null,
+    lastActive: user?.lastActive || null,
     isVerified: user?.isVerified || false,
   };
 
@@ -120,9 +122,9 @@ export default function WorkerProfilePage() {
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm text-center hover:shadow-[0_8px_30px_rgba(41,82,232,0.12)] transition-shadow">
             <div className="flex items-center justify-center gap-1 mb-1">
               <Star size={16} className="text-yellow-500 fill-yellow-500" />
-              <span className="text-2xl font-black text-slate-900">{profile.rating}</span>
+              <span className="text-2xl font-black text-slate-900">{profile.rating != null && profile.rating > 0 ? profile.rating.toFixed(1) : '—'}</span>
             </div>
-            <p className="text-slate-500 text-xs">Rating</p>
+            <p className="text-slate-500 text-xs">{profile.rating != null && profile.rating > 0 ? 'Rating' : 'No ratings yet'}</p>
           </div>
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm text-center hover:shadow-[0_8px_30px_rgba(41,82,232,0.12)] transition-shadow">
             <div className="flex items-center justify-center gap-1 mb-1">
@@ -135,14 +137,14 @@ export default function WorkerProfilePage() {
             <p className="text-slate-500 text-xs mb-1">Last Active</p>
             <p className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
               <Clock size={13} className="text-blue-500" />
-              {profile.lastActive || '2 hours ago'}
+              {profile.lastActive || 'Not tracked yet'}
             </p>
           </div>
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:shadow-[0_8px_30px_rgba(41,82,232,0.12)] transition-shadow">
             <p className="text-slate-500 text-xs mb-1">Response Time</p>
             <p className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
               <Zap size={13} className="text-orange-500" />
-              {profile.responseTime || '< 30 mins'}
+              {profile.responseTime || 'Not measured yet'}
             </p>
           </div>
         </div>
