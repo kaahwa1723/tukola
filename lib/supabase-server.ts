@@ -71,6 +71,7 @@ export function mapUser(r: any): User {
     responseTime: r.response_time ?? undefined,
     lastActive: r.last_active ?? undefined,
     isVerified: r.is_verified ?? false,
+    blocked: r.blocked ?? false,
     company: r.company ?? undefined,
     portfolioImages: r.portfolio_images ?? [],
   };

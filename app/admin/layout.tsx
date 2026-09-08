@@ -3,16 +3,18 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Users, Briefcase, Shield, ShieldCheck, BarChart2, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Flag, Shield, ShieldCheck, BarChart2, LogOut, Gift, ShieldAlert } from 'lucide-react';
 import { TukolaLogo } from '@/components/TukolaLogo';
 
 const NAV = [
-  { href: '/admin',            label: 'Dashboard',  Icon: LayoutDashboard },
-  { href: '/admin/users',      label: 'Users',       Icon: Users },
-  { href: '/admin/jobs',       label: 'Jobs',        Icon: Briefcase },
-  { href: '/admin/moderation', label: 'Moderation',  Icon: Shield },
-  { href: '/admin/claims',     label: 'Claims',      Icon: ShieldCheck },
-  { href: '/admin/analytics',  label: 'Analytics',   Icon: BarChart2 },
+  { href: '/admin',           label: 'Overview',   Icon: LayoutDashboard },
+  { href: '/admin/users',     label: 'Users',      Icon: Users },
+  { href: '/admin/jobs',      label: 'Jobs',       Icon: Briefcase },
+  { href: '/admin/disputes',  label: 'Disputes',   Icon: Flag },
+  { href: '/admin/claims',    label: 'Claims',     Icon: ShieldCheck },
+  { href: '/admin/referrals', label: 'Referrals',  Icon: Gift },
+  { href: '/admin/leakage',   label: 'Leakage',    Icon: ShieldAlert },
+  { href: '/admin/analytics', label: 'Analytics',  Icon: BarChart2 },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

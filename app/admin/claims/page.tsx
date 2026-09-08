@@ -115,7 +115,7 @@ export default function AdminClaimsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-black text-[#0A0F2C]">Guarantee Claims</h1>
-            <p className="text-slate-500 text-sm">Re-dos and refunds (≤ UGX 200,000) from the guarantee reserve</p>
+            <p className="text-slate-500 text-sm">Re-dos and refunds (up to UGX 200,000 each) paid from the guarantee pot</p>
           </div>
         </div>
         <button onClick={load}
@@ -164,7 +164,7 @@ export default function AdminClaimsPage() {
               )}
               {claim.amount_approved != null && claim.amount_approved > 0 && (
                 <p className="text-green-700 text-xs font-bold mb-3">
-                  Approved: {ugx(claim.amount_approved)} (paid from the reserve ledger)
+                  Approved: {ugx(claim.amount_approved)} (paid from the guarantee pot)
                 </p>
               )}
 
@@ -198,7 +198,7 @@ export default function AdminClaimsPage() {
                 <div className="mt-4 border-t border-slate-100 pt-4 space-y-2.5">
                   <p className="text-sm font-bold text-slate-900">
                     {action === 'approve_redo' && 'Approve as re-do (no reserve payout)'}
-                    {action === 'approve_refund' && 'Approve refund from the guarantee reserve'}
+                    {action === 'approve_refund' && 'Approve refund from the guarantee pot'}
                     {action === 'reject' && 'Reject this claim'}
                   </p>
                   {action === 'approve_refund' && (
@@ -208,7 +208,7 @@ export default function AdminClaimsPage() {
                         min={1}
                         value={amount}
                         onChange={e => setAmount(e.target.value)}
-                        placeholder={`Amount in UGX (blank = claimed amount, capped at UGX 200,000 and the reserve balance)`}
+                        placeholder={`Amount in UGX (blank = claimed amount, capped at UGX 200,000 and what's in the guarantee pot)`}
                         className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                       />
                     </div>

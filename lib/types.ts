@@ -15,6 +15,7 @@ export interface User {
   responseTime?: string;
   lastActive?: string;
   isVerified?: boolean;
+  blocked?: boolean;
   company?: string;
   portfolioImages?: string[];
 }

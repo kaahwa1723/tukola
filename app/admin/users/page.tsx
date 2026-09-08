@@ -7,6 +7,7 @@ import { Search, CheckCircle, XCircle, Star, Briefcase, UserCheck, Ban, RefreshC
 interface AdminUser {
   id: string; name: string; phone: string; role: string;
   location?: string; rating?: number; completedJobs?: number;
+  reliabilityScore?: number;
   skills?: string[]; isVerified: boolean; blocked?: boolean;
 }
 
@@ -100,7 +101,8 @@ export default function AdminUsersPage() {
                 {tab === 'workers' && (
                   <>
                     <th className="text-left px-4 py-3 text-slate-600 font-semibold hidden md:table-cell">Rating</th>
-                    <th className="text-left px-4 py-3 text-slate-600 font-semibold hidden md:table-cell">Jobs</th>
+                    <th className="text-left px-4 py-3 text-slate-600 font-semibold hidden lg:table-cell" title="Computed from completed jobs, disputes and cancellations — not editable">Trust Score</th>
+                    <th className="text-left px-4 py-3 text-slate-600 font-semibold hidden md:table-cell">Jobs Done</th>
                   </>
                 )}
                 <th className="text-left px-4 py-3 text-slate-600 font-semibold">Status</th>
@@ -130,10 +132,27 @@ export default function AdminUsersPage() {
                   {tab === 'workers' && (
                     <>
                       <td className="px-4 py-3 hidden md:table-cell">
-                        <span className="flex items-center gap-1 text-slate-700">
-                          <Star size={13} className="text-yellow-500 fill-yellow-500" />
-                          {user.rating ?? 4.5}
-                        </span>
+                        {user.rating != null ? (
+                          <span className="flex items-center gap-1 text-slate-700">
+                            <Star size={13} className="text-yellow-500 fill-yellow-500" />
+                            {user.rating}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">No ratings yet</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        {user.reliabilityScore != null ? (
+                          <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                            user.reliabilityScore >= 80 ? 'bg-green-100 text-green-700' :
+                            user.reliabilityScore >= 50 ? 'bg-amber-100 text-amber-700' :
+                            'bg-red-100 text-red-600'
+                          }`}>
+                            {user.reliabilityScore}/100
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">Not enough history</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">
                         <span className="flex items-center gap-1 text-slate-700">
@@ -187,7 +206,7 @@ export default function AdminUsersPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={tab === 'workers' ? 6 : 4}>
+                  <td colSpan={tab === 'workers' ? 7 : 4}>
                     <div className="empty-state">
                       <div className="empty-icon"><Users size={30} color="#2952E8" /></div>
                       <p className="empty-title">No users found</p>

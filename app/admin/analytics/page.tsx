@@ -62,14 +62,14 @@ interface ReconciliationFlag {
 }
 
 const FLAG_LABELS: Record<string, string> = {
-  provider_mismatch: 'Ledger vs provider mismatch',
-  provider_status_check_failed: 'Provider status check failed',
-  stuck_pending: 'Payment stuck pending > 24h',
-  stuck_held: 'Payment stuck held > 72h',
-  commission_math_mismatch: 'Commission above rate expectation',
-  guarantee_math_mismatch: 'Guarantee accrual ≠ 2% of GMV',
-  over_distribution: 'Payouts exceed amount collected',
-  missing_receipt: 'Released without EFRIS receipt',
+  provider_mismatch: "Our records don't match the payment provider",
+  provider_status_check_failed: "Couldn't confirm a payment with MTN/Airtel",
+  stuck_pending: "Payment stuck 'pending' for over 24 hours",
+  stuck_held: "Money stuck in escrow for over 72 hours",
+  commission_math_mismatch: 'Platform fee looks higher than expected',
+  guarantee_math_mismatch: "Guarantee pot top-up isn't 2% of the job value",
+  over_distribution: 'Paid out more than was collected',
+  missing_receipt: 'Released without an EFRIS receipt',
 };
 
 const FUNNEL_STEPS: { key: keyof Funnel; label: string; Icon: any }[] = [
@@ -168,7 +168,7 @@ export default function AdminAnalyticsPage() {
           { label: 'Total Users', value: stats?.totalUsers, sub: stats ? `${stats.totalWorkers} workers · ${stats.totalEmployers} employers` : '', Icon: Users, color: 'blue' },
           { label: 'Jobs Posted', value: stats?.totalJobs, sub: stats ? `${stats.openJobs} open · ${stats.activeJobs} active` : '', Icon: Briefcase, color: 'orange' },
           { label: 'Jobs Completed', value: stats?.completedJobs, sub: 'lifetime', Icon: CheckCircle2, color: 'green' },
-          { label: 'This Week GMV', value: metrics ? ugx(metrics.gmvUgx) : undefined, sub: 'released payments', Icon: DollarSign, color: 'purple' },
+          { label: "This Week's Job Value", value: metrics ? ugx(metrics.gmvUgx) : undefined, sub: 'total of payments released this week', Icon: DollarSign, color: 'purple' },
         ].map(kpi => (
           <div key={kpi.label} className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${
@@ -257,7 +257,7 @@ export default function AdminAnalyticsPage() {
               </div>
               <div>
                 <p className="font-bold text-slate-900 text-lg">{metrics ? ugx(metrics.commissionRevenueUgx) : '—'}</p>
-                <p className="text-slate-500 text-xs">Commission revenue this week</p>
+                <p className="text-slate-500 text-xs">Platform fees earned this week</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -266,7 +266,7 @@ export default function AdminAnalyticsPage() {
               </div>
               <div>
                 <p className="font-bold text-slate-900 text-lg">{metrics ? ugx(metrics.guaranteeReserveBalanceUgx) : '—'}</p>
-                <p className="text-slate-500 text-xs">Guarantee reserve balance</p>
+                <p className="text-slate-500 text-xs">Guarantee pot — money set aside for claims</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -276,7 +276,7 @@ export default function AdminAnalyticsPage() {
               <div>
                 <p className="font-bold text-slate-900 text-lg">{metrics ? `${metrics.guaranteeLossRatioPct}%` : '—'}</p>
                 <p className="text-slate-500 text-xs">
-                  Guarantee loss ratio (lifetime{metrics ? ` · ${ugx(metrics.guaranteePayoutsUgx)} paid of ${ugx(metrics.guaranteeAccruedUgx)} accrued` : ''})
+                  Share of the guarantee pot paid out (all time{metrics ? ` · ${ugx(metrics.guaranteePayoutsUgx)} paid of ${ugx(metrics.guaranteeAccruedUgx)} collected` : ''})
                 </p>
               </div>
             </div>
@@ -287,7 +287,7 @@ export default function AdminAnalyticsPage() {
               <div>
                 <p className="font-bold text-slate-900 text-lg">{metrics ? `${metrics.repeatHireRate90d}%` : '—'}</p>
                 <p className="text-slate-500 text-xs">
-                  90-day repeat-hire rate{metrics ? ` (${metrics.repeatEmployers90d}/${metrics.hiringEmployers90d} employers)` : ''}
+                  Customers who hired again within 90 days{metrics ? ` (${metrics.repeatEmployers90d} of ${metrics.hiringEmployers90d} customers)` : ''}
                 </p>
               </div>
             </div>
@@ -313,9 +313,10 @@ export default function AdminAnalyticsPage() {
               : <CheckCircle2 size={16} className="text-green-600" />}
           </div>
           <div>
-            <h2 className="font-black text-slate-900">Reconciliation</h2>
+            <h2 className="font-black text-slate-900">Payment Checks</h2>
             <p className="text-slate-400 text-xs">
-              Daily ledger-vs-expectation checks · resolving a flag never moves money — fix via the escrow flows first
+              Daily automatic checks that our payment records match what the money actually did ·
+              marking one resolved never moves money — fix the payment itself first
             </p>
           </div>
         </div>
@@ -324,7 +325,7 @@ export default function AdminAnalyticsPage() {
           <p className="text-slate-400 text-sm py-4 text-center">Loading flags…</p>
         ) : flags.length === 0 ? (
           <p className="text-slate-400 text-sm py-4 text-center">
-            No open flags — the ledger matches expectation.
+            No open flags — every payment record matches expectation.
           </p>
         ) : (
           <div className="mt-3 divide-y divide-slate-50">
@@ -337,7 +338,7 @@ export default function AdminAnalyticsPage() {
                   <p className="text-xs text-slate-500 mt-0.5">
                     Payment #{f.paymentId}
                     {f.paymentAmount != null && ` · UGX ${f.paymentAmount.toLocaleString()}`}
-                    {f.paymentStatus && ` · ledger: ${f.paymentStatus}`}
+                    {f.paymentStatus && ` · payment record says: ${f.paymentStatus}`}
                     {f.jobId && ` · job ${f.jobId}`}
                     {' · '}flagged {new Date(f.createdAt).toLocaleDateString('en-UG', { month: 'short', day: 'numeric' })}
                   </p>

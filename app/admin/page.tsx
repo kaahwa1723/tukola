@@ -68,8 +68,8 @@ export default function AdminDashboard() {
     <div className="p-6 max-w-6xl mx-auto">
       <div className="mb-6 flex items-center justify-between animate-slide-up">
         <div>
-          <h1 className="text-2xl font-black text-[#0A0F2C]">Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-0.5">TUKOLA Marketplace Overview</p>
+          <h1 className="text-2xl font-black text-[#0A0F2C]">Overview</h1>
+          <p className="text-slate-500 text-sm mt-0.5">How TUKOLA is doing right now — live numbers</p>
         </div>
         <button onClick={load} disabled={loading}
           className="flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-xl transition-colors disabled:opacity-60"
@@ -155,9 +155,9 @@ export default function AdminDashboard() {
                   <div className="text-right">
                     <p className="font-bold text-sm flex items-center gap-1 justify-end" style={{ color: '#0A0F2C' }}>
                       <Star size={11} className="text-yellow-500 fill-yellow-500" />
-                      {worker.rating ?? 4.5}
+                      {worker.rating != null ? worker.rating : 'No ratings yet'}
                     </p>
-                    <p className="text-slate-400 text-xs">{worker.completedJobs ?? 0} jobs</p>
+                    <p className="text-slate-400 text-xs">{worker.completedJobs ?? 0} jobs done</p>
                   </div>
                 </div>
               ))}
@@ -171,13 +171,13 @@ export default function AdminDashboard() {
             <div className="w-8 h-8 bg-orange-100 rounded-xl flex items-center justify-center">
               <AlertTriangle size={16} className="text-orange-500" />
             </div>
-            <h2 className="font-black text-[#0A0F2C]">Platform Alerts</h2>
+            <h2 className="font-black text-[#0A0F2C]">Things to Check</h2>
           </div>
           <div className="space-y-2">
             {[
-              { msg: `${stats ? stats.totalWorkers : '—'} workers registered — check pending verifications`, type: 'info' },
-              { msg: 'Review open disputes in the Moderation tab', type: 'warning' },
-              { msg: 'All API services running normally', type: 'success' },
+              { msg: `${stats ? stats.totalWorkers : '—'} fundis registered — open Users to check who still needs ID verification`, type: 'info' },
+              { msg: 'Open the Disputes tab to decide any frozen payments waiting on you', type: 'warning' },
+              { msg: 'Open Analytics for this week\'s numbers before your Monday review', type: 'success' },
             ].map((alert, i) => (
               <div key={i} className={`flex items-start gap-3 p-3 rounded-xl ${
                 alert.type === 'warning' ? 'bg-orange-50 border border-orange-100' :
