@@ -116,13 +116,30 @@ export async function GET(req: NextRequest) {
     const sb = createServerSupabase();
     const { data, error } = await sb
       .from('recurring_templates')
-      .select('*, worker:profiles!recurring_templates_worker_id_fkey(name)')
+      .select('*')
       .eq('employer_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    return NextResponse.json({ templates: data ?? [] });
+    // Worker names via a separate lookup — the DB has no FK between
+    // recurring_templates and profiles, so an embedded join 500s (PGRST200).
+    const rows = data ?? [];
+    const workerIds = Array.from(new Set(rows.map(r => r.worker_id).filter(Boolean)));
+    let nameById: Record<string, string> = {};
+    if (workerIds.length > 0) {
+      const { data: workers } = await sb
+        .from('profiles')
+        .select('id, name')
+        .in('id', workerIds);
+      nameById = Object.fromEntries((workers ?? []).map(w => [w.id, w.name]));
+    }
+    const templates = rows.map(r => ({
+      ...r,
+      worker: r.worker_id && nameById[r.worker_id] ? { name: nameById[r.worker_id] } : null,
+    }));
+
+    return NextResponse.json({ templates });
   } catch (err: any) {
     console.error('[GET /api/recurring]', err);
     return NextResponse.json({ error: 'Could not load recurring bookings.' }, { status: 500 });

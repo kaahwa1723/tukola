@@ -49,8 +49,9 @@ export async function GET(req: NextRequest) {
       rating: r.rating != null ? Number(r.rating) : undefined,
       completedJobs: r.completed_jobs ?? 0,
       // NULL stays NULL: a fundi with no history is shown as "New",
-      // never given a fabricated reliability number
-      reliabilityScore: r.reliability_score != null ? Number(r.reliability_score) : undefined,
+      // never given a fabricated reliability number. Must be null (not
+      // undefined) so the field survives JSON serialization.
+      reliabilityScore: r.reliability_score != null ? Number(r.reliability_score) : null,
       skills: r.skills ?? [],
       location: r.location ?? undefined,
       isVerified: r.is_verified ?? false,
