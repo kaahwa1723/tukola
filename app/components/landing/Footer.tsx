@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { Twitter, Facebook, Instagram, Linkedin, PhoneIcon as WhatsApp } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -11,18 +10,13 @@ export default function Footer() {
           <div className="col-span-2 lg:col-span-1 space-y-6">
             <img src="/images/opt/logo-dark.webp" alt="Tukola" className="h-12 object-contain" />
             <p className="text-gray-400 leading-relaxed">Uganda's blue-collar gig marketplace. Connecting skilled hands with the people who need them, safely and reliably.</p>
-            <div className="flex items-center gap-4">
-              {[Twitter, Facebook, Instagram, Linkedin, WhatsApp].map((Icon, i) => (
-                <a key={i} href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-primary hover:text-white transition-colors"><Icon className="w-4 h-4" /></a>
-              ))}
-            </div>
           </div>
           <div>
             <h4 className="text-white font-bold font-heading mb-5 uppercase tracking-wider text-sm">About Tukola</h4>
             <ul className="space-y-3">
-              {["Our Story", "Careers", "Press", "Trust & Safety", "Terms of Service"].map(item => (
-                <li key={item}><a href="#" className="hover:text-accent transition-colors">{item}</a></li>
-              ))}
+              <li><Link href="/#how-it-works" className="hover:text-accent transition-colors">How It Works</Link></li>
+              <li><Link href="/terms" className="hover:text-accent transition-colors">Terms of Service</Link></li>
+              <li><Link href="/privacy" className="hover:text-accent transition-colors">Privacy Policy</Link></li>
             </ul>
           </div>
           <div>
@@ -30,9 +24,7 @@ export default function Footer() {
             <ul className="space-y-3">
               <li><Link href="/onboarding" className="hover:text-accent transition-colors">Create Profile</Link></li>
               <li><Link href="/login" className="hover:text-accent transition-colors">Find Jobs</Link></li>
-              {["Payment Guidelines", "Help Center"].map(item => (
-                <li key={item}><a href="#" className="hover:text-accent transition-colors">{item}</a></li>
-              ))}
+              <li><Link href="/terms#payments" className="hover:text-accent transition-colors">Payment Guidelines</Link></li>
             </ul>
           </div>
           <div>
@@ -40,17 +32,15 @@ export default function Footer() {
             <ul className="space-y-3">
               <li><Link href="/login" className="hover:text-accent transition-colors">Post a Job</Link></li>
               <li><Link href="/login" className="hover:text-accent transition-colors">Browse Workers</Link></li>
-              {["Pricing", "Contact Support"].map(item => (
-                <li key={item}><a href="#" className="hover:text-accent transition-colors">{item}</a></li>
-              ))}
+              <li><Link href="/terms#fees" className="hover:text-accent transition-colors">Pricing</Link></li>
             </ul>
           </div>
         </div>
         <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-gray-500 text-sm">&copy; 2025 Tukola. All rights reserved. Kampala, Uganda.</p>
+          <p className="text-gray-500 text-sm">&copy; 2026 Tukola. All rights reserved. Kampala, Uganda.</p>
           <div className="flex gap-6 text-sm text-gray-500">
-            <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-white transition-colors">Cookie Policy</a>
+            <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
           </div>
         </div>
       </div>
