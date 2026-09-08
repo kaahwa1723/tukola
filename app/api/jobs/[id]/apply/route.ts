@@ -7,7 +7,9 @@ type Params = { params: { id: string } };
 
 /**
  * POST /api/jobs/[id]/apply
- * Body: {} (no identity fields)
+ * Body: { clientRequestId? } — accepted for outbox correlation; dedupe is
+ * structural, not key-based: UNIQUE(job_id, worker_id) + upsert means any
+ * retry (offline replay, double-tap) converges to one application.
  *
  * Worker identity, name, rating, completed jobs and skills all come from
  * the server session + the profiles table — a client can no longer apply
@@ -22,6 +24,10 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (user.role !== 'worker') {
       return NextResponse.json({ error: 'Only worker accounts can apply to jobs' }, { status: 403 });
     }
+
+    // Consumed for correlation only — never trusted for identity
+    const body = await req.json().catch(() => ({}));
+    const clientRequestId = typeof body?.clientRequestId === 'string' ? body.clientRequestId : undefined;
 
     const sb = createServerSupabase();
 
@@ -84,7 +90,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     if (error) throw error;
 
-    track('application_sent', user.id, { jobId: params.id });
+    track('application_sent', user.id, { jobId: params.id, clientRequestId: clientRequestId ?? null });
     return NextResponse.json({ success: true });
   } catch (err: any) {
     console.error('[POST /api/jobs/[id]/apply]', err);

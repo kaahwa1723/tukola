@@ -49,6 +49,29 @@ interface FunnelResponse {
   };
 }
 
+interface ReconciliationFlag {
+  id: number;
+  paymentId: number;
+  flagType: string;
+  detail: Record<string, any>;
+  status: string;
+  createdAt: string;
+  paymentAmount?: number;
+  paymentStatus?: string;
+  jobId?: string;
+}
+
+const FLAG_LABELS: Record<string, string> = {
+  provider_mismatch: 'Ledger vs provider mismatch',
+  provider_status_check_failed: 'Provider status check failed',
+  stuck_pending: 'Payment stuck pending > 24h',
+  stuck_held: 'Payment stuck held > 72h',
+  commission_math_mismatch: 'Commission above rate expectation',
+  guarantee_math_mismatch: 'Guarantee accrual ≠ 2% of GMV',
+  over_distribution: 'Payouts exceed amount collected',
+  missing_receipt: 'Released without EFRIS receipt',
+};
+
 const FUNNEL_STEPS: { key: keyof Funnel; label: string; Icon: any }[] = [
   { key: 'signup',             label: 'Sign-ups',            Icon: UserPlus },
   { key: 'otp_verified',       label: 'Phones verified',     Icon: PhoneCall },
@@ -67,6 +90,7 @@ const ugx = (n: number) => `UGX ${n.toLocaleString()}`;
 export default function AdminAnalyticsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [funnelData, setFunnelData] = useState<FunnelResponse | null>(null);
+  const [flags, setFlags] = useState<ReconciliationFlag[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -74,9 +98,10 @@ export default function AdminAnalyticsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [statsRes, funnelRes] = await Promise.all([
+      const [statsRes, funnelRes, flagsRes] = await Promise.all([
         fetch('/api/admin/stats'),
         fetch('/api/admin/funnel'),
+        fetch('/api/admin/reconciliation'),
       ]);
       if (!statsRes.ok || !funnelRes.ok) {
         setError('Could not load analytics. You may need to sign in again.');
@@ -84,6 +109,7 @@ export default function AdminAnalyticsPage() {
       }
       setStats(await statsRes.json());
       setFunnelData(await funnelRes.json());
+      if (flagsRes.ok) setFlags((await flagsRes.json()).flags ?? []);
     } catch {
       setError('Network error loading analytics.');
     } finally {
@@ -92,6 +118,16 @@ export default function AdminAnalyticsPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const resolveFlag = async (id: number) => {
+    setFlags(prev => prev ? prev.filter(f => f.id !== id) : prev);
+    const res = await fetch(`/api/admin/reconciliation/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'resolve' }),
+    });
+    if (!res.ok) load(); // restore on failure
+  };
 
   const funnel = funnelData?.funnel;
   const metrics = funnelData?.metrics;
@@ -266,6 +302,59 @@ export default function AdminAnalyticsPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Reconciliation flags — raised by the daily /api/cron/reconcile run */}
+      <div className="mt-6 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div className="flex items-center gap-3 mb-1">
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${flags?.length ? 'bg-amber-100' : 'bg-green-100'}`}>
+            {flags?.length
+              ? <AlertTriangle size={16} className="text-amber-600" />
+              : <CheckCircle2 size={16} className="text-green-600" />}
+          </div>
+          <div>
+            <h2 className="font-black text-slate-900">Reconciliation</h2>
+            <p className="text-slate-400 text-xs">
+              Daily ledger-vs-expectation checks · resolving a flag never moves money — fix via the escrow flows first
+            </p>
+          </div>
+        </div>
+
+        {flags === null ? (
+          <p className="text-slate-400 text-sm py-4 text-center">Loading flags…</p>
+        ) : flags.length === 0 ? (
+          <p className="text-slate-400 text-sm py-4 text-center">
+            No open flags — the ledger matches expectation.
+          </p>
+        ) : (
+          <div className="mt-3 divide-y divide-slate-50">
+            {flags.map(f => (
+              <div key={f.id} className="py-3 flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-slate-900">
+                    {FLAG_LABELS[f.flagType] ?? f.flagType}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Payment #{f.paymentId}
+                    {f.paymentAmount != null && ` · UGX ${f.paymentAmount.toLocaleString()}`}
+                    {f.paymentStatus && ` · ledger: ${f.paymentStatus}`}
+                    {f.jobId && ` · job ${f.jobId}`}
+                    {' · '}flagged {new Date(f.createdAt).toLocaleDateString('en-UG', { month: 'short', day: 'numeric' })}
+                  </p>
+                  {f.detail?.note && (
+                    <p className="text-xs text-slate-400 mt-0.5">{f.detail.note}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => resolveFlag(f.id)}
+                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-colors hover:bg-green-50 flex-shrink-0"
+                  style={{ color: '#16A34A' }}>
+                  <CheckCircle2 size={13} /> Resolve
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

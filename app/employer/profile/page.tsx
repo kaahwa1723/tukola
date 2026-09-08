@@ -8,12 +8,21 @@ import { MobileHeader } from '@/components/layout/MobileHeader';
 import { useKola } from '@/lib/store';
 
 export default function EmployerProfilePage() {
-  const { user, logout, updateUser } = useKola();
+  const { user, jobs, logout, updateUser } = useKola();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [avatar, setAvatar] = useState<string>(user?.avatar || '');
   const [company, setCompany] = useState(user?.company || '');
   const [about, setAbout] = useState(user?.about || '');
+
+  // Real stats computed from the employer's own jobs
+  const myJobs = jobs.filter(j => j.employerId === user?.id);
+  const postedCount = myJobs.length;
+  const completedCount = myJobs.filter(j => j.status === 'completed').length;
+  const hiredCount = myJobs.reduce(
+    (n, j) => n + j.applicants.filter(a => a.status === 'accepted').length, 0
+  );
+  const rating = user?.rating ?? 4.5;
 
   const handleLogout = () => {
     logout();
@@ -33,18 +42,20 @@ export default function EmployerProfilePage() {
         {/* Avatar */}
         <div className="flex flex-col items-center gap-3">
           <div className="relative">
-            {avatar ? (
-              <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg" style={{ border: '2px solid rgba(41,82,232,0.2)' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
-              </div>
-            ) : (
-              <div className="w-24 h-24 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center shadow-lg">
-                <span className="text-white font-black text-3xl">
-                  {user?.name?.charAt(0).toUpperCase() || 'E'}
-                </span>
-              </div>
-            )}
+            <div className="p-[3px] rounded-full" style={{ background: 'linear-gradient(135deg,#00C8FF,#2952E8,#1A2DB8)' }}>
+              {avatar ? (
+                <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg" style={{ border: '2px solid rgba(41,82,232,0.2)' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-24 h-24 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center shadow-lg">
+                  <span className="text-white font-black text-3xl">
+                    {user?.name?.charAt(0).toUpperCase() || 'E'}
+                  </span>
+                </div>
+              )}
+            </div>
             <button
               onClick={() => document.getElementById('employer-avatar-input')?.click()}
               className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md border border-slate-100 hover:bg-blue-50 transition-colors"
@@ -92,31 +103,31 @@ export default function EmployerProfilePage() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="rounded-2xl p-4 text-center" style={{ background: '#EEF2FF', border: '1px solid rgba(41,82,232,0.1)' }}>
+          <div className="rounded-2xl p-4 text-center hover:shadow-[0_8px_30px_rgba(41,82,232,0.12)] transition-shadow" style={{ background: '#EEF2FF', border: '1px solid rgba(41,82,232,0.1)' }}>
             <div className="flex items-center justify-center gap-1 mb-1">
               <Briefcase size={16} color="#2952E8" strokeWidth={2} />
-              <span className="text-2xl font-black" style={{ color: '#0A0F2C' }}>12</span>
+              <span className="text-2xl font-black" style={{ color: '#0A0F2C' }}>{postedCount}</span>
             </div>
             <p className="text-xs font-semibold" style={{ color: '#4A5580' }}>Jobs Posted</p>
           </div>
-          <div className="rounded-2xl p-4 text-center" style={{ background: '#ECFDF5', border: '1px solid rgba(5,150,105,0.1)' }}>
+          <div className="rounded-2xl p-4 text-center hover:shadow-[0_8px_30px_rgba(41,82,232,0.12)] transition-shadow" style={{ background: '#ECFDF5', border: '1px solid rgba(5,150,105,0.1)' }}>
             <div className="flex items-center justify-center gap-1 mb-1">
               <CheckCircle size={16} color="#059669" strokeWidth={2} />
-              <span className="text-2xl font-black" style={{ color: '#0A0F2C' }}>9</span>
+              <span className="text-2xl font-black" style={{ color: '#0A0F2C' }}>{completedCount}</span>
             </div>
             <p className="text-xs font-semibold" style={{ color: '#4A5580' }}>Completed</p>
           </div>
-          <div className="rounded-2xl p-4 text-center" style={{ background: '#FEF3C7', border: '1px solid rgba(217,119,6,0.1)' }}>
+          <div className="rounded-2xl p-4 text-center hover:shadow-[0_8px_30px_rgba(41,82,232,0.12)] transition-shadow" style={{ background: '#FEF3C7', border: '1px solid rgba(217,119,6,0.1)' }}>
             <div className="flex items-center justify-center gap-1 mb-1">
               <Star size={16} color="#D97706" strokeWidth={2} />
-              <span className="text-2xl font-black" style={{ color: '#0A0F2C' }}>4.7</span>
+              <span className="text-2xl font-black" style={{ color: '#0A0F2C' }}>{rating}</span>
             </div>
             <p className="text-xs font-semibold" style={{ color: '#4A5580' }}>Avg Rating</p>
           </div>
-          <div className="rounded-2xl p-4 text-center" style={{ background: '#F3E8FF', border: '1px solid rgba(147,51,234,0.1)' }}>
+          <div className="rounded-2xl p-4 text-center hover:shadow-[0_8px_30px_rgba(41,82,232,0.12)] transition-shadow" style={{ background: '#F3E8FF', border: '1px solid rgba(147,51,234,0.1)' }}>
             <div className="flex items-center justify-center gap-1 mb-1">
               <Users size={16} color="#9333EA" strokeWidth={2} />
-              <span className="text-2xl font-black" style={{ color: '#0A0F2C' }}>28</span>
+              <span className="text-2xl font-black" style={{ color: '#0A0F2C' }}>{hiredCount}</span>
             </div>
             <p className="text-xs font-semibold" style={{ color: '#4A5580' }}>Workers Hired</p>
           </div>

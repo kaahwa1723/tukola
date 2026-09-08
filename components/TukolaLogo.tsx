@@ -6,17 +6,19 @@ import { Handshake } from 'lucide-react';
 
 interface TukolaLogoProps {
   variant?: 'full' | 'mark' | 'wordmark';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   onDark?: boolean;
+  className?: string;
 }
 
 const sizes = {
-  sm: { imgFull: 120, imgMark: 36, title: 16, sub: 8, gap: 10 },
-  md: { imgFull: 160, imgMark: 48, title: 22, sub: 9,  gap: 12 },
-  lg: { imgFull: 220, imgMark: 64, title: 30, sub: 11, gap: 14 },
+  sm: { imgFull: 140, imgMark: 40, title: 18, sub: 9, gap: 10 },
+  md: { imgFull: 200, imgMark: 56, title: 26, sub: 11, gap: 12 },
+  lg: { imgFull: 300, imgMark: 80, title: 38, sub: 13, gap: 16 },
+  xl: { imgFull: 400, imgMark: 100, title: 48, sub: 15, gap: 18 },
 };
 
-export function TukolaLogo({ variant = 'full', size = 'md', onDark = false }: TukolaLogoProps) {
+export function TukolaLogo({ variant = 'full', size = 'md', onDark = false, className = '' }: TukolaLogoProps) {
   const s = sizes[size];
   const [markErr, setMarkErr] = useState(false);
   const [fullErr, setFullErr] = useState(false);
@@ -44,6 +46,7 @@ export function TukolaLogo({ variant = 'full', size = 'md', onDark = false }: Tu
         alt="TUKOLA"
         width={s.imgMark}
         height={s.imgMark}
+        className={className}
         style={{ objectFit: 'contain', flexShrink: 0, width: s.imgMark, height: s.imgMark }}
         onError={() => setMarkErr(true)}
       />
@@ -70,7 +73,8 @@ export function TukolaLogo({ variant = 'full', size = 'md', onDark = false }: Tu
         alt="TUKOLA"
         width={s.imgFull}
         height={s.imgFull}
-        style={{ objectFit: 'contain' }}
+        className={className}
+        style={{ objectFit: 'contain', width: s.imgFull, height: 'auto' }}
         onError={() => setFullErr(true)}
       />
     );

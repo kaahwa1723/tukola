@@ -2,15 +2,17 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { MapPin, Calendar, MessageCircle, Hammer, Trophy, Clock } from 'lucide-react';
+import { MapPin, Calendar, MessageCircle, Briefcase, Search } from 'lucide-react';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { useKola } from '@/lib/store';
+import { useI18n } from '@/lib/i18n';
 
 type Tab = 'active' | 'completed' | 'pending';
 
 export default function WorkerJobsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('active');
   const { jobs, applications, user } = useKola();
+  const { t } = useI18n();
 
   const appliedJobs = jobs.filter(j => applications.includes(j.id));
   const activeJobs = appliedJobs.filter(j => j.status === 'in_progress');
@@ -20,14 +22,27 @@ export default function WorkerJobsPage() {
   const tabJobs = { active: activeJobs, completed: completedJobs, pending: pendingJobs }[activeTab];
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: 'active', label: 'Active', count: activeJobs.length },
-    { key: 'completed', label: 'Completed', count: completedJobs.length },
-    { key: 'pending', label: 'Pending', count: pendingJobs.length },
+    { key: 'active', label: t('wj.active'), count: activeJobs.length },
+    { key: 'completed', label: t('wj.completed'), count: completedJobs.length },
+    { key: 'pending', label: t('wj.pending'), count: pendingJobs.length },
   ];
+
+  const emptyTitle =
+    activeTab === 'active' ? t('wj.noActive')
+    : activeTab === 'completed' ? t('wj.noCompleted')
+    : t('wj.noPending');
+  const emptySub =
+    activeTab === 'active' ? t('wj.noActiveSub')
+    : activeTab === 'completed' ? t('wj.noCompletedSub')
+    : t('wj.noPendingSub');
+  const statusBadge =
+    activeTab === 'active' ? t('wj.inProgress')
+    : activeTab === 'completed' ? t('wj.done')
+    : t('wj.appliedBadge');
 
   return (
     <div className="pb-nav lg:pb-0">
-      <MobileHeader title="My Jobs" showNotification />
+      <MobileHeader title={t('worker.myJobs')} showNotification />
 
       {/* Tabs */}
       <div className="bg-white border-b border-slate-100 px-4">
@@ -58,34 +73,19 @@ export default function WorkerJobsPage() {
 
       <div className="px-4 lg:px-6 py-4 space-y-3 max-w-4xl lg:mx-auto">
         {tabJobs.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#EEF2FF' }}>
-              {activeTab === 'active' ? (
-                <Hammer size={32} color="#2952E8" strokeWidth={1.5} />
-              ) : activeTab === 'completed' ? (
-                <Trophy size={32} color="#059669" strokeWidth={1.5} />
-              ) : (
-                <Clock size={32} color="#8B94B8" strokeWidth={1.5} />
-              )}
+          <div className="empty-state">
+            <div className="empty-icon">
+              <Briefcase size={30} color="#2952E8" />
             </div>
-            <p className="text-slate-700 font-semibold text-base">
-              {activeTab === 'active' ? 'No active jobs' : activeTab === 'completed' ? 'No completed jobs yet' : 'No pending applications'}
-            </p>
-            <p className="text-slate-400 text-sm mt-1">
-              {activeTab === 'pending'
-                ? 'Apply to jobs from the home screen'
-                : activeTab === 'active'
-                ? 'Your accepted jobs will appear here'
-                : 'Completed jobs will show your earnings'}
-            </p>
-            {activeTab !== 'active' && (
-              <Link
-                href="/worker"
-                className="inline-block mt-5 bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
-              >
-                Browse Jobs
-              </Link>
-            )}
+            <p className="empty-title">{emptyTitle}</p>
+            <p className="empty-sub">{emptySub}</p>
+            <Link
+              href="/worker"
+              className="btn-gradient mt-5 px-6 py-3 rounded-xl text-sm inline-flex items-center gap-2"
+            >
+              <Search size={16} />
+              {t('wj.browseJobs')}
+            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -96,14 +96,14 @@ export default function WorkerJobsPage() {
                   <span className={`text-xs font-bold uppercase tracking-wide ${
                     job.urgency === 'immediate' ? 'text-orange-500' : 'text-blue-500'
                   }`}>
-                    {job.urgency}
+                    {job.urgency === 'immediate' ? t('job.urgent') : t('job.scheduled')}
                   </span>
                   <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
                     activeTab === 'active' ? 'bg-blue-100 text-blue-700' :
                     activeTab === 'completed' ? 'bg-green-100 text-green-700' :
                     'bg-slate-100 text-slate-600'
                   }`}>
-                    {activeTab === 'active' ? 'IN PROGRESS' : activeTab === 'completed' ? 'DONE' : 'APPLIED'}
+                    {statusBadge}
                   </span>
                 </div>
 
@@ -122,7 +122,7 @@ export default function WorkerJobsPage() {
 
                 {job.pay && (
                   <p className="text-slate-900 font-black text-base mb-3">
-                    Earnings: UGX {job.pay.toLocaleString()}
+                    {t('wj.earnings', { amount: job.pay.toLocaleString() })}
                   </p>
                 )}
 
@@ -133,14 +133,14 @@ export default function WorkerJobsPage() {
                         href={`/job/${job.id}`}
                         className="flex-1 text-center py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold active:scale-95 transition-transform"
                       >
-                        View Map
+                        {t('wj.viewMap')}
                       </Link>
                       <Link
                         href={`/worker/messages`}
                         className="flex items-center gap-1.5 px-4 py-2.5 border-2 border-blue-600 text-blue-600 rounded-xl text-sm font-bold active:scale-95 transition-transform"
                       >
                         <MessageCircle size={14} />
-                        Message
+                        {t('wj.message')}
                       </Link>
                     </>
                   )}
@@ -149,7 +149,7 @@ export default function WorkerJobsPage() {
                       href={`/completion/${job.id}`}
                       className="flex-1 text-center py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold"
                     >
-                      View Details
+                      {t('wj.viewDetails')}
                     </Link>
                   )}
                   {activeTab === 'pending' && (
@@ -157,7 +157,7 @@ export default function WorkerJobsPage() {
                       href={`/job/${job.id}`}
                       className="flex-1 text-center py-2.5 bg-blue-50 text-blue-600 rounded-xl text-sm font-bold active:scale-95 transition-transform"
                     >
-                      View Job
+                      {t('wj.viewJob')}
                     </Link>
                   )}
                 </div>

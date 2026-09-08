@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MapPin, Star, CheckCircle, Clock, Zap, ChevronLeft, Send, ShieldCheck, Images, Gauge } from 'lucide-react';
+import { MapPin, Star, CheckCircle, Clock, Zap, ChevronLeft, Send, Images, Gauge } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { MOCK_WORKERS } from '@/lib/data';
 import type { User } from '@/lib/types';
 import { UploadImagePicker } from '@/components/UploadImagePicker';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
@@ -174,10 +175,14 @@ export default function HireWorkerPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
                 <h2 className="text-white font-black text-lg leading-tight">{worker.name}</h2>
-                {worker.isVerified && (
-                  <ShieldCheck size={15} color="#00C8FF" strokeWidth={2} />
-                )}
               </div>
+              {/* Shown ONLY when the admin team has set is_verified — the
+                  copy states exactly what verification means, no more. */}
+              {worker.isVerified && (
+                <div className="mb-1.5">
+                  <VerifiedBadge variant="full" dark />
+                </div>
+              )}
               <p className="text-blue-200 text-xs flex items-center gap-1 mb-2">
                 <MapPin size={10} /> {worker.location}
               </p>

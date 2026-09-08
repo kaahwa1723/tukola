@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, mapUser } from '@/lib/supabase-server';
+import { isAdmin } from '@/lib/admin-auth';
 
 /** GET /api/admin/users — all profiles, optionally filtered by role */
 export async function GET(req: NextRequest) {
+  if (!isAdmin(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const role = req.nextUrl.searchParams.get('role');
     const sb = createServerSupabase();

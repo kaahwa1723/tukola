@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Flag, CheckCircle, XCircle, AlertTriangle, MessageSquare } from 'lucide-react';
+import { Flag, CheckCircle, XCircle, AlertTriangle, MessageSquare, ShieldAlert } from 'lucide-react';
 
 type DisputeStatus = 'open' | 'reviewing' | 'resolved' | 'dismissed';
 type ReportStatus  = 'pending' | 'reviewed' | 'actioned';
@@ -124,6 +124,13 @@ export default function AdminModerationPage() {
               </div>
             </div>
           ))}
+          {disputes.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-icon"><ShieldAlert size={30} color="#2952E8" /></div>
+              <p className="empty-title">No disputes to review</p>
+              <p className="empty-sub">Disputed jobs will appear here for review.</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -167,6 +174,13 @@ export default function AdminModerationPage() {
               </div>
             </div>
           ))}
+          {reports.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-icon"><ShieldAlert size={30} color="#2952E8" /></div>
+              <p className="empty-title">No reports to review</p>
+              <p className="empty-sub">Reported users and disputed jobs will appear here.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

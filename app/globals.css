@@ -20,7 +20,7 @@
   --text-secondary:   #4A5580;
   --text-muted:       #8B94B8;
 
-  --font-jakarta:     'Plus Jakarta Sans', sans-serif;
+  --font-inter:       'Inter', sans-serif;
   --font-orbitron:    'Orbitron', sans-serif;
   --font-squartiqa:   'Squartiqa4F', 'Orbitron', sans-serif;
 
@@ -150,7 +150,7 @@ input[type="number"] {
 html,
 body {
   background-color: var(--surface);
-  font-family: var(--font-jakarta);
+  font-family: var(--font-inter);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: var(--text-primary);
@@ -286,7 +286,7 @@ select:focus {
   background: #FAFBFF;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   width: 100%;
-  font-family: var(--font-jakarta);
+  font-family: var(--font-inter);
 }
 .input-premium:focus {
   border-color: var(--tukola-blue);
@@ -612,3 +612,168 @@ select:focus {
 .stagger-children > *:nth-child(6) { transition-delay: 400ms; }
 .stagger-children > *:nth-child(7) { transition-delay: 480ms; }
 .stagger-children > *:nth-child(8) { transition-delay: 560ms; }
+
+/* ══════════════════════════════════════════════════════════
+   PREMIUM MVP POLISH — 2026-07-17 design pass
+   ══════════════════════════════════════════════════════════ */
+
+/* ─── dvh viewport fix (iOS Safari) ─────────────────────── */
+.mobile-container { min-height: 100dvh; }
+.min-h-screen { min-height: 100dvh; }
+
+/* ─── Unified gradient CTA ──────────────────────────────── */
+.btn-gradient {
+  background: var(--tukola-gradient);
+  background-size: 160% 160%;
+  color: #fff;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 24px rgba(41, 82, 232, 0.38);
+  transition: transform 0.15s cubic-bezier(0.16,1,0.3,1),
+              box-shadow 0.25s ease, background-position 0.4s ease, filter 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+.btn-gradient:hover {
+  background-position: 80% 80%;
+  box-shadow: 0 10px 34px rgba(41, 82, 232, 0.5);
+  transform: translateY(-1px);
+}
+.btn-gradient:active {
+  transform: scale(0.97);
+  filter: brightness(0.94);
+}
+
+/* ─── Hover guard: no sticky hover on touch devices ────── */
+@media (hover: none), (pointer: coarse) {
+  .hover-lift:hover { transform: none; box-shadow: var(--shadow-card); }
+  .card-premium:hover { transform: none; box-shadow: var(--shadow-card); }
+  .tilt-card:hover { transform: none; }
+}
+
+/* ─── Gradient header depth (mesh highlight + noise) ───── */
+.header-mesh { position: relative; overflow: hidden; isolation: isolate; }
+.header-mesh::before {
+  content: '';
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 50% at 85% 0%, rgba(255,255,255,0.22), transparent 60%),
+    radial-gradient(ellipse 50% 60% at 0% 100%, rgba(0,200,255,0.25), transparent 55%),
+    radial-gradient(ellipse 40% 40% at 60% 110%, rgba(10,15,44,0.35), transparent 60%);
+}
+.header-mesh::after {
+  content: '';
+  position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.header-mesh > * { position: relative; z-index: 1; }
+
+/* ─── Boot splash ───────────────────────────────────────── */
+.boot-splash {
+  position: fixed; inset: 0; z-index: 99999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, #00C8FF 0%, #2952E8 52%, #1A2DB8 100%);
+  transition: opacity 0.55s ease, visibility 0.55s ease;
+}
+.boot-splash::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 45% at 80% -5%, rgba(255,255,255,0.20), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 5% 105%, rgba(0,200,255,0.28), transparent 55%);
+}
+.boot-splash.boot-hide { opacity: 0; visibility: hidden; pointer-events: none; }
+.boot-logo {
+  animation: bootLogo 0.9s cubic-bezier(0.16,1,0.3,1) both;
+  filter: drop-shadow(0 12px 32px rgba(10,15,44,0.45));
+}
+.boot-word {
+  animation: bootRise 0.7s cubic-bezier(0.16,1,0.3,1) 0.25s both;
+  font-family: var(--font-orbitron);
+  font-weight: 800; letter-spacing: 0.22em; color: #fff;
+  text-shadow: 0 2px 18px rgba(10,15,44,0.35);
+}
+.boot-tag {
+  animation: bootRise 0.7s cubic-bezier(0.16,1,0.3,1) 0.45s both;
+  color: rgba(255,255,255,0.75); font-weight: 500;
+}
+.boot-bar-track {
+  animation: bootRise 0.5s ease 0.6s both;
+  width: 148px; height: 3px; border-radius: 999px;
+  background: rgba(255,255,255,0.22); overflow: hidden;
+}
+.boot-bar {
+  height: 100%; width: 40%; border-radius: 999px; background: #fff;
+  animation: bootBar 1.1s ease-in-out 0.65s infinite;
+  box-shadow: 0 0 12px rgba(255,255,255,0.8);
+}
+@keyframes bootLogo {
+  from { opacity: 0; transform: scale(0.72) translateY(18px); filter: blur(10px) drop-shadow(0 12px 32px rgba(10,15,44,0.45)); }
+  to   { opacity: 1; transform: scale(1) translateY(0);        filter: blur(0) drop-shadow(0 12px 32px rgba(10,15,44,0.45)); }
+}
+@keyframes bootRise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bootBar {
+  0%   { transform: translateX(-160%); }
+  100% { transform: translateX(400%); }
+}
+
+/* ─── Route-transition top bar ──────────────────────────── */
+.route-loading-bar {
+  position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 99998;
+  background: linear-gradient(90deg, #00C8FF, #2952E8);
+  transform-origin: 0 50%;
+  animation: routeBar 1.4s cubic-bezier(0.3,0.6,0.4,1) forwards;
+  box-shadow: 0 0 10px rgba(41,82,232,0.55);
+}
+@keyframes routeBar {
+  0% { transform: scaleX(0); }
+  55% { transform: scaleX(0.72); }
+  100% { transform: scaleX(0.92); }
+}
+
+/* ─── Skeleton extras ───────────────────────────────────── */
+.skel { position: relative; overflow: hidden; background: #E8EEFC; border-radius: 12px; }
+.skel::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent);
+  transform: translateX(-100%);
+  animation: skelSweep 1.4s ease-in-out infinite;
+}
+@keyframes skelSweep { to { transform: translateX(100%); } }
+
+/* ─── Composed empty state ──────────────────────────────── */
+.empty-state { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 48px 24px; }
+.empty-icon {
+  width: 72px; height: 72px; border-radius: 24px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, rgba(0,200,255,0.12), rgba(41,82,232,0.14));
+  border: 1px solid rgba(41,82,232,0.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 6px 18px rgba(41,82,232,0.10);
+  margin-bottom: 16px;
+}
+.empty-title { font-weight: 800; font-size: 17px; color: var(--text-primary); letter-spacing: -0.01em; }
+.empty-sub { font-size: 13px; color: var(--text-muted); margin-top: 6px; max-width: 260px; line-height: 1.55; }
+
+/* ─── Table row hover ───────────────────────────────────── */
+.table-row-hover { transition: background 0.15s ease, box-shadow 0.2s ease; }
+@media (hover: hover) {
+  .table-row-hover:hover { background: rgba(41,82,232,0.035); }
+}
+
+/* ─── Icon-button affordance ────────────────────────────── */
+.icon-btn { transition: background 0.15s ease, transform 0.12s ease, color 0.15s ease; }
+@media (hover: hover) { .icon-btn:hover { background: rgba(41,82,232,0.07); } }
+.icon-btn:active { transform: scale(0.92); }
+
+/* ─── Chip/pill hover ───────────────────────────────────── */
+.chip-hover { transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease; }
+@media (hover: hover) {
+  .chip-hover:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(41,82,232,0.14); }
+}
+.chip-hover:active { transform: scale(0.96); }
+
+/* ─── Refresh spin ──────────────────────────────────────── */
+@keyframes spinOnce { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spin { animation: spinOnce 0.8s ease infinite; }

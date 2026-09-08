@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { User, Job, Role } from './types';
 import { MOCK_JOBS } from './data';
+import { enqueue, newClientRequestId } from './offline-queue';
 
 // ─── Demo mode ───────────────────────────────────────────────────────────────
 // When true, mock jobs/workers are shown (for demos). When false/omitted,
@@ -157,11 +158,15 @@ export function KolaProvider({ children }: { children: ReactNode }) {
       };
       setJobs(prev => [newJob, ...prev]);
 
-      // Persist to backend (server derives employer from session)
+      // Persist to backend (server derives employer from session).
+      // The clientRequestId is generated ONCE here — every retry (offline
+      // outbox replay or manual resubmit) reuses it, and the server
+      // dedupes on it, so an offline-then-online user never double-posts.
+      const clientRequestId = newClientRequestId();
       fetch('/api/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(jobData),
+        body: JSON.stringify({ ...jobData, clientRequestId }),
       })
         .then(r => r.json())
         .then(({ job: serverJob }) => {
@@ -170,7 +175,11 @@ export function KolaProvider({ children }: { children: ReactNode }) {
             setJobs(prev => prev.map(j => j.id === newJob.id ? serverJob : j));
           }
         })
-        .catch(e => console.warn('[postJob API]', e));
+        .catch(() => {
+          // Offline: stash in the outbox; it replays when connectivity
+          // returns (see lib/offline-queue.ts).
+          enqueue({ id: clientRequestId, kind: 'job_post', payload: { ...jobData } });
+        });
 
       return newJob;
     },
@@ -205,10 +214,24 @@ export function KolaProvider({ children }: { children: ReactNode }) {
         })
       );
 
-      api(`/api/jobs/${jobId}/apply`, {
+      // Idempotent on the server via UNIQUE(job_id, worker_id); the
+      // clientRequestId lets support correlate outbox replays. On network
+      // failure the application goes to the outbox and replays online.
+      const clientRequestId = newClientRequestId();
+      fetch(`/api/jobs/${jobId}/apply`, {
         method: 'POST',
-        body: JSON.stringify({}),
-      });
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientRequestId }),
+      })
+        .then(async r => {
+          if (!r.ok) {
+            const body = await r.json().catch(() => ({}));
+            console.warn(`[API /api/jobs/${jobId}/apply]`, body.error ?? r.statusText);
+          }
+        })
+        .catch(() => {
+          enqueue({ id: clientRequestId, kind: 'job_apply', payload: { jobId } });
+        });
     },
     [user, applications]
   );

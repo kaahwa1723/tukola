@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import { Camera, X, ImageIcon, Loader2, UploadCloud } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 interface UploadImagePickerProps {
   images: string[];
@@ -31,6 +32,7 @@ export function UploadImagePicker({
 }: UploadImagePickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState<UploadingFile[]>([]);
+  const { t } = useI18n();
 
   const uploadFile = useCallback(
     async (file: File, id: string): Promise<string | null> => {
@@ -46,7 +48,7 @@ export function UploadImagePicker({
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || 'Upload failed');
+          throw new Error(data.error || t('up.uploadFailed'));
         }
         const { url } = await res.json();
         return url;
@@ -55,7 +57,7 @@ export function UploadImagePicker({
         return null;
       }
     },
-    [bucket, folder]
+    [bucket, folder, t]
   );
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,7 +101,7 @@ export function UploadImagePicker({
           // Show error on the preview before removing
           setUploading((prev) =>
             prev.map((u) =>
-              u.id === id ? { ...u, error: 'Upload failed' } : u
+              u.id === id ? { ...u, error: t('up.uploadFailed') } : u
             )
           );
           // Remove after a short delay
@@ -172,13 +174,13 @@ export function UploadImagePicker({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={u.preview}
-              alt="Uploading"
+              alt={t('up.uploadingAlt')}
               className="w-full h-full object-cover opacity-50"
             />
             <div className="absolute inset-0 flex items-center justify-center">
               {u.error ? (
                 <span className="text-[9px] font-bold text-red-500 text-center px-1">
-                  Error
+                  {t('up.error')}
                 </span>
               ) : (
                 <Loader2 size={18} className="text-white animate-spin" />
@@ -197,7 +199,7 @@ export function UploadImagePicker({
           >
             <UploadCloud size={20} color="#8B94B8" strokeWidth={1.5} />
             <span className="text-[10px] font-semibold" style={{ color: '#8B94B8' }}>
-              {images.length === 0 ? 'Add photo' : 'Add more'}
+              {images.length === 0 ? t('up.addPhoto') : t('up.addMore')}
             </span>
           </button>
         )}
@@ -215,7 +217,7 @@ export function UploadImagePicker({
 
       {images.length > 0 && (
         <p className="text-[11px] mt-1.5 font-medium" style={{ color: '#8B94B8' }}>
-          {images.length} / {maxImages} photo{images.length !== 1 ? 's' : ''}
+          {t('up.counter', { n: images.length, max: maxImages })}
         </p>
       )}
 

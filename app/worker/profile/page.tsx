@@ -6,9 +6,9 @@ import Link from 'next/link';
 import { MapPin, Star, CheckCircle, Clock, Zap, LogOut, Edit2, ChevronRight, Plus, Settings, Bell, FileText, HelpCircle } from 'lucide-react';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { useKola } from '@/lib/store';
-import { MOCK_WORKERS } from '@/lib/data';
 import { SKILL_GROUPS } from '@/lib/constants';
 import { UploadImagePicker } from '@/components/UploadImagePicker';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 export default function WorkerProfilePage() {
   const { user, logout, updateUser } = useKola();
@@ -19,12 +19,12 @@ export default function WorkerProfilePage() {
   const [selectedSkills, setSelectedSkills] = useState<string[]>(user?.skills || []);
   const [portfolioImages, setPortfolioImages] = useState<string[]>(user?.portfolioImages || []);
 
-  const profile = MOCK_WORKERS.find(w => w.id === user?.id) || {
+  const profile = {
     rating: user?.rating || 4.5,
     completedJobs: user?.completedJobs || 0,
-    responseTime: '< 30 mins',
-    lastActive: 'Just now',
-    isVerified: false,
+    responseTime: user?.responseTime || '< 30 mins',
+    lastActive: user?.lastActive || 'Just now',
+    isVerified: user?.isVerified || false,
   };
 
   const handleLogout = () => {
@@ -49,20 +49,22 @@ export default function WorkerProfilePage() {
 
       <div className="px-4 lg:px-6 py-5 space-y-4 max-w-4xl lg:mx-auto">
         {/* Avatar + name */}
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-3 animate-slide-up">
           <div className="relative">
-            {avatar ? (
-              <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg" style={{ border: '2px solid rgba(41,82,232,0.2)' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
-              </div>
-            ) : (
-              <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center shadow-lg">
-                <span className="text-white font-black text-3xl">
-                  {user?.name?.charAt(0).toUpperCase() || 'K'}
-                </span>
-              </div>
-            )}
+            <div className="p-[3px] rounded-full" style={{ background: 'linear-gradient(135deg,#00C8FF,#2952E8,#1A2DB8)' }}>
+              {avatar ? (
+                <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg" style={{ border: '2px solid rgba(41,82,232,0.2)' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center shadow-lg">
+                  <span className="text-white font-black text-3xl">
+                    {user?.name?.charAt(0).toUpperCase() || 'K'}
+                  </span>
+                </div>
+              )}
+            </div>
             {profile.isVerified && (
               <div className="absolute bottom-0 right-0 w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center border-2 border-white">
                 <CheckCircle size={14} className="text-white" strokeWidth={2.5} />
@@ -104,33 +106,39 @@ export default function WorkerProfilePage() {
               <MapPin size={13} />
               {user?.location || 'Kampala, Uganda'}
             </p>
+            {/* ID-verified chip — only when the admin team set the flag */}
+            {profile.isVerified && (
+              <div className="flex justify-center mt-2">
+                <VerifiedBadge variant="full" />
+              </div>
+            )}
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm text-center">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 animate-slide-up-d1">
+          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm text-center hover:shadow-[0_8px_30px_rgba(41,82,232,0.12)] transition-shadow">
             <div className="flex items-center justify-center gap-1 mb-1">
               <Star size={16} className="text-yellow-500 fill-yellow-500" />
               <span className="text-2xl font-black text-slate-900">{profile.rating}</span>
             </div>
             <p className="text-slate-500 text-xs">Rating</p>
           </div>
-          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm text-center">
+          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm text-center hover:shadow-[0_8px_30px_rgba(41,82,232,0.12)] transition-shadow">
             <div className="flex items-center justify-center gap-1 mb-1">
               <CheckCircle size={16} className="text-blue-600" />
               <span className="text-2xl font-black text-slate-900">{profile.completedJobs}</span>
             </div>
             <p className="text-slate-500 text-xs">Completed</p>
           </div>
-          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:shadow-[0_8px_30px_rgba(41,82,232,0.12)] transition-shadow">
             <p className="text-slate-500 text-xs mb-1">Last Active</p>
             <p className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
               <Clock size={13} className="text-blue-500" />
               {profile.lastActive || '2 hours ago'}
             </p>
           </div>
-          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:shadow-[0_8px_30px_rgba(41,82,232,0.12)] transition-shadow">
             <p className="text-slate-500 text-xs mb-1">Response Time</p>
             <p className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
               <Zap size={13} className="text-orange-500" />
@@ -140,7 +148,7 @@ export default function WorkerProfilePage() {
         </div>
 
         {/* Skills */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm animate-slide-up-d2">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="font-bold text-[#0A0F2C]">My Skills</h3>
@@ -201,7 +209,7 @@ export default function WorkerProfilePage() {
         </div>
 
         {/* About */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm animate-slide-up-d3">
           <h3 className="font-bold text-[#0A0F2C] mb-2">About {user?.name?.split(' ')[0]}</h3>
           {editing ? (
             <textarea

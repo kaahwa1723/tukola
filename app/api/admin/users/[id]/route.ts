@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, mapUser } from '@/lib/supabase-server';
+import { isAdmin } from '@/lib/admin-auth';
 
 type Params = { params: { id: string } };
 
@@ -8,6 +9,7 @@ type Params = { params: { id: string } };
  * Body: { isVerified?, blocked? }
  */
 export async function PATCH(req: NextRequest, { params }: Params) {
+  if (!isAdmin(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const body = await req.json();
     const updates: Record<string, any> = {};
@@ -35,7 +37,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 /** DELETE /api/admin/users/[id] — hard delete */
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
+  if (!isAdmin(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const sb = createServerSupabase();
     const { error } = await sb.from('profiles').delete().eq('id', params.id);

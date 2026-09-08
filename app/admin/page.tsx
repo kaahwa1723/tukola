@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useKola } from '@/lib/store';
-import { Users, Briefcase, CheckCircle, TrendingUp, AlertTriangle, Star, RefreshCw } from 'lucide-react';
+import { Users, Briefcase, CheckCircle, TrendingUp, AlertTriangle, Star, RefreshCw, Info } from 'lucide-react';
 
 interface Stats {
   totalUsers: number; totalWorkers: number; totalEmployers: number;
@@ -11,6 +12,7 @@ interface Stats {
 
 export default function AdminDashboard() {
   const { jobs, refreshJobs } = useKola();
+  const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [workers, setWorkers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,10 +20,16 @@ export default function AdminDashboard() {
   const load = async () => {
     setLoading(true);
     await refreshJobs();
-    const [statsRes, workersRes] = await Promise.all([
-      fetch('/api/admin/stats').then(r => r.json()).catch(() => null),
-      fetch('/api/admin/users?role=worker').then(r => r.json()).catch(() => null),
+    const [statsFetch, workersFetch] = await Promise.all([
+      fetch('/api/admin/stats').catch(() => null),
+      fetch('/api/admin/users?role=worker').catch(() => null),
     ]);
+    if (statsFetch?.status === 401 || workersFetch?.status === 401) {
+      router.push('/admin/login');
+      return;
+    }
+    const statsRes = statsFetch ? await statsFetch.json().catch(() => null) : null;
+    const workersRes = workersFetch ? await workersFetch.json().catch(() => null) : null;
     if (statsRes && !statsRes.error) setStats(statsRes);
     if (workersRes?.users) setWorkers(workersRes.users);
     setLoading(false);
@@ -37,12 +45,12 @@ export default function AdminDashboard() {
     {
       label: 'Total Users', value: stats?.totalUsers ?? '—',
       Icon: Users, color: '#2952E8', bg: '#EEF2FF',
-      sub: stats ? `${stats.totalWorkers} workers · ${stats.totalEmployers} employers` : '…',
+      sub: stats ? `${stats.totalWorkers} workers · ${stats.totalEmployers} employers` : null,
     },
     {
       label: 'Total Jobs', value: stats?.totalJobs ?? '—',
       Icon: Briefcase, color: '#D97706', bg: '#FFF7ED',
-      sub: stats ? `${stats.openJobs} open · ${stats.activeJobs} active` : '…',
+      sub: stats ? `${stats.openJobs} open · ${stats.activeJobs} active` : null,
     },
     {
       label: 'Completed', value: stats?.completedJobs ?? '—',
@@ -58,40 +66,44 @@ export default function AdminDashboard() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between animate-slide-up">
         <div>
           <h1 className="text-2xl font-black text-[#0A0F2C]">Dashboard</h1>
           <p className="text-slate-500 text-sm mt-0.5">TUKOLA Marketplace Overview</p>
         </div>
         <button onClick={load} disabled={loading}
-          className="flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-xl transition-colors"
+          className="flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-xl transition-colors disabled:opacity-60"
           style={{ background: '#EEF2FF', color: '#2952E8' }}>
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          <RefreshCw size={14} className={loading ? 'spin' : ''} />
           Refresh
         </button>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-slide-up-d1">
         {kpis.map(kpi => (
-          <div key={kpi.label} className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
+          <div key={kpi.label} className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:shadow-[0_10px_36px_rgba(41,82,232,0.14)] hover:-translate-y-0.5 transition-all duration-200">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-3"
               style={{ background: kpi.bg }}>
               <kpi.Icon size={18} color={kpi.color} />
             </div>
-            <p className="text-2xl font-black text-[#0A0F2C]">{kpi.value}</p>
+            <p className="text-2xl font-black text-[#0A0F2C] counter-number">{kpi.value}</p>
             <p className="text-[#0A0F2C] font-semibold text-sm mt-0.5">{kpi.label}</p>
-            <p className="text-slate-400 text-xs mt-0.5">{kpi.sub}</p>
+            {kpi.sub && <p className="text-slate-400 text-xs mt-0.5">{kpi.sub}</p>}
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Jobs */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 animate-slide-up-d2">
           <h2 className="font-black text-[#0A0F2C] mb-4">Recent Jobs</h2>
           {jobs.length === 0 ? (
-            <p className="text-slate-400 text-sm py-6 text-center">No jobs yet</p>
+            <div className="empty-state">
+              <div className="empty-icon"><Briefcase size={30} color="#2952E8" /></div>
+              <p className="empty-title">No jobs yet</p>
+              <p className="empty-sub">Recently posted jobs will appear here.</p>
+            </div>
           ) : (
             <div className="space-y-3">
               {jobs.slice(0, 6).map(job => (
@@ -120,10 +132,14 @@ export default function AdminDashboard() {
         </div>
 
         {/* Top Workers */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 animate-slide-up-d3">
           <h2 className="font-black text-[#0A0F2C] mb-4">Top Workers</h2>
           {workers.length === 0 ? (
-            <p className="text-slate-400 text-sm py-6 text-center">No workers yet</p>
+            <div className="empty-state">
+              <div className="empty-icon"><Users size={30} color="#2952E8" /></div>
+              <p className="empty-title">No workers yet</p>
+              <p className="empty-sub">Top-rated workers will appear here once jobs are completed.</p>
+            </div>
           ) : (
             <div className="space-y-3">
               {workers.slice(0, 5).map((worker: any) => (
@@ -150,7 +166,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Platform Alerts */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 lg:col-span-2">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 lg:col-span-2 animate-slide-up-d3">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-8 h-8 bg-orange-100 rounded-xl flex items-center justify-center">
               <AlertTriangle size={16} className="text-orange-500" />
@@ -168,10 +184,14 @@ export default function AdminDashboard() {
                 alert.type === 'success' ? 'bg-green-50 border border-green-100' :
                 'bg-blue-50 border border-blue-100'
               }`}>
-                <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                  alert.type === 'warning' ? 'bg-orange-500' :
-                  alert.type === 'success' ? 'bg-green-500' : 'bg-[#2952E8]'
-                }`} />
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  alert.type === 'warning' ? 'bg-orange-100' :
+                  alert.type === 'success' ? 'bg-green-100' : 'bg-blue-100'
+                }`}>
+                  {alert.type === 'warning' ? <AlertTriangle size={13} className="text-orange-500" /> :
+                   alert.type === 'success' ? <CheckCircle size={13} className="text-green-600" /> :
+                   <Info size={13} className="text-blue-600" />}
+                </div>
                 <p className="text-slate-700 text-sm">{alert.msg}</p>
               </div>
             ))}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Search, MapPin, Star, ShieldCheck, Navigation, Loader2, Award } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 interface Fundi {
   id: string;
@@ -30,6 +31,7 @@ interface Fundi {
  * rating + completed jobs, never paid placement.
  */
 export default function FundiFinder() {
+  const { t } = useI18n();
   const [area, setArea] = useState('');
   const [activeArea, setActiveArea] = useState('');
   const [fundis, setFundis] = useState<Fundi[] | null>(null);
@@ -62,7 +64,7 @@ export default function FundiFinder() {
 
   const nearMe = () => {
     if (!navigator.geolocation) {
-      setLocateError('Your browser does not support location — type your area instead.');
+      setLocateError(t('ff.locBrowser'));
       return;
     }
     setLocating(true);
@@ -77,20 +79,20 @@ export default function FundiFinder() {
           const a = data?.address ?? {};
           const parish = a.suburb || a.neighbourhood || a.village || a.town || a.city_district || a.city || a.county || '';
           if (!parish) {
-            setLocateError('Could not name your area — please type it instead.');
+            setLocateError(t('ff.locNoName'));
             return;
           }
           setArea(parish);
           setActiveArea(parish);
           await search(parish);
         } catch {
-          setLocateError('Location lookup failed — please type your area instead.');
+          setLocateError(t('ff.locFailed'));
         } finally {
           setLocating(false);
         }
       },
       () => {
-        setLocateError('Location permission denied — please type your area instead.');
+        setLocateError(t('ff.locDenied'));
         setLocating(false);
       },
       { timeout: 10000 }
@@ -100,7 +102,7 @@ export default function FundiFinder() {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-slate-900 font-black text-base">Find Fundis</h2>
+        <h2 className="text-slate-900 font-black text-base">{t('employer.findFundis')}</h2>
       </div>
 
       {/* Search bar */}
@@ -110,20 +112,20 @@ export default function FundiFinder() {
           <input
             value={area}
             onChange={e => setArea(e.target.value)}
-            placeholder="Type your area — e.g. Kololo, Ntinda, Kira"
+            placeholder={t('employer.areaPlaceholder')}
             className="w-full pl-10 pr-4 py-3 rounded-2xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
           />
         </div>
         <button type="submit"
           className="px-5 py-3 rounded-2xl text-white text-sm font-black active:scale-95 transition-transform"
           style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}>
-          Search
+          {t('common.search')}
         </button>
         <button type="button" onClick={nearMe} disabled={locating}
-          aria-label="Use my current location"
+          aria-label={t('ff.useMyLocation')}
           className="px-4 py-3 rounded-2xl bg-blue-50 text-blue-600 text-sm font-bold active:scale-95 transition-transform flex items-center gap-1.5 disabled:opacity-60">
           {locating ? <Loader2 size={16} className="animate-spin" /> : <Navigation size={16} />}
-          <span className="hidden sm:inline">Near me</span>
+          <span className="hidden sm:inline">{t('employer.nearMe')}</span>
         </button>
       </form>
 
@@ -132,7 +134,7 @@ export default function FundiFinder() {
       )}
       {activeArea && (
         <p className="text-slate-500 text-xs font-semibold mb-3 flex items-center gap-1">
-          <MapPin size={12} /> Showing fundis near <span className="text-slate-800">{activeArea}</span>
+          <MapPin size={12} /> {t('ff.showingNear', { area: activeArea })}
         </p>
       )}
 
@@ -147,10 +149,10 @@ export default function FundiFinder() {
             <MapPin size={24} color="#2952E8" />
           </div>
           <p className="text-slate-600 font-semibold text-sm">
-            {activeArea ? `No fundis found in ${activeArea} yet` : 'No fundis registered yet'}
+            {activeArea ? t('ff.noneInArea', { area: activeArea }) : t('ff.noneYet')}
           </p>
           <p className="text-slate-400 text-xs mt-1">
-            Post a job instead — fundis nearby will be notified as they join.
+            {t('ff.postInstead')}
           </p>
         </div>
       ) : (
@@ -160,7 +162,7 @@ export default function FundiFinder() {
               className="rounded-2xl p-3.5 bg-white border border-blue-100/40 hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(41,82,232,0.16)] transition-all duration-200 relative">
               {fundi.topRated && (
                 <span className="absolute top-2 right-2 flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-full">
-                  <Award size={10} /> Top Rated
+                  <Award size={10} /> {t('employer.topRated')}
                 </span>
               )}
               {fundi.avatar ? (
@@ -176,7 +178,11 @@ export default function FundiFinder() {
               )}
               <div className="flex items-center justify-center gap-1 mb-0.5">
                 <p className="text-[#0A0F2C] font-bold text-sm text-center leading-tight truncate">{fundi.name.split(' ')[0]}</p>
-                {fundi.isVerified && <ShieldCheck size={11} color="#2952E8" strokeWidth={2} />}
+                {fundi.isVerified && (
+                  <span title="ID-verified: National ID + 2 reference calls, checked by our team">
+                    <ShieldCheck size={11} color="#2952E8" strokeWidth={2} />
+                  </span>
+                )}
               </div>
               <p className="text-[#8B94B8] text-[11px] text-center mb-1 truncate">{fundi.skills?.[0] ?? 'Fundi'}</p>
               {fundi.location && (
@@ -187,9 +193,9 @@ export default function FundiFinder() {
               <div className="flex items-center justify-center gap-1 mb-1.5">
                 <Star size={11} className="text-yellow-500 fill-yellow-500" />
                 <span className="text-[#0A0F2C] text-xs font-bold">
-                  {fundi.rating != null ? fundi.rating.toFixed(1) : 'New'}
+                  {fundi.rating != null ? fundi.rating.toFixed(1) : t('common.new')}
                 </span>
-                <span className="text-[#8B94B8] text-[10px]">({fundi.completedJobs} jobs)</span>
+                <span className="text-[#8B94B8] text-[10px]">{t('job.jobsCount', { n: fundi.completedJobs })}</span>
               </div>
               <p className={`text-[10px] font-bold text-center mb-3 ${
                 fundi.reliabilityScore == null ? 'text-[#8B94B8]'
@@ -197,12 +203,12 @@ export default function FundiFinder() {
                 : fundi.reliabilityScore >= 50 ? 'text-amber-600'
                 : 'text-red-500'
               }`}>
-                Reliability: {fundi.reliabilityScore != null ? fundi.reliabilityScore : 'New'}
+                {t('ff.reliability', { score: fundi.reliabilityScore != null ? fundi.reliabilityScore : t('common.new') })}
               </p>
               <Link href={`/employer/hire/${fundi.id}`}>
                 <button className="w-full py-1.5 rounded-xl text-xs font-black active:scale-95 transition-transform text-white"
                   style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}>
-                  Hire
+                  {t('employer.hire')}
                 </button>
               </Link>
             </div>

@@ -60,10 +60,16 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/jobs
- * Body: Job fields (minus id, createdAt, applicants, status)
+ * Body: Job fields (minus id, createdAt, applicants, status) + optional
+ *       clientRequestId (idempotency key from the offline outbox).
  *
  * Employer identity comes from the server session — client-supplied
  * employerId / employerName / employerPhone are ignored.
+ *
+ * Idempotency: when clientRequestId is present it is stored in
+ * jobs.idempotency_key (unique, migration 010). A replayed submission —
+ * offline-outbox flush or double-tap — returns the existing job instead
+ * of creating a duplicate.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -76,6 +82,7 @@ export async function POST(req: NextRequest) {
     const {
       title, description, location, dateTime, workersNeeded,
       pay, urgency, skills, category, images, estimatedHours,
+      clientRequestId,
     } = body;
 
     if (!title || !location) {
@@ -83,28 +90,70 @@ export async function POST(req: NextRequest) {
     }
 
     const sb = createServerSupabase();
-    const { data, error } = await sb
+
+    // Replay? Return the job this clientRequestId already created.
+    if (clientRequestId && typeof clientRequestId === 'string') {
+      const { data: existing, error: lookupError } = await sb
+        .from('jobs')
+        .select('*, applications(*)')
+        .eq('idempotency_key', clientRequestId)
+        .maybeSingle();
+      // PGRST204/42703: migration 010 not applied yet — degrade to
+      // non-deduped insert rather than failing the post.
+      if (!lookupError && existing) {
+        return NextResponse.json({ job: mapJob(existing), idempotent: true });
+      }
+    }
+
+    const insertRow: Record<string, unknown> = {
+      title,
+      description: description ?? '',
+      location,
+      date_time: dateTime ?? new Date().toISOString(),
+      workers_needed: workersNeeded ?? 1,
+      pay: pay ?? null,
+      urgency: urgency ?? 'scheduled',
+      status: 'open',
+      employer_id: user.id,
+      employer_name: user.name,
+      employer_phone: user.phone ?? null,
+      skills: skills ?? [],
+      category: category ?? null,
+      images: images ?? [],
+      estimated_hours: estimatedHours ?? null,
+    };
+    if (clientRequestId && typeof clientRequestId === 'string') {
+      insertRow.idempotency_key = clientRequestId;
+    }
+
+    let { data, error } = await sb
       .from('jobs')
-      .insert({
-        title,
-        description: description ?? '',
-        location,
-        date_time: dateTime ?? new Date().toISOString(),
-        workers_needed: workersNeeded ?? 1,
-        pay: pay ?? null,
-        urgency: urgency ?? 'scheduled',
-        status: 'open',
-        employer_id: user.id,
-        employer_name: user.name,
-        employer_phone: user.phone ?? null,
-        skills: skills ?? [],
-        category: category ?? null,
-        images: images ?? [],
-        estimated_hours: estimatedHours ?? null,
-      })
+      .insert(insertRow)
       .select('*, applications(*)')
       .single();
 
+    if (error && insertRow.idempotency_key) {
+      if (error.code === '23505') {
+        // Unique idempotency_key: a concurrent replay won the race
+        const { data: winner } = await sb
+          .from('jobs')
+          .select('*, applications(*)')
+          .eq('idempotency_key', insertRow.idempotency_key as string)
+          .single();
+        if (winner) {
+          return NextResponse.json({ job: mapJob(winner), idempotent: true });
+        }
+      }
+      if (error.code === 'PGRST204' || error.code === '42703' || /idempotency_key/.test(error.message ?? '')) {
+        // Column not yet migrated — insert without it rather than fail
+        delete insertRow.idempotency_key;
+        ({ data, error } = await sb
+          .from('jobs')
+          .insert(insertRow)
+          .select('*, applications(*)')
+          .single());
+      }
+    }
     if (error) throw error;
 
     track('job_posted', user.id, { jobId: data.id, pay: pay ?? null, urgency: urgency ?? 'scheduled', category: category ?? null });

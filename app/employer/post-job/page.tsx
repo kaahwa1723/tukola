@@ -6,10 +6,12 @@ import { Send, ChevronLeft } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { JOB_CATEGORIES } from '@/lib/constants';
 import { UploadImagePicker } from '@/components/UploadImagePicker';
+import { useI18n, translateCategory } from '@/lib/i18n';
 
 export default function PostJobPage() {
   const router = useRouter();
   const { user, postJob } = useKola();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -58,8 +60,8 @@ export default function PostJobPage() {
               <path d="M20 6L9 17l-5-5"/>
             </svg>
           </div>
-          <h2 className="text-3xl font-black text-[#0A0F2C] mb-2">Job Posted!</h2>
-          <p className="text-slate-500">Workers in your area are being notified right now.</p>
+          <h2 className="text-3xl font-black text-[#0A0F2C] mb-2">{t('pj.successTitle')}</h2>
+          <p className="text-slate-500">{t('pj.successSub')}</p>
         </div>
       </div>
     );
@@ -72,7 +74,7 @@ export default function PostJobPage() {
         {/* Back button */}
         <button onClick={() => router.back()}
           className="flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors mb-4">
-          <ChevronLeft size={18} /> Back
+          <ChevronLeft size={18} /> {t('common.back')}
         </button>
 
         {/* Step header */}
@@ -80,43 +82,43 @@ export default function PostJobPage() {
           style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}>
           <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-20"
             style={{ background: 'radial-gradient(circle,#00C8FF,transparent)' }} />
-          <p className="text-blue-200 text-[11px] font-bold uppercase tracking-widest mb-1">New Listing</p>
-          <h2 className="text-white font-black text-xl lg:text-2xl">What needs doing?</h2>
+          <p className="text-blue-200 text-[11px] font-bold uppercase tracking-widest mb-1">{t('pj.newListing')}</p>
+          <h2 className="text-white font-black text-xl lg:text-2xl">{t('pj.headline')}</h2>
         </div>
 
         {/* Fields */}
         <div className="bg-white rounded-2xl lg:rounded-3xl p-4 lg:p-6 border border-blue-100/40 space-y-5 animate-slide-up"
           style={{ boxShadow: '0 2px 16px rgba(41,82,232,0.06)' }}>
           <div>
-            <label className="text-[#0A0F2C] font-semibold text-sm mb-1.5 block">Job Title *</label>
+            <label className="text-[#0A0F2C] font-semibold text-sm mb-1.5 block">{t('pj.titleLabel')}</label>
             <input type="text" value={form.title}
               onChange={e => setForm({ ...form, title: e.target.value })}
-              placeholder="e.g. Need 2 people for home cleaning"
+              placeholder={t('pj.titlePlaceholder')}
               className="w-full rounded-xl px-4 py-3 text-[#0A0F2C] text-sm placeholder-slate-400 focus:outline-none transition-colors border-[1.5px] border-slate-200 focus:border-blue-600 bg-slate-50 focus:bg-white"
             />
           </div>
 
           <div>
-            <label className="text-[#0A0F2C] font-semibold text-sm mb-1.5 block">Description</label>
+            <label className="text-[#0A0F2C] font-semibold text-sm mb-1.5 block">{t('pj.descLabel')}</label>
             <textarea value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })}
               rows={3}
-              placeholder="Describe the tasks, specific requirements, and any tools needed..."
+              placeholder={t('pj.descPlaceholder')}
               className="w-full rounded-xl px-4 py-3 text-[#0A0F2C] text-sm placeholder-slate-400 focus:outline-none transition-colors resize-none border-[1.5px] border-slate-200 focus:border-blue-600 bg-slate-50 focus:bg-white"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-[#0A0F2C] font-semibold text-sm mb-1.5 block">Location *</label>
+              <label className="text-[#0A0F2C] font-semibold text-sm mb-1.5 block">{t('pj.locationLabel')}</label>
               <input type="text" value={form.location}
                 onChange={e => setForm({ ...form, location: e.target.value })}
-                placeholder="Street address or neighborhood"
+                placeholder={t('pj.locationPlaceholder')}
                 className="w-full rounded-xl px-4 py-3 text-[#0A0F2C] text-sm placeholder-slate-400 focus:outline-none border-[1.5px] border-slate-200 focus:border-blue-600 bg-slate-50 focus:bg-white"
               />
             </div>
             <div>
-              <label className="text-[#0A0F2C] font-semibold text-sm mb-1.5 block">Date and Time</label>
+              <label className="text-[#0A0F2C] font-semibold text-sm mb-1.5 block">{t('pj.dateTimeLabel')}</label>
               <input type="datetime-local" value={form.dateTime}
                 onChange={e => setForm({ ...form, dateTime: e.target.value })}
                 className="w-full rounded-xl px-4 py-3 text-[#0A0F2C] text-sm focus:outline-none border-[1.5px] border-slate-200 focus:border-blue-600 bg-slate-50 focus:bg-white"
@@ -126,7 +128,7 @@ export default function PostJobPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-[#0A0F2C] font-semibold text-sm mb-1.5 block">Number of Workers</label>
+              <label className="text-[#0A0F2C] font-semibold text-sm mb-1.5 block">{t('pj.workersLabel')}</label>
               <input type="number" min="1" max="20" value={form.workersNeeded}
                 onChange={e => setForm({ ...form, workersNeeded: parseInt(e.target.value) || 1 })}
                 className="w-full rounded-xl px-4 py-3 text-[#0A0F2C] text-sm focus:outline-none border-[1.5px] border-slate-200 focus:border-blue-600 bg-slate-50 focus:bg-white"
@@ -134,19 +136,19 @@ export default function PostJobPage() {
             </div>
             <div>
               <label className="text-[#0A0F2C] font-semibold text-sm mb-1.5 flex items-center justify-between">
-                Pay (Optional)
+                {t('pj.payLabel')}
                 <span className="text-slate-400 text-xs font-normal">UGX</span>
               </label>
               <input type="number" value={form.pay}
                 onChange={e => setForm({ ...form, pay: e.target.value })}
-                placeholder="Suggested pay amount"
+                placeholder={t('pj.payPlaceholder')}
                 className="w-full rounded-xl px-4 py-3 text-[#0A0F2C] text-sm placeholder-slate-400 focus:outline-none border-[1.5px] border-slate-200 focus:border-blue-600 bg-slate-50 focus:bg-white"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-[#0A0F2C] font-semibold text-sm mb-2 block">Category</label>
+            <label className="text-[#0A0F2C] font-semibold text-sm mb-2 block">{t('pj.categoryLabel')}</label>
             <div className="flex flex-wrap gap-2">
               {JOB_CATEGORIES.map(cat => (
                 <button key={cat}
@@ -156,7 +158,7 @@ export default function PostJobPage() {
                     background: form.category === cat ? '#2952E8' : '#F0F4FF',
                     color: form.category === cat ? '#fff' : '#4A5580',
                   }}>
-                  {cat}
+                  {translateCategory(cat, t)}
                 </button>
               ))}
             </div>
@@ -169,15 +171,15 @@ export default function PostJobPage() {
               maxImages={6}
               bucket="job-images"
               folder={`jobs/${user?.id || 'guest'}`}
-              label="Job Photos (optional)"
-              hint="Show workers what needs doing"
+              label={t('pj.photosLabel')}
+              hint={t('pj.photosHint')}
             />
           </div>
 
           <div>
-            <label className="text-[#0A0F2C] font-semibold text-sm mb-2 block">Job Urgency</label>
+            <label className="text-[#0A0F2C] font-semibold text-sm mb-2 block">{t('pj.urgencyLabel')}</label>
             <div className="flex gap-3">
-              {[{v:'scheduled',label:'Scheduled',color:'#2952E8'},{v:'immediate',label:'Urgent',color:'#DC2626'}].map(u => (
+              {[{ v: 'scheduled', key: 'job.scheduled', color: '#2952E8' }, { v: 'immediate', key: 'job.urgent', color: '#DC2626' }].map(u => (
                 <button key={u.v} onClick={() => setForm({ ...form, urgency: u.v as 'immediate'|'scheduled' })}
                   className="flex-1 py-3 rounded-xl text-sm font-black border-2 transition-all"
                   style={{
@@ -185,7 +187,7 @@ export default function PostJobPage() {
                     background: form.urgency === u.v ? u.color : '#fff',
                     color: form.urgency === u.v ? '#fff' : '#4A5580',
                   }}>
-                  {u.label}
+                  {t(u.key)}
                 </button>
               ))}
             </div>
@@ -202,7 +204,7 @@ export default function PostJobPage() {
               color: form.title.trim() && form.location.trim() ? '#fff' : '#9BA3C0',
               boxShadow: form.title.trim() && form.location.trim() ? '0 6px 20px rgba(41,82,232,0.35)' : 'none',
             }}>
-            {loading ? 'Posting...' : <><Send size={18} /> Post Job Now</>}
+            {loading ? t('pj.posting') : <><Send size={18} /> {t('pj.postNow')}</>}
           </button>
         </div>
       </div>

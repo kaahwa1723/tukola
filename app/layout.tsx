@@ -4,6 +4,7 @@ import './globals.css';
 import { KolaProvider } from '@/lib/store';
 import { I18nProvider } from '@/lib/i18n';
 import BootSplash from '@/components/BootSplash';
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap', weight: ['400','500','600','700','800'] });
 const orbitron = Orbitron({ subsets: ['latin'], variable: '--font-orbitron', weight: ['700', '800', '900'], display: 'swap' });
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <KolaProvider>
           <I18nProvider>
             <BootSplash />
+            <ServiceWorkerRegister />
             <div className="min-h-screen bg-[#F0F4FF]">{children}</div>
           </I18nProvider>
         </KolaProvider>

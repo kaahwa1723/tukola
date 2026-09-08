@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, MapPin, Eye, Trash2 } from 'lucide-react';
+import { Search, MapPin, Eye, Trash2, Briefcase } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import type { Job } from '@/lib/types';
 
@@ -86,7 +86,7 @@ export default function AdminJobsPage() {
           </thead>
           <tbody className="divide-y divide-slate-50">
             {filtered.map(job => (
-              <tr key={job.id} className="hover:bg-slate-50 transition-colors">
+              <tr key={job.id} className="table-row-hover transition-colors">
                 <td className="px-4 py-3">
                   <p className="font-semibold text-slate-900 max-w-[200px] truncate">{job.title}</p>
                   <p className="text-slate-400 text-xs mt-0.5">
@@ -126,11 +126,19 @@ export default function AdminJobsPage() {
                 </td>
               </tr>
             ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={6}>
+                  <div className="empty-state">
+                    <div className="empty-icon"><Briefcase size={30} color="#2952E8" /></div>
+                    <p className="empty-title">No jobs found</p>
+                    <p className="empty-sub">Jobs posted by employers will appear here.</p>
+                  </div>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
-        {filtered.length === 0 && (
-          <div className="py-12 text-center text-slate-400">No jobs found</div>
-        )}
       </div>
     </div>
   );

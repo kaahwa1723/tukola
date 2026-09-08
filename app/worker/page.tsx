@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { Job } from '@/lib/types';
+import { useI18n, translateCategory } from '@/lib/i18n';
 import InviteEarn from '@/app/components/InviteEarn';
 
 const CATEGORIES = [
@@ -42,17 +43,18 @@ function getCategoryMeta(title: string) {
   return CATEGORIES[3];
 }
 
-function formatTime(dateStr: string) {
-  const date = new Date(dateStr);
-  const isToday = new Date().toDateString() === date.toDateString();
-  const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  if (isToday) return `Today ${time}`;
-  return `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()]} ${time}`;
-}
-
 function JobCard({ job, applied, onApply }: { job: Job; applied: boolean; onApply: () => void }) {
+  const { t } = useI18n();
   const cat = getCategoryMeta(job.title);
   const CatIcon = cat.Icon;
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const isToday = new Date().toDateString() === date.toDateString();
+    const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (isToday) return t('wh.today', { time });
+    return `${t(`day.${date.getDay()}`)} ${time}`;
+  };
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden border border-blue-100/40 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
@@ -65,7 +67,7 @@ function JobCard({ job, applied, onApply }: { job: Job; applied: boolean; onAppl
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={job.images[0]} alt={job.title} className="w-full h-full object-cover" />
           <div className="absolute bottom-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/90 text-[#0A0F2C] shadow-sm">
-            {job.images.length} photo{job.images.length > 1 ? 's' : ''}
+            {t('common.photosCount', { n: job.images.length })}
           </div>
         </div>
       )}
@@ -96,7 +98,7 @@ function JobCard({ job, applied, onApply }: { job: Job; applied: boolean; onAppl
           {job.urgency === 'immediate' && (
             <span className="text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0 tracking-wide uppercase"
               style={{ background: '#FFF1F0', color: '#DC2626' }}>
-              Urgent
+              {t('job.urgent')}
             </span>
           )}
         </div>
@@ -135,13 +137,13 @@ function JobCard({ job, applied, onApply }: { job: Job; applied: boolean; onAppl
         {applied ? (
           <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2 bg-green-50 text-green-600">
             <CheckCircle size={15} strokeWidth={2.5} />
-            <span className="text-sm font-bold">Applied</span>
+            <span className="text-sm font-bold">{t('wh.applied')}</span>
           </div>
         ) : (
           <button onClick={onApply}
             className="w-full py-3 rounded-xl text-white text-sm font-bold cursor-pointer transition-all active:scale-[0.98] hover:opacity-90"
             style={{ background: 'linear-gradient(135deg, #2952E8, #1A2DB8)', boxShadow: '0 4px 16px rgba(41,82,232,0.3)' }}>
-            Apply Now
+            {t('wh.applyNow')}
           </button>
         )}
       </div>
@@ -151,6 +153,7 @@ function JobCard({ job, applied, onApply }: { job: Job; applied: boolean; onAppl
 
 export default function WorkerHomePage() {
   const { user, jobs, applyToJob, applications } = useKola();
+  const { t } = useI18n();
   const [localApps, setLocalApps] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -159,7 +162,7 @@ export default function WorkerHomePage() {
 
   const firstName = user?.name?.split(' ')[0] || 'there';
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const greeting = hour < 12 ? t('wh.morning') : hour < 17 ? t('wh.afternoon') : t('wh.evening');
 
   const openJobs = jobs.filter(j => j.status === 'open');
   const urgentCount = openJobs.filter(j => j.urgency === 'immediate').length;
@@ -194,15 +197,15 @@ export default function WorkerHomePage() {
             </div>
             <div className="flex items-center gap-3">
               <div className="rounded-2xl px-4 py-2.5" style={{ background: 'rgba(255,255,255,0.15)' }}>
-                <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide">Completed</p>
+                <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide">{t('wh.completed')}</p>
                 <p className="text-white text-xl font-extrabold">{user?.completedJobs ?? 0}</p>
               </div>
               <div className="rounded-2xl px-4 py-2.5" style={{ background: 'rgba(255,255,255,0.15)' }}>
-                <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide">Rating</p>
+                <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide">{t('wh.rating')}</p>
                 <p className="text-white text-xl font-extrabold">{user?.rating?.toFixed(1) ?? '—'}</p>
               </div>
               <Link href="/worker/jobs" className="hidden lg:flex items-center gap-1 text-white/80 text-xs font-bold cursor-pointer hover:text-white transition-colors">
-                My Jobs <ChevronRight size={13} />
+                {t('worker.myJobs')} <ChevronRight size={13} />
               </Link>
             </div>
           </div>
@@ -216,7 +219,7 @@ export default function WorkerHomePage() {
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search jobs, skills, location..."
+          placeholder={t('wh.searchPlaceholder')}
           className="flex-1 bg-transparent text-sm font-medium placeholder-[#C0C8E0] outline-none"
           style={{ color: '#0A0F2C' }}
         />
@@ -225,10 +228,10 @@ export default function WorkerHomePage() {
       {/* ── CATEGORIES ───────────────────────────── */}
       <div className="animate-slide-up-d2">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-extrabold text-[#0A0F2C] text-base">Browse by Service</h2>
+          <h2 className="font-extrabold text-[#0A0F2C] text-base">{t('wh.browse')}</h2>
           {activeCategory && (
             <button onClick={() => setActiveCategory(null)} className="text-xs font-bold cursor-pointer text-blue-600 hover:text-blue-700">
-              Clear filter
+              {t('wh.clearFilter')}
             </button>
           )}
         </div>
@@ -250,7 +253,7 @@ export default function WorkerHomePage() {
                 </div>
                 <span className="text-[10px] font-bold text-center leading-tight whitespace-nowrap"
                   style={{ color: active ? cat.color : '#4A5580' }}>
-                  {cat.label}
+                  {translateCategory(cat.label, t)}
                 </span>
               </button>
             );
@@ -267,8 +270,10 @@ export default function WorkerHomePage() {
               <Zap size={15} color="white" fill="white" />
             </div>
             <div>
-              <p className="text-sm font-bold text-red-600">{urgentCount} urgent job{urgentCount > 1 ? 's' : ''} near you</p>
-              <p className="text-[11px] font-medium text-red-800">Employers need workers right now</p>
+              <p className="text-sm font-bold text-red-600">
+                {t(urgentCount > 1 ? 'wh.urgentMany' : 'wh.urgentOne', { n: urgentCount })}
+              </p>
+              <p className="text-[11px] font-medium text-red-800">{t('wh.urgentSub')}</p>
             </div>
           </div>
           <ChevronRight size={16} color="#DC2626" />
@@ -284,7 +289,7 @@ export default function WorkerHomePage() {
       <div className="animate-slide-up-d3">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-extrabold text-[#0A0F2C] text-base">
-            {activeCategory ? `${activeCategory} Jobs` : 'Available Near You'}
+            {activeCategory ? t('wh.categoryJobs', { cat: translateCategory(activeCategory, t) }) : t('wh.available')}
             {filtered.length > 0 && (
               <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">
                 {filtered.length}
@@ -302,8 +307,8 @@ export default function WorkerHomePage() {
               <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-blue-50">
                 <Search size={24} color="#2952E8" />
               </div>
-              <p className="font-bold text-[#0A0F2C] text-base">No jobs found</p>
-              <p className="text-[#8B94B8] text-sm mt-1 font-medium">Try a different search or category</p>
+              <p className="font-bold text-[#0A0F2C] text-base">{t('wh.noJobs')}</p>
+              <p className="text-[#8B94B8] text-sm mt-1 font-medium">{t('wh.noJobsSub')}</p>
             </div>
           )}
         </div>

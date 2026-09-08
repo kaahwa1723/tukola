@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, CheckCircle, XCircle, Star, Briefcase, UserCheck, Ban, RefreshCw } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Search, CheckCircle, XCircle, Star, Briefcase, UserCheck, Ban, RefreshCw, Users } from 'lucide-react';
 
 interface AdminUser {
   id: string; name: string; phone: string; role: string;
@@ -10,6 +11,7 @@ interface AdminUser {
 }
 
 export default function AdminUsersPage() {
+  const router = useRouter();
   const [tab, setTab]       = useState<'workers' | 'employers'>('workers');
   const [search, setSearch] = useState('');
   const [users, setUsers]   = useState<AdminUser[]>([]);
@@ -19,6 +21,7 @@ export default function AdminUsersPage() {
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/users?role=${role}`);
+      if (res.status === 401) { router.push('/admin/login'); return; }
       const data = await res.json();
       setUsers(data.users ?? []);
     } catch {
@@ -37,11 +40,12 @@ export default function AdminUsersPage() {
 
   const patchUser = async (id: string, updates: Partial<AdminUser>) => {
     setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
-    await fetch(`/api/admin/users/${id}`, {
+    const res = await fetch(`/api/admin/users/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     });
+    if (res.status === 401) router.push('/admin/login');
   };
 
   return (
@@ -52,9 +56,9 @@ export default function AdminUsersPage() {
           <p className="text-slate-500 text-sm mt-0.5">{users.length} {tab} registered</p>
         </div>
         <button onClick={() => loadUsers(tab)} disabled={loading}
-          className="flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-xl"
+          className="flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-xl transition-colors disabled:opacity-60"
           style={{ background: '#EEF2FF', color: '#2952E8' }}>
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          <RefreshCw size={14} className={loading ? 'spin' : ''} />
           Refresh
         </button>
       </div>
@@ -64,7 +68,7 @@ export default function AdminUsersPage() {
         <div className="flex bg-white rounded-xl border border-slate-200 p-1 shadow-sm">
           {(['workers', 'employers'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
-              className="px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+              className="px-4 py-2 rounded-lg text-sm font-semibold transition-all active:scale-95"
               style={tab === t
                 ? { background: '#2952E8', color: '#fff' }
                 : { color: '#4A5580' }}>
@@ -105,7 +109,7 @@ export default function AdminUsersPage() {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filtered.map(user => (
-                <tr key={user.id} className={`transition-colors ${user.blocked ? 'bg-red-50/40' : 'hover:bg-slate-50'}`}>
+                <tr key={user.id} className={`table-row-hover transition-colors ${user.blocked ? 'bg-red-50/40' : ''}`}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -156,12 +160,16 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      {!user.isVerified && !user.blocked && (
+                      {!user.blocked && (
                         <button
-                          onClick={() => patchUser(user.id, { isVerified: true })}
+                          onClick={() => patchUser(user.id, { isVerified: !user.isVerified })}
                           className="text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-colors hover:bg-green-100"
-                          style={{ color: '#16A34A' }}>
-                          <UserCheck size={13} /> Verify
+                          style={{ color: user.isVerified ? '#B45309' : '#16A34A' }}
+                          title={user.isVerified
+                            ? 'Clear the ID-verified badge'
+                            : 'Set ID-verified — only after National ID + 2 reference calls are checked'}
+                        >
+                          <UserCheck size={13} /> {user.isVerified ? 'Unverify' : 'Verify'}
                         </button>
                       )}
                       <button
@@ -177,11 +185,19 @@ export default function AdminUsersPage() {
                   </td>
                 </tr>
               ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={tab === 'workers' ? 6 : 4}>
+                    <div className="empty-state">
+                      <div className="empty-icon"><Users size={30} color="#2952E8" /></div>
+                      <p className="empty-title">No users found</p>
+                      <p className="empty-sub">Registered workers and employers will appear here.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
-        )}
-        {!loading && filtered.length === 0 && (
-          <div className="py-12 text-center text-slate-400 text-sm">No users found</div>
         )}
       </div>
     </div>
