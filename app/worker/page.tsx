@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { Job } from '@/lib/types';
+import InviteEarn from '@/app/components/InviteEarn';
 
 const CATEGORIES = [
   { label: 'Plumbing', Icon: Wrench, color: '#2952E8', bg: '#EEF2FF' },
@@ -165,7 +166,8 @@ export default function WorkerHomePage() {
 
   const filtered = openJobs.filter(j => {
     const matchSearch = !search || j.title.toLowerCase().includes(search.toLowerCase()) || j.location.toLowerCase().includes(search.toLowerCase());
-    const matchCat = !activeCategory || getCategoryMeta(j.title).label === activeCategory;
+    // Stored category wins; keyword heuristic is the fallback for legacy rows
+    const matchCat = !activeCategory || j.category === activeCategory || (!j.category && getCategoryMeta(j.title).label === activeCategory);
     return matchSearch && matchCat;
   });
 
@@ -178,10 +180,8 @@ export default function WorkerHomePage() {
     <div className="space-y-6 animate-fade-in">
 
       {/* ── HERO GREETING ────────────────────────── */}
-      <div className="rounded-3xl p-5 lg:p-8 relative overflow-hidden"
+      <div className="rounded-3xl p-5 lg:p-8 relative overflow-hidden header-mesh animate-slide-up"
         style={{ background: 'linear-gradient(135deg, #00C8FF 0%, #2952E8 55%, #1A2DB8 100%)' }}>
-        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-15"
-          style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)' }} />
         <div className="relative z-10">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
@@ -210,7 +210,7 @@ export default function WorkerHomePage() {
       </div>
 
       {/* ── SEARCH ───────────────────────────────── */}
-      <div className="flex items-center gap-3 rounded-2xl px-4 py-3.5 bg-white"
+      <div className="flex items-center gap-3 rounded-2xl px-4 py-3.5 bg-white animate-slide-up-d1"
         style={{ boxShadow: '0 2px 12px rgba(41,82,232,0.07)', border: '1.5px solid rgba(41,82,232,0.1)' }}>
         <Search size={17} color="#8B94B8" strokeWidth={2} />
         <input
@@ -223,7 +223,7 @@ export default function WorkerHomePage() {
       </div>
 
       {/* ── CATEGORIES ───────────────────────────── */}
-      <div>
+      <div className="animate-slide-up-d2">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-extrabold text-[#0A0F2C] text-base">Browse by Service</h2>
           {activeCategory && (
@@ -239,7 +239,7 @@ export default function WorkerHomePage() {
             const active = activeCategory === cat.label;
             return (
               <button key={cat.label} onClick={() => setActiveCategory(active ? null : cat.label)}
-                className="flex flex-col items-center gap-2 flex-shrink-0 lg:flex-shrink cursor-pointer transition-transform active:scale-95">
+                className="chip-hover flex flex-col items-center gap-2 flex-shrink-0 lg:flex-shrink cursor-pointer">
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center transition-all"
                   style={{
                     background: active ? cat.color : cat.bg,
@@ -260,7 +260,7 @@ export default function WorkerHomePage() {
 
       {/* ── URGENT BANNER ────────────────────────── */}
       {urgentCount > 0 && !search && !activeCategory && (
-        <div className="rounded-2xl px-4 py-3.5 flex items-center justify-between"
+        <div className="rounded-2xl px-4 py-3.5 flex items-center justify-between animate-slide-up-d2"
           style={{ background: 'linear-gradient(135deg, #FFF1F0, #FFE4E1)', border: '1.5px solid rgba(220,38,38,0.15)' }}>
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-red-500">
@@ -275,8 +275,13 @@ export default function WorkerHomePage() {
         </div>
       )}
 
+      {/* ── INVITE & EARN (Phase 2 referrals) ──── */}
+      <div className="animate-slide-up-d2">
+        <InviteEarn />
+      </div>
+
       {/* ── JOB LISTINGS ─────────────────────────── */}
-      <div>
+      <div className="animate-slide-up-d3">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-extrabold text-[#0A0F2C] text-base">
             {activeCategory ? `${activeCategory} Jobs` : 'Available Near You'}

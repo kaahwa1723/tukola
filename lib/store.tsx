@@ -45,7 +45,7 @@ interface KolaContextType {
   /** Adopt a server-issued user (after OTP verify or register). */
   setSessionUser: (user: User) => void;
   /** New-user signup after OTP verify — calls /api/auth/register. */
-  register: (phone: string, name: string, role: Role) => Promise<User | null>;
+  register: (phone: string, name: string, role: Role, referralCode?: string | null) => Promise<User | null>;
   logout: () => void;
   postJob: (jobData: Omit<Job, 'id' | 'createdAt' | 'applicants' | 'status' | 'employerId' | 'employerName' | 'employerPhone'>) => Job;
   applyToJob: (jobId: string) => void;
@@ -110,12 +110,12 @@ export function KolaProvider({ children }: { children: ReactNode }) {
   // ── register ───────────────────────────────────────────────────────────────
   // New-user signup. The server independently requires proof that the phone
   // was OTP-verified moments ago; it returns the canonical profile.
-  const register = useCallback(async (phone: string, name: string, role: Role): Promise<User | null> => {
+  const register = useCallback(async (phone: string, name: string, role: Role, referralCode?: string | null): Promise<User | null> => {
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, name, role }),
+        body: JSON.stringify({ phone, name, role, ...(referralCode ? { referralCode } : {}) }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.user) {

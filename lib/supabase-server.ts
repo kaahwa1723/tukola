@@ -64,6 +64,8 @@ export function mapUser(r: any): User {
     // Honest trust fields: NULL stays NULL until the system measures them
     rating: r.rating != null ? Number(r.rating) : undefined,
     completedJobs: r.completed_jobs ?? 0,
+    // System-computed trust field: NULL (no history) stays undefined
+    reliabilityScore: r.reliability_score != null ? Number(r.reliability_score) : undefined,
     skills: r.skills ?? [],
     about: r.about ?? '',
     responseTime: r.response_time ?? undefined,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
+import { recomputeReliabilityScore } from '@/lib/reliability';
 
 type Params = { params: { id: string } };
 
@@ -75,6 +76,8 @@ export async function POST(req: NextRequest, { params }: Params) {
       } catch (e) {
         console.warn('[POST /api/jobs/[id]/complete] completed_jobs bump failed', e);
       }
+      // Trust field: a fresh completion moves the reliability score
+      await recomputeReliabilityScore(workerId);
     }
 
     return NextResponse.json({ success: true, completedAt });

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Navbar from '@/app/components/landing/Navbar';
 import HeroSlider from '@/app/components/landing/HeroSlider';
 import TaglineSection from '@/app/components/landing/TaglineSection';
@@ -14,6 +15,20 @@ import AppDownload from '@/app/components/landing/AppDownload';
 import Footer from '@/app/components/landing/Footer';
 
 export default function LandingPage() {
+  // Referral capture (Phase 2): WhatsApp share links land here with
+  // ?ref=<code>. Signup is OTP-only with no referral field, so the code
+  // is stashed in localStorage and survives the whole onboarding → login
+  // → OTP → /role flow; /role forwards it to /api/auth/register, which
+  // attributes the signup server-side (lib/referrals.ts attributeSignup).
+  useEffect(() => {
+    try {
+      const ref = new URLSearchParams(window.location.search).get('ref');
+      if (ref && /^[A-Za-z0-9]{4,16}$/.test(ref)) {
+        localStorage.setItem('kola_referral_code', ref.toUpperCase());
+      }
+    } catch {}
+  }, []);
+
   return (
     <div className="min-h-screen bg-white font-sans text-foreground overflow-x-hidden">
       <Navbar />

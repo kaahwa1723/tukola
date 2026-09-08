@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { isAdmin } from '@/lib/admin-auth';
+import { getLossRatio } from '@/lib/guarantee';
 
 /**
  * GET /api/admin/funnel
@@ -98,6 +99,10 @@ export async function GET(req: Request) {
     // Leakage signals this week (chat off-platform attempts, log-don't-block)
     const leakageSignals = await count('leakage_events', 'created_at');
 
+    // Guarantee loss ratio — lifetime approved payouts ÷ lifetime 2%
+    // accruals, both summed from the append-only reserve ledger (009)
+    const lossRatio = await getLossRatio();
+
     return NextResponse.json({
       weekStarting: since,
       funnel: {
@@ -122,6 +127,9 @@ export async function GET(req: Request) {
         hiringEmployers90d: hiringEmployers,
         repeatEmployers90d: repeatEmployers,
         leakageSignals,
+        guaranteeLossRatioPct: lossRatio.lossRatioPct,
+        guaranteePayoutsUgx: lossRatio.totalPaidOutUgx,
+        guaranteeAccruedUgx: lossRatio.totalAccruedUgx,
       },
     });
   } catch (err: any) {

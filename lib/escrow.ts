@@ -1,6 +1,7 @@
 import { createServerSupabase } from './supabase-server';
 import { getPaymentProvider } from './payments/provider';
 import { track } from './analytics';
+import { redeemCreditsForRelease, reverseRedemption } from './referrals';
 
 /**
  * Escrow — state machine + money math.
@@ -115,16 +116,32 @@ export async function releasePayment(paymentId: number): Promise<{
   const split = computeSplit(payment.amount, payment.jobs?.is_b2b ?? false);
   const receiptNumber = `TKL-${new Date().getFullYear()}-${String(payment.id).padStart(6, '0')}`;
 
+  // Referral credit redemption (Phase 2) — see lib/referrals.ts.
+  // The payee's balance reduces the platform commission and is added to
+  // the fundi payout; the payer's balance also reduces the commission and
+  // is returned as cashback below. Capped at the commission, so credit
+  // can never make any leg of the payment negative. The 2% guarantee
+  // accrual is unchanged (computed from GMV, not post-credit commission).
+  const redemption = await redeemCreditsForRelease(
+    payment.id, payment.payer_id, payment.payee_id, split.commission
+  );
+  const commission = split.commission - redemption.payerRedeemed - redemption.payeeRedeemed;
+  const fundiPayout = split.fundiPayout + redemption.payeeRedeemed;
+
   // 1. Pay the fundi (in real life: MoMo disbursement; mock: instant success)
   const provider = getPaymentProvider();
   if (payment.payee_momo_phone) {
     const payout = await provider.payout({
       phone: payment.payee_momo_phone,
-      amountUgx: split.fundiPayout,
+      amountUgx: fundiPayout,
       externalRef: `payout_${payment.idempotency_key}`,
       narration: `Tukola job payment ${receiptNumber}`,
     });
     if (payout.status !== 'successful') {
+      // Nothing was paid — restore the consumed credits before throwing
+      // (append-only reversal rows; redeemed rows are never edited)
+      await reverseRedemption(payment.payee_id, redemption.payeeRedeemed, payment.id);
+      await reverseRedemption(payment.payer_id, redemption.payerRedeemed, payment.id);
       throw new Error(`Fundi payout did not succeed (status: ${payout.status}) — payment left in escrow`);
     }
   }
@@ -144,23 +161,48 @@ export async function releasePayment(paymentId: number): Promise<{
     .update({
       status: 'released',
       released_at: new Date().toISOString(),
-      commission: split.commission,
+      commission,
       guarantee_accrual: split.guaranteeAccrual,
-      fundi_payout: split.fundiPayout,
+      fundi_payout: fundiPayout,
       receipt_number: receiptNumber,
     })
     .eq('id', payment.id);
   if (error) throw error;
 
+  // 4. Employer credit cashback — AFTER the release is committed so a
+  // cashback failure can never cause a double payout on retry. Failure is
+  // non-fatal: the employer's credit is restored (reversal row) and the
+  // release stands.
+  if (redemption.payerRedeemed > 0) {
+    try {
+      if (payment.payer_momo_phone) {
+        const cashback = await provider.payout({
+          phone: payment.payer_momo_phone,
+          amountUgx: redemption.payerRedeemed,
+          externalRef: `cashback_${payment.idempotency_key}`,
+          narration: `Tukola referral credit cashback ${receiptNumber}`,
+        });
+        if (cashback.status !== 'successful') throw new Error(`status: ${cashback.status}`);
+      }
+    } catch (e) {
+      console.warn(`[escrow] credit cashback failed for payment ${payment.id} — restoring employer credit:`, e);
+      await reverseRedemption(payment.payer_id, redemption.payerRedeemed, payment.id);
+    }
+  }
+
   track('payment_released', payment.payer_id, {
     paymentId: payment.id,
     jobId: payment.job_id,
     amount: payment.amount,
-    fundiPayout: split.fundiPayout,
-    commission: split.commission,
+    fundiPayout,
+    commission,
     guaranteeAccrual: split.guaranteeAccrual,
+    referralCreditRedeemed: redemption.payerRedeemed + redemption.payeeRedeemed,
     receiptNumber,
   });
 
-  return { receiptNumber, split };
+  return {
+    receiptNumber,
+    split: { commission, guaranteeAccrual: split.guaranteeAccrual, fundiPayout },
+  };
 }

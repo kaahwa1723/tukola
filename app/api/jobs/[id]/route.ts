@@ -3,8 +3,26 @@ import { createServerSupabase, mapJob } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
 import { canSeeEmployerPhone } from '@/lib/contact-visibility';
 import { isAdmin } from '@/lib/admin-auth';
+import { recomputeReliabilityScore } from '@/lib/reliability';
 
 type Params = { params: { id: string } };
+
+/** A cancelled job that had an accepted worker is a "collapsed booking"
+    signal for that fundi's reliability score (see lib/reliability.ts). */
+async function recomputeAcceptedWorkerReliability(
+  sb: ReturnType<typeof createServerSupabase>,
+  jobId: string
+) {
+  const { data: accepted } = await sb
+    .from('applications')
+    .select('worker_id')
+    .eq('job_id', jobId)
+    .eq('status', 'accepted')
+    .limit(1);
+  if (accepted?.[0]?.worker_id) {
+    await recomputeReliabilityScore(accepted[0].worker_id);
+  }
+}
 
 /** GET /api/jobs/[id] — fetch single job with applicants */
 export async function GET(req: NextRequest, { params }: Params) {
@@ -131,6 +149,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     if (error) throw error;
 
+    if (updates.status === 'cancelled') {
+      await recomputeAcceptedWorkerReliability(sb, params.id);
+    }
+
     const job = mapJob(data);
     if (!(await canSeeEmployerPhone(sb, data, user, req))) {
       job.employerPhone = undefined;
@@ -188,6 +210,8 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       .eq('id', params.id);
 
     if (error) throw error;
+
+    await recomputeAcceptedWorkerReliability(sb, params.id);
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

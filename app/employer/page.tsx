@@ -5,6 +5,7 @@ import { Plus, Bell, ChevronRight, MapPin, Star, Users, Lightbulb, ShieldCheck, 
 import { useKola } from '@/lib/store';
 import { MOCK_WORKERS } from '@/lib/data';
 import FundiFinder from '@/app/components/FundiFinder';
+import InviteEarn from '@/app/components/InviteEarn';
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
@@ -201,6 +202,9 @@ export default function EmployerHomePage() {
               </div>
             </div>
           )}
+
+          {/* Invite & earn — referral credit block (Phase 2) */}
+          <InviteEarn />
 
           {/* Tip */}
           <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100 flex items-start gap-3">

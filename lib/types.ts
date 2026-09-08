@@ -9,6 +9,7 @@ export interface User {
   avatar?: string;
   rating?: number;
   completedJobs?: number;
+  reliabilityScore?: number;
   skills?: string[];
   about?: string;
   responseTime?: string;

@@ -3,6 +3,8 @@ import { createServerSupabase } from '@/lib/supabase-server';
 import { releasePayment } from '@/lib/escrow';
 import { track } from '@/lib/analytics';
 import { isCronAuthorized } from '@/lib/cron-auth';
+import { recomputeReliabilityScore } from '@/lib/reliability';
+import { issueReferralCreditsForCompletion } from '@/lib/referrals';
 
 const AUTO_RELEASE_AFTER_MS = 48 * 60 * 60 * 1000; // 48 hours
 
@@ -60,6 +62,19 @@ export async function GET(req: NextRequest) {
           .eq('id', payment.job_id)
           .neq('status', 'completed');
         track('job_completed', 'system', { jobId: payment.job_id, via: 'auto_release_48h' });
+        // Trust field: an auto-released completion still counts for the fundi
+        const { data: accepted } = await sb
+          .from('applications')
+          .select('worker_id')
+          .eq('job_id', payment.job_id)
+          .eq('status', 'accepted')
+          .limit(1);
+        if (accepted?.[0]?.worker_id) {
+          await recomputeReliabilityScore(accepted[0].worker_id);
+        }
+        // Referral rewards (Phase 2): an auto-released completion counts
+        // toward first-paid-job referral credits too (non-fatal)
+        await issueReferralCreditsForCompletion(payment.job_id);
         released.push(payment.id);
       } catch (e: any) {
         skipped.push({ id: payment.id, reason: e.message });

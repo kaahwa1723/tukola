@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     const sb = createServerSupabase();
     let query = sb
       .from('profiles')
-      .select('id, name, avatar, rating, completed_jobs, skills, location, is_verified, about')
+      .select('id, name, avatar, rating, completed_jobs, skills, location, is_verified, about, reliability_score')
       .eq('role', 'worker')
       .eq('blocked', false)
       .order('rating', { ascending: false, nullsFirst: false })
@@ -48,6 +48,9 @@ export async function GET(req: NextRequest) {
       avatar: r.avatar ?? undefined,
       rating: r.rating != null ? Number(r.rating) : undefined,
       completedJobs: r.completed_jobs ?? 0,
+      // NULL stays NULL: a fundi with no history is shown as "New",
+      // never given a fabricated reliability number
+      reliabilityScore: r.reliability_score != null ? Number(r.reliability_score) : undefined,
       skills: r.skills ?? [],
       location: r.location ?? undefined,
       isVerified: r.is_verified ?? false,

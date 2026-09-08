@@ -39,6 +39,9 @@ interface FunnelResponse {
     gmvUgx: number;
     commissionRevenueUgx: number;
     guaranteeReserveBalanceUgx: number;
+    guaranteeLossRatioPct: number;
+    guaranteePayoutsUgx: number;
+    guaranteeAccruedUgx: number;
     repeatHireRate90d: number;
     hiringEmployers90d: number;
     repeatEmployers90d: number;
@@ -228,6 +231,17 @@ export default function AdminAnalyticsPage() {
               <div>
                 <p className="font-bold text-slate-900 text-lg">{metrics ? ugx(metrics.guaranteeReserveBalanceUgx) : '—'}</p>
                 <p className="text-slate-500 text-xs">Guarantee reserve balance</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center">
+                <ShieldCheck size={22} className="text-rose-600" />
+              </div>
+              <div>
+                <p className="font-bold text-slate-900 text-lg">{metrics ? `${metrics.guaranteeLossRatioPct}%` : '—'}</p>
+                <p className="text-slate-500 text-xs">
+                  Guarantee loss ratio (lifetime{metrics ? ` · ${ugx(metrics.guaranteePayoutsUgx)} paid of ${ugx(metrics.guaranteeAccruedUgx)} accrued` : ''})
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-3">

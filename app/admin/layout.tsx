@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Users, Briefcase, Shield, BarChart2, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Shield, ShieldCheck, BarChart2, LogOut } from 'lucide-react';
 import { TukolaLogo } from '@/components/TukolaLogo';
 
 const NAV = [
@@ -11,6 +11,7 @@ const NAV = [
   { href: '/admin/users',      label: 'Users',       Icon: Users },
   { href: '/admin/jobs',       label: 'Jobs',        Icon: Briefcase },
   { href: '/admin/moderation', label: 'Moderation',  Icon: Shield },
+  { href: '/admin/claims',     label: 'Claims',      Icon: ShieldCheck },
   { href: '/admin/analytics',  label: 'Analytics',   Icon: BarChart2 },
 ];
 

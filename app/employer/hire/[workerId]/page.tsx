@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MapPin, Star, CheckCircle, Clock, Zap, ChevronLeft, Send, ShieldCheck, Images } from 'lucide-react';
+import { MapPin, Star, CheckCircle, Clock, Zap, ChevronLeft, Send, ShieldCheck, Images, Gauge } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { MOCK_WORKERS } from '@/lib/data';
 import type { User } from '@/lib/types';
@@ -188,6 +188,10 @@ export default function HireWorkerPage() {
                 <span className="text-white/50 text-xs">·</span>
                 <span className="flex items-center gap-1 text-white/70 text-xs">
                   <Zap size={10} color="white" /> {worker.completedJobs} jobs done
+                </span>
+                <span className="text-white/50 text-xs">·</span>
+                <span className="flex items-center gap-1 text-white/70 text-xs">
+                  <Gauge size={10} color="white" /> Reliability: {worker.reliabilityScore != null ? worker.reliabilityScore : 'New'}
                 </span>
                 <span className="text-white/50 text-xs">·</span>
                 <span className="flex items-center gap-1 text-white/70 text-xs">

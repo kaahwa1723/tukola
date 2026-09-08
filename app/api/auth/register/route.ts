@@ -6,6 +6,7 @@ import { createServerSupabase, mapUser } from '@/lib/supabase-server';
 import { setSessionCookie } from '@/lib/session';
 import { hit, clientIp } from '@/lib/rate-limit';
 import { track } from '@/lib/analytics';
+import { attributeSignup } from '@/lib/referrals';
 
 /**
  * POST /api/auth/register
@@ -23,7 +24,7 @@ import { track } from '@/lib/analytics';
  */
 export async function POST(req: NextRequest) {
   try {
-    const { phone: rawPhone, name, role } = await req.json();
+    const { phone: rawPhone, name, role, referralCode } = await req.json();
     const phone = normalizeUgPhone(rawPhone);
 
     if (!phone || !name?.trim() || !['worker', 'employer'].includes(role)) {
@@ -101,6 +102,10 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({ user: mapUser(created) }, { status: 201 });
     setSessionCookie(res, created.id);
     track('signup', created.id, { role });
+    // Referral attribution (Phase 2): new accounts only — a resumed
+    // account was attributed (or not) at its own creation. Non-fatal:
+    // an unknown/invalid code or a DB hiccup never fails a signup.
+    await attributeSignup(created.id, referralCode, role);
     return res;
   } catch (err: any) {
     console.error('[POST /api/auth/register]', err);

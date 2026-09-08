@@ -10,6 +10,7 @@ interface Fundi {
   avatar?: string;
   rating?: number;
   completedJobs: number;
+  reliabilityScore?: number; // undefined = no history → show "New"
   skills: string[];
   location?: string;
   isVerified: boolean;
@@ -183,13 +184,21 @@ export default function FundiFinder() {
                   <MapPin size={9} /> {fundi.location}
                 </p>
               )}
-              <div className="flex items-center justify-center gap-1 mb-3">
+              <div className="flex items-center justify-center gap-1 mb-1.5">
                 <Star size={11} className="text-yellow-500 fill-yellow-500" />
                 <span className="text-[#0A0F2C] text-xs font-bold">
                   {fundi.rating != null ? fundi.rating.toFixed(1) : 'New'}
                 </span>
                 <span className="text-[#8B94B8] text-[10px]">({fundi.completedJobs} jobs)</span>
               </div>
+              <p className={`text-[10px] font-bold text-center mb-3 ${
+                fundi.reliabilityScore == null ? 'text-[#8B94B8]'
+                : fundi.reliabilityScore >= 80 ? 'text-emerald-600'
+                : fundi.reliabilityScore >= 50 ? 'text-amber-600'
+                : 'text-red-500'
+              }`}>
+                Reliability: {fundi.reliabilityScore != null ? fundi.reliabilityScore : 'New'}
+              </p>
               <Link href={`/employer/hire/${fundi.id}`}>
                 <button className="w-full py-1.5 rounded-xl text-xs font-black active:scale-95 transition-transform text-white"
                   style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}>

@@ -30,8 +30,15 @@ export default function RoleSelectionPage() {
     if (!name.trim() || !selected) return;
     setLoading(true);
     setError('');
-    const user = await register(phone, name.trim(), selected);
+    // Referral code stashed from ?ref= on the landing page (OTP-only
+    // signup has no referral field) — forwarded for server-side
+    // attribution; cleared on success so a resumed account or a later
+    // signup on this device never inherits it.
+    const referralCode =
+      typeof window !== 'undefined' ? localStorage.getItem('kola_referral_code') : null;
+    const user = await register(phone, name.trim(), selected, referralCode);
     if (user) {
+      try { localStorage.removeItem('kola_referral_code'); } catch {}
       router.push(selected === 'worker' ? '/worker' : '/employer');
     } else {
       setError(t('role.errorCreate'));

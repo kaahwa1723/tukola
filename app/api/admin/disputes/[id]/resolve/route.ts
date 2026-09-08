@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { isAdmin } from '@/lib/admin-auth';
 import { releasePayment, transitionPayment } from '@/lib/escrow';
+import { recomputeReliabilityScore } from '@/lib/reliability';
 
 type Params = { params: { id: string } };
 
@@ -55,6 +56,18 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (error) throw error;
 
     console.log(`[admin] dispute #${dispute.id} resolved as ${resolution}`);
+
+    // Trust field: a lost dispute (refund) weighs against the fundi's
+    // reliability score; a released one clears the shadow.
+    const { data: payment } = await sb
+      .from('payments')
+      .select('payee_id')
+      .eq('id', dispute.payment_id)
+      .maybeSingle();
+    if (payment?.payee_id) {
+      await recomputeReliabilityScore(payment.payee_id);
+    }
+
     return NextResponse.json({ success: true, resolution });
   } catch (err: any) {
     console.error('[POST /api/admin/disputes/[id]/resolve]', err);

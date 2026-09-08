@@ -21,7 +21,15 @@ export type FunnelEvent =
   | 'payment_released'
   | 'rating_submitted'
   | 'dispute_opened'
-  | 'leakage_signal';
+  | 'leakage_signal'
+  // Phase 2 — referral mechanics
+  | 'referral_attributed'
+  | 'referral_shared'
+  | 'referral_credit_issued'
+  // Phase 2 — guarantee claims
+  | 'claim_submitted'
+  | 'claim_approved'
+  | 'claim_rejected';
 
 export function track(
   event: FunnelEvent,

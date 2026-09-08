@@ -10,6 +10,7 @@ import {
   MessageCircle, RotateCcw
 } from 'lucide-react';
 import { useKola } from '@/lib/store';
+import GuaranteeClaimBlock from '@/app/components/GuaranteeClaim';
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Plumbing: Wrench, Electrical: Zap, Cleaning: Sparkles, Construction: Building2,
@@ -343,6 +344,11 @@ export default function JobDetailsPage() {
             <p className="text-blue-900 font-semibold text-sm">No applicants yet</p>
             <p className="text-blue-600 text-xs mt-1">Workers nearby are being notified</p>
           </div>
+        )}
+
+        {/* Tukola Guarantee — the customer can claim on a completed job */}
+        {isMyJob && job.status === 'completed' && (
+          <GuaranteeClaimBlock jobId={job.id} />
         )}
 
         {/* Action buttons */}

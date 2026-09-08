@@ -3,6 +3,8 @@ import { createServerSupabase } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
 import { releasePayment } from '@/lib/escrow';
 import { track } from '@/lib/analytics';
+import { recomputeReliabilityScore } from '@/lib/reliability';
+import { issueReferralCreditsForCompletion } from '@/lib/referrals';
 
 type Params = { params: { id: string } };
 
@@ -64,6 +66,8 @@ export async function POST(req: NextRequest, { params }: Params) {
             await sb.from('profiles').update({ completed_jobs: (profile.completed_jobs ?? 0) + 1 }).eq('id', workerId);
           }
         }
+        // Trust field: a fresh completion moves the reliability score
+        await recomputeReliabilityScore(workerId);
       }
     }
 
@@ -92,6 +96,11 @@ export async function POST(req: NextRequest, { params }: Params) {
         { status: 409 }
       );
     }
+
+    // Referral rewards (Phase 2): if this completion is the employer's or
+    // the fundi's FIRST released payment, pending referral credits pay out.
+    // Non-fatal and idempotent — never breaks a release.
+    await issueReferralCreditsForCompletion(params.id);
 
     return NextResponse.json({
       success: true,
