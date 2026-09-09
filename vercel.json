@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/auto-release",
-      "schedule": "*/30 * * * *"
+      "schedule": "23 3 * * *"
     },
     {
       "path": "/api/cron/recurring",
