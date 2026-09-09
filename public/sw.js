@@ -14,7 +14,7 @@
  *
  * No dependencies, no workbox. Bump VERSION to force a full refresh.
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL_CACHE = `tukola-shell-${VERSION}`;
 const STATIC_CACHE = `tukola-static-${VERSION}`;
 
