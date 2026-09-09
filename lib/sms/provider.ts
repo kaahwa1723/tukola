@@ -99,7 +99,7 @@ class AfricasTalkingProvider implements SmsProvider {
     const body = new URLSearchParams({
       username: this.username,
       to: phone,
-      message: `Your TUKOLA verification code is ${code}. It expires in 10 minutes.`,
+      message: `Your One Time Password for tukolaapp.com is ${code}, expires in 10 mins. Do not share this code.`,
     });
     if (this.senderId) body.set('from', this.senderId);
 
@@ -143,8 +143,93 @@ class AfricasTalkingProvider implements SmsProvider {
   }
 }
 
+/**
+ * EgoSmsProvider — live SMS via EgoSMS (https://egosms.co), a Ugandan
+ * aggregator (~UGX 35/SMS, balance never expires, default sender ID free,
+ * MoMo top-up). JSON API documented at developers.pahappa.com:
+ *
+ *   POST https://www.egosms.co/api/v1/json/
+ *   { method: 'SendSms',
+ *     userdata: { username, password },
+ *     msgdata: [{ number: '2567...', message, senderid }] }
+ *   → { Status: 'OK', Cost, MsgFollowUpUniqueCode }   (success)
+ *   → { Status: 'Failed', Message }                   (failure)
+ *
+ * Env:
+ *   EGOSMS_USERNAME  — required (account login username)
+ *   EGOSMS_PASSWORD  — required (account API password; never logged,
+ *                      never included in errors)
+ *   EGOSMS_SENDER_ID — optional; max 11 chars. Omit to use EgoSMS's
+ *                      default shared sender ID.
+ *
+ * EgoSMS has no hosted OTP verification, so verifyOtp delegates to the
+ * same DB-backed checkOtp() the mock uses — swapping providers changes
+ * delivery only, never verification semantics.
+ */
+class EgoSmsProvider implements SmsProvider {
+  readonly name = 'egosms';
+
+  private readonly username: string;
+  private readonly password: string;
+  private readonly senderId?: string;
+  private readonly baseUrl = 'https://www.egosms.co/api/v1/json/';
+
+  constructor() {
+    const username = process.env.EGOSMS_USERNAME;
+    const password = process.env.EGOSMS_PASSWORD;
+    if (!username || !password) {
+      throw new Error('EgoSMS not configured (EGOSMS_USERNAME, EGOSMS_PASSWORD required)');
+    }
+    this.username = username;
+    this.password = password;
+    this.senderId = process.env.EGOSMS_SENDER_ID || undefined;
+  }
+
+  async sendOtp(phone: string, code: string): Promise<void> {
+    // EgoSMS wants the number without the leading '+' (e.g. 2567xxxxxxxx)
+    const number = phone.replace(/^\+/, '');
+
+    let res: Response;
+    try {
+      res = await fetch(this.baseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          method: 'SendSms',
+          userdata: { username: this.username, password: this.password },
+          msgdata: [{
+            number,
+            message: `Your One Time Password for tukolaapp.com is ${code}, expires in 10 mins. Do not share this code.`,
+            ...(this.senderId ? { senderid: this.senderId } : {}),
+          }],
+        }),
+      });
+    } catch {
+      throw new Error('EgoSMS request failed (network error)');
+    }
+
+    if (!res.ok) {
+      throw new Error(`EgoSMS SMS failed (HTTP ${res.status})`);
+    }
+
+    // EgoSMS returns 200 with {"Status":"Failed","Message":...} on
+    // rejection — a 2xx transport does not mean the SMS was accepted.
+    const data: any = await res.json().catch(() => null);
+    if (data?.Status !== 'OK') {
+      // Message is EgoSMS's own sanitized error text (no secrets).
+      throw new Error(`EgoSMS SMS rejected: ${data?.Message ?? 'unknown error'}`);
+    }
+  }
+
+  async verifyOtp(phone: string, code: string): Promise<boolean> {
+    return checkOtp(phone, code);
+  }
+}
+
 export function getSmsProvider(): SmsProvider {
   switch (process.env.SMS_PROVIDER ?? 'mock') {
+    case 'egosms':
+      return new EgoSmsProvider();
     case 'africas_talking':
       return new AfricasTalkingProvider();
     case 'mock':
