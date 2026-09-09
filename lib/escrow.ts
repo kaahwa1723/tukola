@@ -2,6 +2,7 @@ import { createServerSupabase } from './supabase-server';
 import { getPaymentProvider } from './payments/provider';
 import { track } from './analytics';
 import { redeemCreditsForRelease, reverseRedemption } from './referrals';
+import { sendPaymentHeldEmail, sendPaymentReleasedEmail } from './email/notify';
 
 /**
  * Escrow — state machine + money math.
@@ -63,7 +64,7 @@ export class IllegalTransitionError extends Error {
  */
 export async function transitionPayment(paymentId: number, to: string): Promise<void> {
   const sb = createServerSupabase();
-  const { data: payment } = await sb.from('payments').select('status, payer_id, job_id, amount').eq('id', paymentId).single();
+  const { data: payment } = await sb.from('payments').select('status, payer_id, payee_id, job_id, amount').eq('id', paymentId).single();
   if (!payment) throw new Error(`Payment ${paymentId} not found`);
 
   if (payment.status === to) return; // idempotent no-op
@@ -82,6 +83,9 @@ export async function transitionPayment(paymentId: number, to: string): Promise<
 
   if (to === 'held') {
     track('payment_held', payment.payer_id, { paymentId, jobId: payment.job_id, amount: payment.amount });
+    // Tell the fundi escrow is funded and work can start — fire-and-forget
+    // safe (skips silently when the fundi has no email on file).
+    await sendPaymentHeldEmail({ fundiId: payment.payee_id, jobId: payment.job_id, amountUgx: payment.amount });
   }
 }
 
@@ -199,6 +203,16 @@ export async function releasePayment(paymentId: number): Promise<{
     guaranteeAccrual: split.guaranteeAccrual,
     referralCreditRedeemed: redemption.payerRedeemed + redemption.payeeRedeemed,
     receiptNumber,
+  });
+
+  // Tell BOTH parties the money moved — fire-and-forget safe (skips
+  // recipients with no email on file; never affects the release).
+  await sendPaymentReleasedEmail({
+    fundiId: payment.payee_id,
+    employerId: payment.payer_id,
+    jobId: payment.job_id,
+    amountUgx: payment.amount,
+    fundiPayoutUgx: fundiPayout,
   });
 
   return {

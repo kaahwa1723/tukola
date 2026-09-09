@@ -7,6 +7,7 @@ import { setSessionCookie } from '@/lib/session';
 import { hit, clientIp } from '@/lib/rate-limit';
 import { track } from '@/lib/analytics';
 import { attributeSignup } from '@/lib/referrals';
+import { sendWelcomeEmail } from '@/lib/email/notify';
 
 /**
  * POST /api/auth/register
@@ -102,6 +103,9 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({ user: mapUser(created) }, { status: 201 });
     setSessionCookie(res, created.id);
     track('signup', created.id, { role });
+    // Welcome email — fire-and-forget safe: skips silently when the new
+    // profile has no email on file, and a failure never fails a signup.
+    await sendWelcomeEmail({ id: created.id, name: created.name, role, email: created.email });
     // Referral attribution (Phase 2): new accounts only — a resumed
     // account was attributed (or not) at its own creation. Non-fatal:
     // an unknown/invalid code or a DB hiccup never fails a signup.

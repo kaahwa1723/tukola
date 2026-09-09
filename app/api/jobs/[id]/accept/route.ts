@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
 import { track } from '@/lib/analytics';
+import { sendApplicationAcceptedEmail } from '@/lib/email/notify';
 
 type Params = { params: { id: string } };
 
@@ -56,6 +57,9 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (jobError) throw jobError;
 
     track('applicant_accepted', user.id, { jobId: params.id, workerId });
+    // Notify the chosen worker — fire-and-forget safe (skips silently
+    // when the worker has no email on file; never fails the accept).
+    await sendApplicationAcceptedEmail({ workerId, jobId: params.id });
     return NextResponse.json({ success: true });
   } catch (err: any) {
     console.error('[POST /api/jobs/[id]/accept]', err);

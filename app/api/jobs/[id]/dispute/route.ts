@@ -3,6 +3,7 @@ import { createServerSupabase } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
 import { transitionPayment } from '@/lib/escrow';
 import { track } from '@/lib/analytics';
+import { sendDisputeOpenedEmail } from '@/lib/email/notify';
 
 type Params = { params: { id: string } };
 
@@ -94,6 +95,13 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (error) throw error;
 
     track('dispute_opened', user.id, { jobId: params.id, paymentId: payment.id });
+    // Alert both job parties + the admin (ADMIN_EMAIL, when set) that the
+    // payment is frozen — fire-and-forget safe, never fails the dispute.
+    await sendDisputeOpenedEmail({
+      partyIds: [job.employer_id, user.id],
+      jobId: params.id,
+      reason: reason.trim(),
+    });
     return NextResponse.json({
       success: true,
       disputeId: dispute.id,
