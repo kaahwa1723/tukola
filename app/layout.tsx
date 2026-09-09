@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: 'TUKOLA — Find Work. Hire Workers.',
   description: "Kampala's fundi marketplace. Hire rated fundis with escrow-protected payments, or find work and get paid on release.",
   manifest: '/manifest.json',
-  icons: { icon: '/favicon.png', apple: '/favicon.png' },
+  icons: { icon: '/favicon.png?v=2', apple: '/apple-icon.png' },
 };
 
 export const viewport: Viewport = {

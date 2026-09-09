@@ -47,10 +47,10 @@ export default function AppDownload() {
           <motion.div initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.2 }} className="lg:w-1/2 flex justify-center">
             <div className="relative flex items-end">
               <div className="relative w-[220px] md:w-[260px] rounded-[2rem] border-[6px] border-white/90 shadow-2xl overflow-hidden transform rotate-[4deg] translate-x-8 translate-y-4 opacity-90 hidden sm:block">
-                <img src="/screenshots/app-worker-dash.webp" alt="Tukola worker app — real screenshot" className="w-full h-auto block" loading="lazy" />
+                <img src="/screenshots/app-worker-dash.webp?v=2" alt="Tukola worker app — real screenshot" className="w-full h-auto block" loading="lazy" />
               </div>
               <div className="relative w-[240px] md:w-[280px] rounded-[2.2rem] border-[6px] border-white shadow-2xl overflow-hidden transform rotate-[-3deg] hover:rotate-0 transition-transform duration-500 z-10">
-                <img src="/screenshots/app-employer-dash.webp" alt="Tukola employer app — real screenshot" className="w-full h-auto block" loading="lazy" />
+                <img src="/screenshots/app-employer-dash.webp?v=2" alt="Tukola employer app — real screenshot" className="w-full h-auto block" loading="lazy" />
               </div>
             </div>
           </motion.div>
