@@ -9,6 +9,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        primary: '#2952E8',
+        accent: '#00C8FF',
+        navy: '#0A0F2C',
+        'dark-bg': '#060B1F',
+        surface: '#F0F4FF',
         brand: {
           50:  '#E8F4FF',
           100: '#C5E3FF',
@@ -36,6 +41,8 @@ const config: Config = {
         'glass': 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)',
       },
       fontFamily: {
+        heading: ['Inter', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
         orbitron: ['Orbitron', 'sans-serif'],
         inter: ['Inter', 'sans-serif'],
       },
@@ -61,6 +68,9 @@ const config: Config = {
         'float': 'float 3s ease-in-out infinite',
         'shimmer': 'shimmer 2s linear infinite',
         'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
+        'marquee': 'marquee 30s linear infinite',
+        'float-orb': 'float-orb 15s ease-in-out infinite',
+        'ken-burns': 'ken-burns 6s ease-out forwards',
       },
       keyframes: {
         loadingBar: {
@@ -86,6 +96,20 @@ const config: Config = {
         pulseGlow: {
           '0%, 100%': { boxShadow: '0 0 20px rgba(0, 200, 255, 0.4)' },
           '50%': { boxShadow: '0 0 40px rgba(0, 200, 255, 0.8), 0 0 80px rgba(41, 82, 232, 0.3)' },
+        },
+        marquee: {
+          '0%': { transform: 'translateX(0%)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+        'float-orb': {
+          '0%': { transform: 'translate(0, 0) scale(1)' },
+          '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+          '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+          '100%': { transform: 'translate(0, 0) scale(1)' },
+        },
+        'ken-burns': {
+          '0%': { transform: 'scale(1.05)' },
+          '100%': { transform: 'scale(1.15)' },
         },
       },
     },

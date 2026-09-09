@@ -133,8 +133,14 @@ CREATE TABLE IF NOT EXISTS ratings (
 );
 
 -- ─────────────────────────────────────────────
--- 7. ROW-LEVEL SECURITY
+-- 7. ROW-LEVEL SECURITY — LOCKED-DOWN POSTURE (supersedes the original demo policies)
 -- ─────────────────────────────────────────────
+-- ⚠️  DO NOT create USING (true) policies here. The original version of this
+-- file shipped 17 wide-open policies; migration 006_rls_lockdown.sql drops
+-- them on existing databases. The app accesses the DB exclusively through
+-- API routes with the service-role key (which bypasses RLS), and auth is
+-- custom OTP — there is no auth.uid() for per-user policies. Therefore:
+-- RLS ENABLED + ZERO POLICIES = deny-all for anon/authenticated = correct.
 ALTER TABLE profiles      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE jobs          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE applications  ENABLE ROW LEVEL SECURITY;
@@ -142,34 +148,8 @@ ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ratings       ENABLE ROW LEVEL SECURITY;
 
--- profiles: anyone can read, only service role writes (we use the API routes)
-CREATE POLICY "profiles_read_all"   ON profiles FOR SELECT USING (true);
-CREATE POLICY "profiles_insert_svc" ON profiles FOR INSERT WITH CHECK (true);
-CREATE POLICY "profiles_update_svc" ON profiles FOR UPDATE USING (true);
-
--- jobs: anyone can read open jobs; service role manages all
-CREATE POLICY "jobs_read_all"   ON jobs FOR SELECT USING (true);
-CREATE POLICY "jobs_insert_svc" ON jobs FOR INSERT WITH CHECK (true);
-CREATE POLICY "jobs_update_svc" ON jobs FOR UPDATE USING (true);
-
--- applications: service role only
-CREATE POLICY "applications_read_all"   ON applications FOR SELECT USING (true);
-CREATE POLICY "applications_insert_svc" ON applications FOR INSERT WITH CHECK (true);
-CREATE POLICY "applications_update_svc" ON applications FOR UPDATE USING (true);
-
--- conversations: only participants read
-CREATE POLICY "conversations_read"   ON conversations FOR SELECT USING (true);
-CREATE POLICY "conversations_insert" ON conversations FOR INSERT WITH CHECK (true);
-CREATE POLICY "conversations_update" ON conversations FOR UPDATE USING (true);
-
--- messages: service role only
-CREATE POLICY "messages_read"   ON messages FOR SELECT USING (true);
-CREATE POLICY "messages_insert" ON messages FOR INSERT WITH CHECK (true);
-CREATE POLICY "messages_update" ON messages FOR UPDATE USING (true);
-
--- ratings: service role only
-CREATE POLICY "ratings_read"   ON ratings FOR SELECT USING (true);
-CREATE POLICY "ratings_insert" ON ratings FOR INSERT WITH CHECK (true);
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM authenticated;
 
 -- ─────────────────────────────────────────────
 -- 8. STORAGE BUCKETS (run separately in Storage UI or via SDK)
