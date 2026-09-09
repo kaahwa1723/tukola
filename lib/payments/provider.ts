@@ -2,7 +2,8 @@
  * PaymentProvider — swappable payment rail interface (dual-rail rule:
  * no single vendor can take the platform down).
  *
- * Rail 1 (primary): MTN MoMo Open API collections (RequestToPay).
+ * Rail 1 (primary): RukaPay Gateway API — collections (PARTNER_COLLECT_MNO)
+ *   AND payouts (PARTNER_SEND_MNO) across MTN + Airtel through one API.
  * Rail 2 (fallback): Flutterwave (cards + Airtel Money).
  * Active rail is chosen per-request via PAYMENT_PROVIDER env (default mock).
  *
@@ -179,9 +180,148 @@ class FlutterwaveProvider implements PaymentProvider {
   }
 }
 
+// ─────────────────────────────────────────────
+// RukaPay Gateway API — PRIMARY RAIL.
+// Collections (PARTNER_COLLECT_MNO) + payouts (PARTNER_SEND_MNO) across
+// MTN + Airtel through one x-api-key integration.
+// Docs: https://developer.rukapay.co.ug (Gateway API, /api/v1/gateway)
+//
+// Env:
+//   RUKAPAY_API_KEY      — required (32–64 chars, from partner dashboard;
+//                          never logged, never included in errors)
+//   RUKAPAY_BASE_URL     — optional. Default https://dev-api.rukapay.net
+//                          (sandbox). Production: https://api.rukapay.net
+//   RUKAPAY_CALLBACK_URL — required for collections (RukaPay validates its
+//                          presence). e.g. https://tukolaapp.com/api/webhooks/rukapay
+//
+// Sandbox note: on dev-api.rukapay.net the transfer endpoint is
+// process-transfer-SANDBOX (simulated responses, no real money). The
+// status endpoint's sandbox path is not documented, so getTransactionStatus
+// tries the plain path first, then the -sandbox suffix on 404.
+//
+// Our reconciliation loop (/api/cron/reconcile) polls getTransactionStatus,
+// so the integration works even before a public webhook URL exists.
+// ─────────────────────────────────────────────
+class RukaPayProvider implements PaymentProvider {
+  readonly name = 'rukapay';
+
+  private readonly apiKey: string;
+  private readonly baseUrl: string;
+  private readonly sandbox: boolean;
+  private readonly callbackUrl?: string;
+
+  constructor() {
+    const apiKey = process.env.RUKAPAY_API_KEY;
+    if (!apiKey) throw new Error('RukaPay not configured (RUKAPAY_API_KEY required)');
+    this.apiKey = apiKey;
+    this.baseUrl = (process.env.RUKAPAY_BASE_URL ?? 'https://dev-api.rukapay.net').replace(/\/$/, '');
+    this.sandbox = this.baseUrl.includes('dev-api');
+    this.callbackUrl = process.env.RUKAPAY_CALLBACK_URL || undefined;
+  }
+
+  private endpoint(path: string): string {
+    // Sandbox uses -sandbox suffixed endpoints for transfers/validation
+    const suffix = this.sandbox ? '-sandbox' : '';
+    return `${this.baseUrl}/api/v1/gateway/${path}${suffix}`;
+  }
+
+  private mapStatus(s: unknown): ProviderTxStatus {
+    if (s === 'SUCCESS') return 'successful';
+    if (s === 'FAILED') return 'failed';
+    return 'pending'; // PENDING, PROCESSING, anything else
+  }
+
+  private async processTransfer(body: Record<string, unknown>): Promise<any> {
+    let res: Response;
+    try {
+      res = await fetch(this.endpoint('process-transfer'), {
+        method: 'POST',
+        headers: { 'x-api-key': this.apiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    } catch {
+      throw new Error('RukaPay request failed (network error)');
+    }
+    const data: any = await res.json().catch(() => null);
+    if (!res.ok || data?.success === false) {
+      // RukaPay's `message` is their own sanitized text (no secrets).
+      throw new Error(`RukaPay transfer rejected (HTTP ${res.status}): ${data?.message ?? 'unknown error'}`);
+    }
+    return data;
+  }
+
+  async requestToPay(args: RequestToPayArgs): Promise<ProviderTx> {
+    if (!this.callbackUrl) {
+      throw new Error('RUKAPAY_CALLBACK_URL required — RukaPay rejects collections without callbackUrl');
+    }
+    const data = await this.processTransfer({
+      transactionMode: 'PARTNER_COLLECT_MNO',
+      amount: args.amountUgx,
+      currency: 'UGX',
+      narration: args.narration,
+      partnerReference: args.externalRef,     // idempotency + status polling key
+      phoneNumber: args.phone.replace(/^\+/, ''),
+      // mnoProvider omitted — RukaPay auto-detects MTN/Airtel from the number
+      callbackUrl: this.callbackUrl,
+    });
+    const tx = data?.transaction ?? {};
+    return {
+      providerRef: args.externalRef,
+      status: this.mapStatus(tx.status),
+      pspFee: typeof tx.fee === 'number' ? tx.fee : undefined,
+    };
+  }
+
+  async getTransactionStatus(providerRef: string): Promise<ProviderTx> {
+    const paths = [
+      `${this.baseUrl}/api/v1/gateway/transactions/${encodeURIComponent(providerRef)}/status`,
+      // Fallback: undocumented but consistent with the -sandbox convention
+      ...(this.sandbox ? [`${this.baseUrl}/api/v1/gateway/transactions/${encodeURIComponent(providerRef)}/status-sandbox`] : []),
+    ];
+    let lastErr: Error | null = null;
+    for (const url of paths) {
+      let res: Response;
+      try {
+        res = await fetch(url, { headers: { 'x-api-key': this.apiKey } });
+      } catch {
+        throw new Error('RukaPay status check failed (network error)');
+      }
+      if (res.status === 404 && url !== paths[paths.length - 1]) continue; // try next path shape
+      const data: any = await res.json().catch(() => null);
+      if (!res.ok) { lastErr = new Error(`RukaPay status check failed (HTTP ${res.status})`); continue; }
+      const tx = data?.transaction ?? {};
+      return {
+        providerRef,
+        status: this.mapStatus(tx.status),
+        pspFee: typeof tx.fee === 'number' ? tx.fee : undefined,
+      };
+    }
+    throw lastErr ?? new Error('RukaPay status check failed');
+  }
+
+  async payout(args: PayoutArgs): Promise<ProviderTx> {
+    const data = await this.processTransfer({
+      transactionMode: 'PARTNER_SEND_MNO',
+      amount: args.amountUgx,
+      currency: 'UGX',
+      narration: args.narration,
+      partnerReference: args.externalRef,
+      phoneNumber: args.phone.replace(/^\+/, ''),
+    });
+    const tx = data?.transaction ?? {};
+    return {
+      providerRef: args.externalRef,
+      status: this.mapStatus(tx.status),
+      pspFee: typeof tx.fee === 'number' ? tx.fee : undefined,
+    };
+  }
+}
+
 // ── Factory ────────────────────────────────────────────────────────────────
 export function getPaymentProvider(): PaymentProvider {
   switch (process.env.PAYMENT_PROVIDER ?? 'mock') {
+    case 'rukapay':
+      return new RukaPayProvider();
     case 'mtn_momo':
       return new MtnMomoProvider();
     case 'flutterwave':
