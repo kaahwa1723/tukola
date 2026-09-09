@@ -1,12 +1,19 @@
 'use client';
 
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 
 export default function Footer() {
   return (
     <footer className="bg-dark-bg text-gray-300 pt-16 md:pt-20 pb-8 border-t border-white/10">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10 md:gap-12 mb-12 md:mb-16">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10 md:gap-12 mb-12 md:mb-16"
+        >
           <div className="col-span-2 lg:col-span-1 space-y-6">
             <img src="/images/opt/logo-dark.webp" alt="Tukola" className="h-12 object-contain" />
             <p className="text-gray-400 leading-relaxed">Uganda's blue-collar gig marketplace. Connecting skilled hands with the people who need them, safely and reliably.</p>
@@ -35,7 +42,7 @@ export default function Footer() {
               <li><Link href="/terms#fees" className="hover:text-accent transition-colors">Pricing</Link></li>
             </ul>
           </div>
-        </div>
+        </motion.div>
         <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-gray-500 text-sm">&copy; 2026 Tukola. All rights reserved. Kampala, Uganda.</p>
           <div className="flex gap-6 text-sm text-gray-500">

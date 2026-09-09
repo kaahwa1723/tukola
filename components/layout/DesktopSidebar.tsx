@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Home, Briefcase, MessageCircle, User, Plus,
-  LayoutDashboard, Settings, LogOut, Bell, Menu, X
+  LayoutDashboard, Settings, LogOut, Bell, Menu, X, MessageSquareHeart
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -28,6 +28,7 @@ const WORKER_ITEMS: NavItem[] = [
   { href: '/worker/jobs', icon: Briefcase, label: 'My Jobs' },
   { href: '/worker/messages', icon: MessageCircle, label: 'Messages', badge: true },
   { href: '/worker/profile', icon: User, label: 'Profile' },
+  { href: '/feedback', icon: MessageSquareHeart, label: 'Feedback' },
 ];
 
 const EMPLOYER_ITEMS: NavItem[] = [
@@ -36,6 +37,7 @@ const EMPLOYER_ITEMS: NavItem[] = [
   { href: '/employer/post-job', icon: Plus, label: 'Post Job', accent: true },
   { href: '/employer/messages', icon: MessageCircle, label: 'Messages', badge: true },
   { href: '/employer/profile', icon: User, label: 'Profile' },
+  { href: '/feedback', icon: MessageSquareHeart, label: 'Feedback' },
 ];
 
 export function DesktopSidebar({ basePath, messageBadge = 0, userName, userRole }: SidebarProps) {

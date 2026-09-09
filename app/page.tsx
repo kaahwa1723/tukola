@@ -8,10 +8,10 @@ import StatsBar from '@/app/components/landing/StatsBar';
 import JobTicker from '@/app/components/landing/JobTicker';
 import TrustedMarquee from '@/app/components/landing/TrustedMarquee';
 import ServicesGrid from '@/app/components/landing/ServicesGrid';
-import LiveJobsFeed from '@/app/components/landing/LiveJobsFeed';
 import HowItWorks from '@/app/components/landing/HowItWorks';
 import WhyChoose from '@/app/components/landing/WhyChoose';
 import AppDownload from '@/app/components/landing/AppDownload';
+import FeedbackSection from '@/app/components/landing/FeedbackSection';
 import Footer from '@/app/components/landing/Footer';
 
 export default function LandingPage() {
@@ -39,12 +39,15 @@ export default function LandingPage() {
         <JobTicker />
         <TrustedMarquee />
         <ServicesGrid />
-        <LiveJobsFeed />
+        {/* LiveJobsFeed intentionally removed — a sparse open-jobs feed
+            undersells the platform to first-time visitors. Revisit once
+            there is consistent job volume worth showing. */}
         <HowItWorks />
         <WhyChoose />
         {/* Testimonials section intentionally removed until REAL customer
             quotes exist — fabricated social proof violates Hard Rule 1 */}
         <AppDownload />
+        <FeedbackSection />
       </main>
       <Footer />
     </div>

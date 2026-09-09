@@ -15,12 +15,12 @@ export default function WhyChoose() {
     <section className="py-24 bg-surface relative overflow-hidden">
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#2952E8 2px, transparent 2px)', backgroundSize: '30px 30px' }}></div>
       <div className="container mx-auto px-4 md:px-6 relative z-10">
-        <div className="flex flex-col lg:flex-row gap-16 items-center">
+        <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-center">
           <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="lg:w-1/2">
             <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden shadow-2xl">
               <img src="/images/opt/market.webp" alt="Uganda Market" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-navy/95 via-navy/35 to-navy/10"></div>
-              <div className="absolute bottom-8 left-8 right-8">
+              <div className="absolute bottom-6 left-6 right-6 md:bottom-8 md:left-8 md:right-8">
                 <h2 className="text-3xl md:text-4xl font-bold font-heading text-white mb-4 leading-tight">Why Choose Tukola?</h2>
                 <p className="text-white/90 text-lg leading-relaxed">We're building more than just a job board. We're building a foundation of trust for Uganda's blue-collar economy.</p>
               </div>

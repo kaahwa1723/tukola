@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { MapPin } from 'lucide-react';
 
 const locations = [
@@ -14,7 +15,13 @@ export default function TrustedMarquee() {
   return (
     <section className="py-16 md:py-24 bg-gray-50 overflow-hidden relative">
       <div className="container mx-auto px-4 mb-10 text-center">
-        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Starting in Greater Kampala — built for all of Uganda</h3>
+        <motion.h3
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="text-sm font-bold text-gray-400 uppercase tracking-widest"
+        >Starting in Greater Kampala — built for all of Uganda</motion.h3>
       </div>
       <div className="relative flex flex-col gap-6">
         <div className="absolute left-0 top-0 bottom-0 w-24 md:w-48 bg-gradient-to-r from-gray-50 to-transparent z-10 pointer-events-none" />

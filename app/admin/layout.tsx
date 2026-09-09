@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Users, Briefcase, Flag, Shield, ShieldCheck, BarChart2, LogOut, Gift, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Flag, Shield, ShieldCheck, BarChart2, LogOut, Gift, ShieldAlert, MessageSquareHeart } from 'lucide-react';
 import { TukolaLogo } from '@/components/TukolaLogo';
 
 const NAV = [
@@ -14,6 +14,7 @@ const NAV = [
   { href: '/admin/claims',    label: 'Claims',     Icon: ShieldCheck },
   { href: '/admin/referrals', label: 'Referrals',  Icon: Gift },
   { href: '/admin/leakage',   label: 'Leakage',    Icon: ShieldAlert },
+  { href: '/admin/feedback',  label: 'Feedback',   Icon: MessageSquareHeart },
   { href: '/admin/analytics', label: 'Analytics',  Icon: BarChart2 },
 ];
 
