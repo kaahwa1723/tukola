@@ -3,6 +3,7 @@ import { createServerSupabase, mapJob } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
 import { canSeeEmployerPhoneInList } from '@/lib/contact-visibility';
 import { track } from '@/lib/analytics';
+import { milestoneTemplate, suggestsMilestones, type PricingType } from '@/lib/pricing';
 
 /**
  * GET /api/jobs
@@ -82,12 +83,21 @@ export async function POST(req: NextRequest) {
     const {
       title, description, location, dateTime, workersNeeded,
       pay, urgency, skills, category, images, estimatedHours,
+      pricingType,
       clientRequestId,
     } = body;
 
     if (!title || !location) {
       return NextResponse.json({ error: 'title and location are required' }, { status: 400 });
     }
+
+    // Stage payments only make sense with a known amount at/above the
+    // threshold; anything else silently falls back to standard.
+    const wantsMilestones =
+      pricingType === 'milestone' &&
+      typeof pay === 'number' &&
+      suggestsMilestones(pay);
+    const finalPricingType: PricingType = wantsMilestones ? 'milestone' : 'standard';
 
     const sb = createServerSupabase();
 
@@ -121,6 +131,7 @@ export async function POST(req: NextRequest) {
       category: category ?? null,
       images: images ?? [],
       estimated_hours: estimatedHours ?? null,
+      pricing_type: finalPricingType,
     };
     if (clientRequestId && typeof clientRequestId === 'string') {
       insertRow.idempotency_key = clientRequestId;
@@ -155,6 +166,24 @@ export async function POST(req: NextRequest) {
       }
     }
     if (error) throw error;
+
+    // Milestone jobs get their stage plan written up front; each stage
+    // is funded and released separately via /api/payments?milestoneIdx.
+    if (finalPricingType === 'milestone') {
+      const stages = milestoneTemplate(pay);
+      const { error: msError } = await sb.from('job_milestones').insert(
+        stages.map((s) => ({
+          job_id: data.id,
+          idx: s.idx,
+          label: s.label,
+          pct: s.pct,
+          amount_ugx: s.amountUgx,
+        }))
+      );
+      if (msError) {
+        console.error('[POST /api/jobs] milestone insert failed', msError);
+      }
+    }
 
     track('job_posted', user.id, { jobId: data.id, pay: pay ?? null, urgency: urgency ?? 'scheduled', category: category ?? null });
     return NextResponse.json({ job: mapJob(data) }, { status: 201 });

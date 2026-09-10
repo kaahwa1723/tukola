@@ -37,6 +37,7 @@ export function mapJob(r: any): Job {
     category: r.category ?? undefined,
     images: r.images ?? [],
     estimatedHours: r.estimated_hours ?? undefined,
+    pricingType: r.pricing_type ?? 'standard',
     distanceKm: r.distance_km ?? undefined,
     createdAt: r.created_at,
     completedAt: r.completed_at ?? undefined,

@@ -29,7 +29,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     const sb = createServerSupabase();
     const { data: job } = await sb
       .from('jobs')
-      .select('id, employer_id, status, worker_done_at')
+      .select('id, employer_id, status, worker_done_at, pricing_type')
       .eq('id', params.id)
       .maybeSingle();
 
@@ -41,8 +41,49 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'The worker has not marked this job as done yet' }, { status: 409 });
     }
 
+    const isMilestoneJob = job.pricing_type === 'milestone';
+
+    // ── Which payment does this confirmation release? ────────────────
+    // Standard job: the single escrow payment.
+    // Milestone job: the EARLIEST stage that is held but not released —
+    // stages are confirmed one at a time, in order.
+    let paymentQuery = sb
+      .from('payments')
+      .select('id, status, milestone_id')
+      .eq('job_id', params.id)
+      .order('created_at', { ascending: true });
+    const { data: jobPayments } = await paymentQuery;
+
+    let targetPayment = null as null | { id: number; status: string; milestone_id: string | null };
+    if (isMilestoneJob) {
+      targetPayment =
+        (jobPayments ?? []).find((p) => p.status === 'held') ??
+        null;
+    } else {
+      targetPayment = (jobPayments ?? []).slice(-1)[0] ?? null;
+    }
+
+    // For milestone jobs, decide if ANY unreleased stage remains after
+    // this confirmation — the job only completes when the last stage is
+    // released.
+    let remainingStages = 0;
+    if (isMilestoneJob) {
+      const { data: stages } = await sb
+        .from('job_milestones')
+        .select('id, payment_id')
+        .eq('job_id', params.id);
+      const releasedPaymentIds = new Set(
+        (jobPayments ?? []).filter((p) => p.status === 'released').map((p) => p.id)
+      );
+      remainingStages = (stages ?? []).filter(
+        (s) => !s.payment_id || !releasedPaymentIds.has(s.payment_id)
+      ).length - (targetPayment && targetPayment.status === 'held' ? 1 : 0);
+    }
+
+    const completesJob = !isMilestoneJob || remainingStages <= 0;
+
     // Mark completed (idempotent) + bump the worker's count once
-    if (job.status !== 'completed') {
+    if (completesJob && job.status !== 'completed') {
       const { error: jobError } = await sb
         .from('jobs')
         .update({ status: 'completed', completed_at: new Date().toISOString() })
@@ -71,39 +112,45 @@ export async function POST(req: NextRequest, { params }: Params) {
       }
     }
 
-    // Release the escrowed payment for this job (if one exists and is held)
-    const { data: payment } = await sb
-      .from('payments')
-      .select('id, status')
-      .eq('job_id', params.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
+    // Release the stage's escrowed payment (held → released). On
+    // milestone jobs this is ONE stage; the job completes only when the
+    // last stage is released (handled above).
     let release = null;
-    if (payment && payment.status === 'held') {
-      release = await releasePayment(payment.id);
-    } else if (payment && payment.status === 'released') {
-      release = await releasePayment(payment.id); // idempotent read-back
-    } else if (payment && payment.status === 'disputed') {
+    if (targetPayment && targetPayment.status === 'held') {
+      release = await releasePayment(targetPayment.id);
+    } else if (targetPayment && targetPayment.status === 'released') {
+      release = await releasePayment(targetPayment.id); // idempotent read-back
+    } else if (targetPayment && targetPayment.status === 'disputed') {
       return NextResponse.json(
         { error: 'This payment is under dispute — an admin will resolve it.' },
         { status: 409 }
       );
-    } else if (payment && payment.status === 'pending') {
+    } else if (targetPayment && targetPayment.status === 'pending') {
       return NextResponse.json(
         { error: 'The payment has not arrived in escrow yet. Please wait for the MoMo debit to complete.' },
         { status: 409 }
       );
     }
 
+    // Milestone job with stages left: reset the worker's done flag so
+    // the two-tap flow (worker marks done → employer confirms) repeats
+    // for the next stage once it is funded.
+    if (isMilestoneJob && !completesJob) {
+      await sb.from('jobs').update({ worker_done_at: null }).eq('id', params.id);
+    }
+
     // Referral rewards (Phase 2): if this completion is the employer's or
     // the fundi's FIRST released payment, pending referral credits pay out.
     // Non-fatal and idempotent — never breaks a release.
-    await issueReferralCreditsForCompletion(params.id);
+    if (completesJob) {
+      await issueReferralCreditsForCompletion(params.id);
+    }
 
     return NextResponse.json({
       success: true,
+      stageReleased: isMilestoneJob,
+      stagesRemaining: isMilestoneJob ? remainingStages : 0,
+      jobCompleted: completesJob,
       ...(release ? { receiptNumber: release.receiptNumber, split: release.split } : {}),
     });
   } catch (err: any) {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Send, ChevronLeft } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { JOB_CATEGORIES } from '@/lib/constants';
+import { RATE_CARD, milestoneTemplate, suggestsMilestones, formatUgx } from '@/lib/pricing';
 import { UploadImagePicker } from '@/components/UploadImagePicker';
 import { useI18n, translateCategory } from '@/lib/i18n';
 
@@ -24,8 +25,16 @@ export default function PostJobPage() {
     pay: '',
     urgency: 'scheduled' as 'immediate' | 'scheduled',
     category: '',
+    pricingType: 'standard' as 'standard' | 'milestone',
   });
   const [jobImages, setJobImages] = useState<string[]>([]);
+
+  const payAmount = parseInt(form.pay) || 0;
+  const showMilestoneOption = suggestsMilestones(payAmount);
+  const rateRange = form.category ? RATE_CARD[form.category] : undefined;
+  const stages = showMilestoneOption && form.pricingType === 'milestone'
+    ? milestoneTemplate(payAmount)
+    : [];
 
   const handleSubmit = () => {
     if (!form.title.trim() || !form.location.trim()) return;
@@ -43,6 +52,7 @@ export default function PostJobPage() {
         skills: form.category ? [form.category] : [],
         category: form.category || undefined,
         images: jobImages,
+        pricingType: showMilestoneOption ? form.pricingType : 'standard',
       });
       setLoading(false);
       setSuccess(true);
@@ -140,12 +150,68 @@ export default function PostJobPage() {
                 <span className="text-slate-400 text-xs font-normal">UGX</span>
               </label>
               <input type="number" value={form.pay}
-                onChange={e => setForm({ ...form, pay: e.target.value })}
+                onChange={e => {
+                  const v = e.target.value;
+                  // Crossing the threshold upward auto-suggests stage
+                  // payments (employer can still switch them off)
+                  const wasBelow = !suggestsMilestones(parseInt(form.pay) || 0);
+                  const nowAbove = suggestsMilestones(parseInt(v) || 0);
+                  setForm({ ...form, pay: v, ...(wasBelow && nowAbove ? { pricingType: 'milestone' } : {}) });
+                }}
                 placeholder={t('pj.payPlaceholder')}
                 className="w-full rounded-xl px-4 py-3 text-[#0A0F2C] text-sm placeholder-slate-400 focus:outline-none border-[1.5px] border-slate-200 focus:border-blue-600 bg-slate-50 focus:bg-white"
               />
+              {/* Rate card guide — sets fair expectations for both sides */}
+              {rateRange && (
+                <p className="text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mt-2">
+                  Typical for {form.category}: <span className="font-bold">{formatUgx(rateRange.min)} – {formatUgx(rateRange.max)}</span>
+                  <span className="text-blue-500"> · {rateRange.note}</span>
+                </p>
+              )}
             </div>
           </div>
+
+          {/* Stage payments for bigger jobs (pay ≥ UGX 300,000) */}
+          {showMilestoneOption && (
+            <div className="rounded-2xl border-[1.5px] border-blue-100 bg-blue-50/50 p-4">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div>
+                  <p className="text-sm font-black text-[#0A0F2C]">Pay in stages?</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Recommended for bigger jobs — the fundi gets materials money early, and you only release one stage at a time.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, pricingType: form.pricingType === 'milestone' ? 'standard' : 'milestone' })}
+                  className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${form.pricingType === 'milestone' ? 'bg-blue-600' : 'bg-slate-300'}`}
+                  aria-pressed={form.pricingType === 'milestone'}
+                >
+                  <span className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all ${form.pricingType === 'milestone' ? 'left-6' : 'left-1'}`} />
+                </button>
+              </div>
+              {form.pricingType === 'milestone' ? (
+                <div className="space-y-1.5 mt-3">
+                  {stages.map((s) => (
+                    <div key={s.idx} className="flex items-center justify-between bg-white rounded-xl border border-blue-100 px-3 py-2.5">
+                      <div>
+                        <p className="text-xs font-bold text-[#0A0F2C]">Stage {s.idx} · {s.label}</p>
+                        <p className="text-[11px] text-slate-400">Paid when you confirm this stage</p>
+                      </div>
+                      <p className="text-sm font-black text-blue-700">{formatUgx(s.amountUgx)}</p>
+                    </div>
+                  ))}
+                  <p className="text-[11px] text-slate-400 pt-0.5">
+                    Every stage is held safely by Tukola. Nothing is paid out until you tap confirm.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Off = the full {formatUgx(payAmount)} is held at once and released when you confirm the job is done.
+                </p>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="text-[#0A0F2C] font-semibold text-sm mb-2 block">{t('pj.categoryLabel')}</label>

@@ -55,6 +55,7 @@ export interface Job {
   estimatedHours?: number;
   imageUrl?: string;
   images?: string[];
+  pricingType?: 'standard' | 'milestone';
   createdAt: string;
   completedAt?: string;
   distanceKm?: number;
