@@ -148,7 +148,9 @@ class AfricasTalkingProvider implements SmsProvider {
  * aggregator (~UGX 35/SMS, balance never expires, default sender ID free,
  * MoMo top-up). JSON API documented at developers.pahappa.com:
  *
- *   POST https://www.egosms.co/api/v1/json/
+ *   POST https://comms.egosms.co/api/v1/json/
+ *   (the www.egosms.co endpoint rejects valid accounts with
+ *   "user not active" — EgoSMS support directed us to comms., 10 Sep 2026)
  *   { method: 'SendSms',
  *     userdata: { username, password },
  *     msgdata: [{ number: '2567...', message, senderid }] }
@@ -159,6 +161,7 @@ class AfricasTalkingProvider implements SmsProvider {
  *   EGOSMS_USERNAME  — required (account login username)
  *   EGOSMS_PASSWORD  — required (account API password; never logged,
  *                      never included in errors)
+ *   EGOSMS_BASE_URL  — optional override; defaults to comms.egosms.co
  *   EGOSMS_SENDER_ID — optional; max 11 chars. Omit to use EgoSMS's
  *                      default shared sender ID.
  *
@@ -172,7 +175,8 @@ class EgoSmsProvider implements SmsProvider {
   private readonly username: string;
   private readonly password: string;
   private readonly senderId?: string;
-  private readonly baseUrl = 'https://www.egosms.co/api/v1/json/';
+  private readonly baseUrl =
+    (process.env.EGOSMS_BASE_URL ?? 'https://comms.egosms.co/api/v1/json/').replace(/\/+$/, '') + '/';
 
   constructor() {
     const username = process.env.EGOSMS_USERNAME;
