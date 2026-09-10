@@ -36,7 +36,7 @@ export default function TrustedMarquee() {
           ))}
         </div>
         {/* Row 2 — scrolls right */}
-        <div className="flex w-max animate-marquee space-x-4" style={{ animationDirection: 'reverse', animationDuration: '35s' }}>
+        <div className="flex w-max animate-marquee space-x-4" style={{ animationDirection: 'reverse', animationDuration: '90s' }}>
           {row2.map((loc, idx) => (
             <div key={`r2-${idx}`} className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-2 min-w-fit">
               <MapPin className="w-4 h-4 text-accent shrink-0" />

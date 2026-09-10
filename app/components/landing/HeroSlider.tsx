@@ -99,7 +99,7 @@ export default function HeroSlider() {
   }, [emblaApi]);
 
   return (
-    <div className="relative w-full h-[600px] md:h-[700px] overflow-hidden bg-navy text-white">
+    <div className="relative w-full h-[680px] md:h-[700px] overflow-hidden bg-navy text-white">
       <motion.div style={{ y: yOffset }} className="absolute inset-[-10%] w-[120%] h-[120%] z-0" ref={emblaRef}>
         <div className="flex h-full">
           {slides.map((slide, index) => (
@@ -125,7 +125,7 @@ export default function HeroSlider() {
         </div>
       </motion.div>
 
-      <div className="absolute inset-0 z-20 flex items-center pt-20">
+      <div className="absolute inset-0 z-20 flex items-center pt-20 pb-24">
         <div className="container mx-auto px-4 md:px-6">
           <AnimatePresence mode="wait">
             <motion.div
