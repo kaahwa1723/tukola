@@ -90,18 +90,31 @@ export default function AppDownload() {
             </div>
           </motion.div>
 
-          {/* Real screenshots — desktop web view + phone app UI, actual product, not mockups */}
+          {/* Real screenshots — laptop with the live website + phone app UI, actual product, not mockups */}
           <motion.div initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.2 }} className="lg:w-1/2 w-full flex justify-center">
-            <div className="relative">
-              {/* Desktop browser frame */}
-              <div className="relative w-full max-w-[520px] rounded-2xl overflow-hidden shadow-2xl border border-white/25 bg-[#0d1330]">
-                <div className="flex items-center gap-1.5 px-4 py-2.5 bg-white/10 border-b border-white/10">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/80" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-green-400/80" />
-                  <span className="ml-3 text-[11px] text-white/60 font-medium bg-white/10 rounded-md px-3 py-1 flex-1 text-center truncate">tukolaapp.com</span>
+            <div className="relative w-full max-w-[540px]">
+              {/* Laptop mockup */}
+              <div className="relative">
+                {/* Screen bezel */}
+                <div className="rounded-t-2xl border-[10px] border-[#141833] bg-[#141833] overflow-hidden shadow-2xl">
+                  {/* Camera dot */}
+                  <div className="flex justify-center py-1 bg-[#141833]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#2a3050]" />
+                  </div>
+                  {/* Browser chrome */}
+                  <div className="flex items-center gap-1.5 px-3 py-2 bg-[#0d1330]">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/80" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-400/80" />
+                    <span className="ml-3 text-[11px] text-white/60 font-medium bg-white/10 rounded-md px-3 py-1 flex-1 text-center truncate">tukolaapp.com</span>
+                  </div>
+                  <img src="/frames/web-view.webp" alt="Tukola website on a laptop — real screenshot" className="w-full h-auto block" loading="lazy" />
                 </div>
-                <img src="/frames/web-view.webp" alt="Tukola website on desktop — real screenshot" className="w-full h-auto block" loading="lazy" />
+                {/* Hinge + base */}
+                <div className="h-[5px] bg-[#0b0f24]" />
+                <div className="relative -mx-[4%] h-[13px] rounded-b-2xl rounded-t-sm bg-gradient-to-b from-[#3d4468] to-[#1a1f3d] shadow-[0_18px_36px_rgba(0,0,0,0.45)]">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[16%] h-[5px] rounded-b-lg bg-[#10142b]" />
+                </div>
               </div>
               {/* Phone overlapping the corner */}
               <div className="absolute -bottom-8 -right-2 md:-right-8 w-[110px] md:w-[140px] rounded-[1.4rem] border-4 border-white shadow-2xl overflow-hidden transform rotate-[6deg] hover:rotate-0 transition-transform duration-500">
