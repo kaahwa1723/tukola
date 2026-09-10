@@ -21,6 +21,7 @@ export default function Navbar() {
     { name: 'Services', href: '#services' },
     { name: 'How it Works', href: '#how-it-works' },
     { name: 'Get the App', href: '#download' },
+    { name: 'Contact', href: '#contact' },
   ];
 
   return (

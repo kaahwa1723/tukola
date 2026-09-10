@@ -13,6 +13,7 @@ import HowItWorks from '@/app/components/landing/HowItWorks';
 import WhyChoose from '@/app/components/landing/WhyChoose';
 import CoreValues from '@/app/components/landing/CoreValues';
 import AppDownload from '@/app/components/landing/AppDownload';
+import ContactSection from '@/app/components/landing/ContactSection';
 import FeedbackSection from '@/app/components/landing/FeedbackSection';
 import Footer from '@/app/components/landing/Footer';
 
@@ -51,6 +52,7 @@ export default function LandingPage() {
         {/* Testimonials section intentionally removed until REAL customer
             quotes exist — fabricated social proof violates Hard Rule 1 */}
         <AppDownload />
+        <ContactSection />
         <FeedbackSection />
       </main>
       <Footer />
