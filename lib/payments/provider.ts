@@ -28,6 +28,7 @@ export interface PayoutArgs {
   amountUgx: number;
   externalRef: string;
   narration: string;
+  recipientName?: string; // RukaPay requires a name on send transactions
 }
 
 export interface ProviderTx {
@@ -202,6 +203,18 @@ class FlutterwaveProvider implements PaymentProvider {
 // Our reconciliation loop (/api/cron/reconcile) polls getTransactionStatus,
 // so the integration works even before a public webhook URL exists.
 // ─────────────────────────────────────────────
+// RukaPay requires mnoProvider and validates it against the phone prefix.
+// Uganda prefixes (after country code 256): MTN = 76/77/78, Airtel = 70/74/75.
+// Unknown prefixes default to MTN — RukaPay rejects mismatches with a clear
+// error message, so a wrong guess fails safely rather than charging wrongly.
+function detectMnoProvider(phone: string): 'MTN' | 'AIRTEL' {
+  const digits = phone.replace(/\D/g, '');
+  const local = digits.startsWith('256') ? digits.slice(3) : digits.replace(/^0/, '');
+  const prefix = local.slice(0, 2);
+  if (['70', '74', '75'].includes(prefix)) return 'AIRTEL';
+  return 'MTN';
+}
+
 class RukaPayProvider implements PaymentProvider {
   readonly name = 'rukapay';
 
@@ -261,7 +274,7 @@ class RukaPayProvider implements PaymentProvider {
       narration: args.narration,
       partnerReference: args.externalRef,     // idempotency + status polling key
       phoneNumber: args.phone.replace(/^\+/, ''),
-      // mnoProvider omitted — RukaPay auto-detects MTN/Airtel from the number
+      mnoProvider: detectMnoProvider(args.phone), // required; validated against prefix
       callbackUrl: this.callbackUrl,
     });
     const tx = data?.transaction ?? {};
@@ -307,6 +320,8 @@ class RukaPayProvider implements PaymentProvider {
       narration: args.narration,
       partnerReference: args.externalRef,
       phoneNumber: args.phone.replace(/^\+/, ''),
+      mnoProvider: detectMnoProvider(args.phone),
+      recipientName: args.recipientName ?? 'Tukola User',
     });
     const tx = data?.transaction ?? {};
     return {
