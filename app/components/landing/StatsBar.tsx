@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { BadgeCheck, ShieldCheck, HandCoins, Receipt } from 'lucide-react';
+import { BadgeCheck, ShieldCheck, HandCoins, Star } from 'lucide-react';
 
 /**
  * Trust bar — statements about what the platform actually DOES,
@@ -9,11 +9,11 @@ import { BadgeCheck, ShieldCheck, HandCoins, Receipt } from 'lucide-react';
  *
  * Hard Rule 1 honoured: every claim maps to a real mechanism —
  *   ID-verified   → admin-set badge after National ID + 2 reference calls
- *   Escrow        → every payment held until the customer confirms the work
+ *   Money held    → every payment held until the customer confirms the work
  *   Guarantee     → claims flow pays up to UGX 200,000 from the reserve
- *   17% flat fee  → the commission split coded in the escrow ledger
- * (Early-stage counters like "3 jobs completed" deter more than they
- *  persuade, so the bar carries no volume numbers at all.)
+ *   Ratings       → only left after a completed, paid job
+ * Copy deliberately avoids the word "escrow" (customers don't know it)
+ * and never advertises the commission rate on the landing page.
  */
 const TRUST_ITEMS = [
   {
@@ -23,8 +23,8 @@ const TRUST_ITEMS = [
   },
   {
     icon: ShieldCheck,
-    title: 'Escrow-Protected',
-    sub: 'Your money is held until you confirm the job is done',
+    title: 'Your Money Is Safe',
+    sub: 'We hold the payment and the fundi only gets paid when you confirm the work is done',
   },
   {
     icon: HandCoins,
@@ -32,9 +32,9 @@ const TRUST_ITEMS = [
     sub: 'Covered up to UGX 200,000 if the work goes wrong',
   },
   {
-    icon: Receipt,
-    title: 'One Flat 17% Fee',
-    sub: 'Transparent pricing — no hidden charges, ever',
+    icon: Star,
+    title: 'Honest Ratings Only',
+    sub: 'A fundi\u2019s stars come from real finished jobs — never bought, never invented',
   },
 ];
 

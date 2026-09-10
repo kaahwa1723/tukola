@@ -4,12 +4,14 @@ import { useEffect } from 'react';
 import Navbar from '@/app/components/landing/Navbar';
 import HeroSlider from '@/app/components/landing/HeroSlider';
 import TaglineSection from '@/app/components/landing/TaglineSection';
+import ProblemStatement from '@/app/components/landing/ProblemStatement';
 import StatsBar from '@/app/components/landing/StatsBar';
 import JobTicker from '@/app/components/landing/JobTicker';
 import TrustedMarquee from '@/app/components/landing/TrustedMarquee';
 import ServicesGrid from '@/app/components/landing/ServicesGrid';
 import HowItWorks from '@/app/components/landing/HowItWorks';
 import WhyChoose from '@/app/components/landing/WhyChoose';
+import CoreValues from '@/app/components/landing/CoreValues';
 import AppDownload from '@/app/components/landing/AppDownload';
 import FeedbackSection from '@/app/components/landing/FeedbackSection';
 import Footer from '@/app/components/landing/Footer';
@@ -35,6 +37,7 @@ export default function LandingPage() {
       <main>
         <HeroSlider />
         <TaglineSection />
+        <ProblemStatement />
         <StatsBar />
         <JobTicker />
         <TrustedMarquee />
@@ -44,6 +47,7 @@ export default function LandingPage() {
             there is consistent job volume worth showing. */}
         <HowItWorks />
         <WhyChoose />
+        <CoreValues />
         {/* Testimonials section intentionally removed until REAL customer
             quotes exist — fabricated social proof violates Hard Rule 1 */}
         <AppDownload />
