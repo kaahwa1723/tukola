@@ -5,6 +5,7 @@ import { ShieldCheck, Banknote, AlertTriangle, Camera, CheckCircle, Clock, Circl
 import { UploadImagePicker } from './UploadImagePicker';
 import type { Job, User } from '@/lib/types';
 import { formatUgx } from '@/lib/pricing';
+import { useI18n } from '@/lib/i18n';
 
 interface Payment {
   id: number;
@@ -43,9 +44,11 @@ interface Props {
  * Employer: "Fund stage via MoMo" → USSD+PIN → "Confirm & release stage".
  */
 export function EscrowPanel({ job, user, isEmployer, isAcceptedWorker }: Props) {
+  const { t } = useI18n();
   const [payment, setPayment] = useState<Payment | null>(null);       // latest (standard flow)
   const [payments, setPayments] = useState<Payment[]>([]);            // all (stage flow)
   const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [loaded, setLoaded] = useState(false);                        // gate banners until first fetch lands
   const [workerDoneAt, setWorkerDoneAt] = useState<string | null>((job as any).workerDoneAt ?? null);
   const [momoPhone, setMomoPhone] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -70,6 +73,15 @@ export function EscrowPanel({ job, user, isEmployer, isAcceptedWorker }: Props) 
     ? payments.find((p) => p.id === currentStage.payment_id || p.milestone_id === currentStage.id) ?? null
     : null;
 
+  // Loophole B: work is in progress but no money is secured yet.
+  // Standard flow: no payment row at all. Stage flow: current stage unfunded.
+  // 'pending' (waiting for the MoMo PIN) already counts as "being secured".
+  const activeUnfunded = loaded && job.status === 'in_progress' && (
+    isMilestone
+      ? !!currentStage && stageStatus(currentStage) === 'unfunded'
+      : !payment
+  );
+
   const refresh = useCallback(async () => {
     try {
       const res = await fetch(`/api/payments?jobId=${job.id}`);
@@ -78,6 +90,7 @@ export function EscrowPanel({ job, user, isEmployer, isAcceptedWorker }: Props) 
         setPayment(data?.payment ?? null);
         setPayments(data?.payments ?? []);
         setMilestones(data?.milestones ?? []);
+        setLoaded(true);
       }
     } catch {}
   }, [job.id]);
@@ -283,6 +296,19 @@ export function EscrowPanel({ job, user, isEmployer, isAcceptedWorker }: Props) 
         <ShieldCheck size={18} className="text-blue-600" />
         <h3 className="font-bold text-slate-900">{isMilestone ? 'Payment stages' : 'Payment protection'}</h3>
       </div>
+
+      {/* Unfunded-work nudge: worker waits, employer funds — before anyone lifts a tool */}
+      {activeUnfunded && isAcceptedWorker && (
+        <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 flex gap-2">
+          <AlertTriangle size={15} className="text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-[12px] text-amber-800 leading-snug">{t('esc.waitWorker')}</p>
+        </div>
+      )}
+      {activeUnfunded && isEmployer && (
+        <div className="mb-3 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5">
+          <p className="text-[12px] text-blue-800 leading-snug">{t('esc.fundNudge')}</p>
+        </div>
+      )}
 
       {job.pay && (
         <p className="text-slate-600 text-sm mb-3">

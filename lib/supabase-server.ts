@@ -75,6 +75,7 @@ export function mapUser(r: any): User {
     blocked: r.blocked ?? false,
     company: r.company ?? undefined,
     portfolioImages: r.portfolio_images ?? [],
+    momoPayoutPhone: r.momo_payout_phone ?? undefined,
   };
 }
 

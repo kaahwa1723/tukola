@@ -3,6 +3,7 @@ import { getPaymentProvider } from './payments/provider';
 import { track } from './analytics';
 import { redeemCreditsForRelease, reverseRedemption } from './referrals';
 import { sendPaymentHeldEmail, sendPaymentReleasedEmail } from './email/notify';
+import { notifyJobEvent } from './notify';
 
 /**
  * Escrow — state machine + money math.
@@ -86,6 +87,10 @@ export async function transitionPayment(paymentId: number, to: string): Promise<
     // Tell the fundi escrow is funded and work can start — fire-and-forget
     // safe (skips silently when the fundi has no email on file).
     await sendPaymentHeldEmail({ fundiId: payment.payee_id, jobId: payment.job_id, amountUgx: payment.amount });
+    // SMS too — most fundis check texts, not email (fire-and-forget).
+    notifyJobEvent(sb, payment.job_id, payment.payee_id, (title) =>
+      `Tukola: UGX ${Number(payment.amount).toLocaleString()} for "${title}" is now held safely. You can start the work — payment is guaranteed when the job is confirmed.`
+    ).catch(() => {});
   }
 }
 
@@ -214,6 +219,12 @@ export async function releasePayment(paymentId: number): Promise<{
     amountUgx: payment.amount,
     fundiPayoutUgx: fundiPayout,
   });
+
+  // SMS the fundi — money has actually landed (or is queued) on their
+  // Mobile Money. Fire-and-forget: never affects the release.
+  notifyJobEvent(sb, payment.job_id, payment.payee_id, (title) =>
+    `Tukola: UGX ${Number(fundiPayout).toLocaleString()} for "${title}" has been sent to your Mobile Money${payment.payee_momo_phone ? ` ${payment.payee_momo_phone}` : ''}. Receipt ${receiptNumber}.`
+  ).catch(() => {});
 
   return {
     receiptNumber,

@@ -61,6 +61,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (body.skills           !== undefined) updates.skills            = body.skills;
     if (body.company          !== undefined) updates.company           = body.company;
     if (body.portfolioImages  !== undefined) updates.portfolio_images  = body.portfolioImages;
+    // Worker's Mobile Money payout number — digits/+ only, 9–13 chars
+    // (2567… or 07…). NOT a trust field; self-service is fine.
+    if (body.momoPayoutPhone !== undefined) {
+      const p = String(body.momoPayoutPhone ?? '').replace(/[^\d+]/g, '');
+      if (p && !/^\+?\d{9,13}$/.test(p)) {
+        return NextResponse.json({ error: 'Enter a valid Mobile Money number (e.g. 0772 123 456)' }, { status: 400 });
+      }
+      updates.momo_payout_phone = p || null;
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });

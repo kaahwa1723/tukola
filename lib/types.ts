@@ -18,6 +18,8 @@ export interface User {
   blocked?: boolean;
   company?: string;
   portfolioImages?: string[];
+  /** Worker's Mobile Money payout number — where released money is sent. */
+  momoPayoutPhone?: string;
 }
 
 export type JobUrgency = 'immediate' | 'scheduled';

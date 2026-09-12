@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, mapJob } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
 import { track } from '@/lib/analytics';
+import { notifyUser } from '@/lib/notify';
 import { milestoneTemplate, suggestsMilestones } from '@/lib/pricing';
 
 type Params = { params: { id: string } };
@@ -149,6 +150,12 @@ export async function POST(req: NextRequest, { params }: Params) {
       applied_at: new Date().toISOString(),
     });
     if (inviteError) throw inviteError;
+
+    // SMS the fundi — a booking is money waiting; they must know NOW,
+    // not next time they open the app. Fire-and-forget.
+    notifyUser(sb, worker.id,
+      `Tukola: ${user.name} booked you for "${service.title}" — UGX ${Number(pay).toLocaleString()}${service.unit_label ? ` ${service.unit_label}` : ''} in ${location}. Open the Tukola app to accept.`
+    ).catch(() => {});
 
     track('service_booked', user.id, { serviceId: service.id, jobId: job.id, pay, category: service.category });
     return NextResponse.json({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, mapJob } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
 import { track } from '@/lib/analytics';
+import { notifyUser } from '@/lib/notify';
 import { randomUUID } from 'node:crypto';
 
 type Params = { params: { id: string } };
@@ -109,6 +110,11 @@ export async function POST(req: NextRequest, { params }: Params) {
       });
 
     if (inviteError) throw inviteError;
+
+    // SMS the fundi about the re-book invite — fire-and-forget.
+    notifyUser(sb, worker.id,
+      `Tukola: ${user.name} wants to book you again for "${original.title}"${original.pay ? ` — UGX ${Number(original.pay).toLocaleString()}` : ''} in ${original.location}. Open the Tukola app to accept.`
+    ).catch(() => {});
 
     track('job_posted', user.id, { jobId: newJobId, rebookOf: original.id, pay: original.pay ?? null });
     return NextResponse.json({

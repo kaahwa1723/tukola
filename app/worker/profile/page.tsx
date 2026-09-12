@@ -6,18 +6,22 @@ import Link from 'next/link';
 import { MapPin, Star, CheckCircle, Clock, Zap, LogOut, Edit2, ChevronRight, Plus, Settings, Bell, FileText, HelpCircle, MessageSquareHeart, Tag } from 'lucide-react';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { useKola } from '@/lib/store';
+import { useI18n } from '@/lib/i18n';
 import { SKILL_GROUPS } from '@/lib/constants';
 import { UploadImagePicker } from '@/components/UploadImagePicker';
 import VerifiedBadge from '@/components/VerifiedBadge';
 
 export default function WorkerProfilePage() {
   const { user, logout, updateUser } = useKola();
+  const { t } = useI18n();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [avatar, setAvatar] = useState<string>(user?.avatar || '');
   const [about, setAbout] = useState(user?.about || '');
   const [selectedSkills, setSelectedSkills] = useState<string[]>(user?.skills || []);
   const [portfolioImages, setPortfolioImages] = useState<string[]>(user?.portfolioImages || []);
+  const [momoPhone, setMomoPhone] = useState(user?.momoPayoutPhone ?? user?.phone ?? '');
+  const [momoSaved, setMomoSaved] = useState(false);
 
   const profile = {
     // Honest trust surface: undefined rating = "New", never a fake 4.5.
@@ -229,6 +233,45 @@ export default function WorkerProfilePage() {
               {about || 'Add a description about yourself to attract more employers.'}
             </p>
           )}
+        </div>
+
+        {/* Mobile Money payout number — without it a release can't pay the fundi */}
+        <div
+          className="bg-white rounded-2xl p-4 shadow-sm animate-slide-up-d3"
+          style={{ border: user?.momoPayoutPhone ? '1px solid #F0F4FF' : '1.5px solid #FCD34D' }}
+        >
+          <h3 className="font-bold text-[#0A0F2C]">{t('prof.payoutTitle')}</h3>
+          <p className="text-[#8B94B8] text-xs mt-0.5 mb-3">{t('prof.payoutSub')}</p>
+          {!user?.momoPayoutPhone && (
+            <p className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">
+              {t('prof.payoutWarn')}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <input
+              type="tel"
+              inputMode="tel"
+              value={momoPhone}
+              onChange={e => { setMomoPhone(e.target.value); setMomoSaved(false); }}
+              placeholder={t('prof.payoutPh')}
+              className="flex-1 min-w-0 text-[#0A0F2C] text-sm rounded-xl px-3 py-2.5 focus:outline-none"
+              style={{ border: '1.5px solid #E2E6F0' }}
+              onFocus={e => e.target.style.borderColor = '#2952E8'}
+              onBlur={e => e.target.style.borderColor = '#E2E6F0'}
+            />
+            <button
+              onClick={() => {
+                // Empty string → server stores NULL (undefined keys are dropped by JSON)
+                updateUser({ momoPayoutPhone: momoPhone.trim() });
+                setMomoSaved(true);
+                setTimeout(() => setMomoSaved(false), 2500);
+              }}
+              className="shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold text-white active:scale-95 transition-transform"
+              style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}
+            >
+              {momoSaved ? t('prof.payoutSaved') : t('prof.payoutSave')}
+            </button>
+          </div>
         </div>
 
         {/* Portfolio */}

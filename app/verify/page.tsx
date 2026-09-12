@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ChevronLeft, Shield, Check } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { useI18n } from '@/lib/i18n';
@@ -232,6 +233,31 @@ export default function VerifyPage() {
           >
             {t('verify.resend')}
           </button>
+
+          {/* SMS fallback — if EgoSMS is down or the phone is off, don't lose the user */}
+          <div className="mt-8 text-center">
+            <p className="text-slate-400 text-xs mb-1.5">{t('verify.noCode')}</p>
+            {(() => {
+              const wa = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP?.replace(/[^\d]/g, '');
+              if (wa) {
+                return (
+                  <a
+                    href={`https://wa.me/${wa}?text=${encodeURIComponent(`Hi Tukola, I can't get my login code for ${phone}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-green-600 text-sm font-bold active:opacity-70"
+                  >
+                    {t('verify.whatsApp')}
+                  </a>
+                );
+              }
+              return (
+                <Link href="/feedback" className="text-blue-600 text-sm font-semibold">
+                  {t('verify.contactUs')}
+                </Link>
+              );
+            })()}
+          </div>
         </div>
       </div>
     </div>

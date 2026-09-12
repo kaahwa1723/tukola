@@ -397,6 +397,23 @@ const dict: Record<string, { en: string; lg: string; sw: string; luo: string }> 
   'book.sentSub':       { en: '{name} has been invited at the listed price.', lg: '{name} ayitiddwa ku mwendo ogutebeddwa.', sw: '{name} amealikwa kwa bei iliyoorodheshwa.', luo: '{name} olwonge ki cul ma kiketo.' },
   'book.sentHint':      { en: 'The job starts the moment they accept. Opening the job…', lg: 'Omulimu gutandika bw’akkiriza. Tuggulawo omulimu…', sw: 'Kazi inaanza akikubali. Inafungua kazi…', luo: 'Tic cakke ka oyee. Tye ka yabo tic…' },
   'book.jobsDone':      { en: 'jobs done',                   lg: 'emirimu gye amaze',     sw: 'kazi alizokamilisha',   luo: 'tic ma otum' },
+
+  // ── Worker profile: Mobile Money payout number ─────────
+  'prof.payoutTitle':   { en: 'Mobile Money payout number',  lg: 'Namba ya Mobile Money gy’osasulirwa', sw: 'Namba ya Mobile Money ya malipo', luo: 'Namba me Mobile Money me cul' },
+  'prof.payoutSub':     { en: 'Your pay is sent here when a job is completed.', lg: 'Ensimbi zo zikome wano nga omulimu guwedde.', sw: 'Malipo yako yanapelekwa hapa kazi ikikamilika.', luo: 'Cul mera bicito kany ka tic otum.' },
+  'prof.payoutWarn':    { en: 'Add your MoMo number — without it we cannot pay you when a job is done.', lg: 'Teeka namba yo ya MoMo — nga tewali, tetusobola kukusasula nga omulimu guwedde.', sw: 'Weka namba yako ya MoMo — bila hiyo hatuwezi kukulipa kazi ikikamilika.', luo: 'Ket namba mera me MoMo — ka pe, pe wabiro culi ka tic otum.' },
+  'prof.payoutPh':      { en: 'e.g. 0772 123 456',           lg: 'Nga: 0772 123 456',     sw: 'Mf. 0772 123 456',      luo: 'Cal: 0772 123 456' },
+  'prof.payoutSave':    { en: 'Save number',                 lg: 'Kuuma namba',           sw: 'Hifadhi namba',         luo: 'Gwok namba' },
+  'prof.payoutSaved':   { en: 'Saved!',                      lg: 'Ekuumiddwa!',           sw: 'Imehifadhiwa!',         luo: 'Kigwoko!' },
+
+  // ── Escrow panel: unfunded-work nudges ─────────────────
+  'esc.waitWorker':     { en: 'Heads up — the money isn’t secured yet. We’ll SMS you the moment it’s held. You can wait before starting.', lg: 'Kissa ku mutima — ssente tezinnaba kukuumibwa. Tujja kukutumira SMS ziba zikuumiddwa. Osobola okusubira nga tonnatandika.', sw: 'Kuwa makini — pesa bado haijahifadhiwa. Tutakutumia SMS mara itakapohifadhiwa. Unaweza kusubiri kabla ya kuanza.', luo: 'Piny odwi — lim pud pe ogwok. Wabicwali SMS ka kigwoko. Itwero rito ka tic pe ocakke.' },
+  'esc.fundNudge':      { en: 'Secure the money now so work can start — it’s held safely until you confirm the job is done.', lg: 'Kuumya ssente kati omulimu gutandike — ziba zikuumiiddwa okutuusa lw’okakasa nti omulimu guwedde.', sw: 'Hifadhi pesa sasa ili kazi ianze — inahifadhiwa salama hadi uthibitishe kazi imekamilika.', luo: 'Gwok lim kombedi wek tic ocak — kigwoko ne maber nyaka iyee ni tic otum.' },
+
+  // ── Verify page: SMS fallback ──────────────────────────
+  'verify.noCode':      { en: "Didn't get the code?",        lg: 'Tofunye koodi?',        sw: 'Hukupata msimbo?',      luo: 'Pe inwang kod?' },
+  'verify.whatsApp':    { en: 'Get help on WhatsApp',        lg: 'Funa obuyambi ku WhatsApp', sw: 'Pata msaada WhatsApp', luo: 'Yen kony i WhatsApp' },
+  'verify.contactUs':   { en: 'Contact support',             lg: 'Tukwasagane',           sw: 'Wasiliana nasi',        luo: 'Riabwa' },
 };
 
 interface I18nContextValue {

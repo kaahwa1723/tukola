@@ -145,6 +145,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No accepted worker on this job yet' }, { status: 409 });
     }
 
+    // Where the fundi's money goes on release: their saved payout
+    // number, falling back to their login phone (for most fundis
+    // MoMo == their phone). Stored on the ledger row so a later
+    // profile change can't redirect an in-flight payment.
+    const { data: payeeProfile } = await sb
+      .from('profiles')
+      .select('phone, momo_payout_phone')
+      .eq('id', payeeId)
+      .maybeSingle();
+    const payeeMomoPhone = payeeProfile?.momo_payout_phone ?? payeeProfile?.phone ?? null;
+
     // Idempotency: one active payment per job (standard) or per stage
     // (milestone). Re-submitting returns the existing payment instead
     // of double-charging.
@@ -178,6 +189,7 @@ export async function POST(req: NextRequest) {
         provider: provider.name,
         idempotency_key: idempotencyKey,
         payer_momo_phone: momoPhone,
+        payee_momo_phone: payeeMomoPhone,
         ...(milestone ? { milestone_id: milestone.id } : {}),
       })
       .select()
