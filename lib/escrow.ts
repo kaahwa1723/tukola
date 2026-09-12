@@ -4,6 +4,7 @@ import { track } from './analytics';
 import { redeemCreditsForRelease, reverseRedemption } from './referrals';
 import { sendPaymentHeldEmail, sendPaymentReleasedEmail } from './email/notify';
 import { notifyJobEvent } from './notify';
+import { reportError } from './error-report';
 
 /**
  * Escrow — state machine + money math.
@@ -151,6 +152,14 @@ export async function releasePayment(paymentId: number): Promise<{
       // (append-only reversal rows; redeemed rows are never edited)
       await reverseRedemption(payment.payee_id, redemption.payeeRedeemed, payment.id);
       await reverseRedemption(payment.payer_id, redemption.payerRedeemed, payment.id);
+      // Money is sitting in escrow with the fundi unpaid — wake the founder.
+      reportError('escrow.release.payout', new Error(`Fundi payout failed (status: ${payout.status})`), {
+        paymentId: payment.id,
+        jobId: payment.job_id,
+        payeeId: payment.payee_id,
+        fundiPayout,
+        payeeMomoPhone: payment.payee_momo_phone ?? '(none on file)',
+      });
       throw new Error(`Fundi payout did not succeed (status: ${payout.status}) — payment left in escrow`);
     }
   }

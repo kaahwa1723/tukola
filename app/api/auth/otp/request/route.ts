@@ -3,6 +3,7 @@ import { normalizeUgPhone } from '@/lib/phone';
 import { createOtp } from '@/lib/otp';
 import { getSmsProvider } from '@/lib/sms/provider';
 import { hit, clientIp } from '@/lib/rate-limit';
+import { reportError } from '@/lib/error-report';
 
 /**
  * POST /api/auth/otp/request
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(body);
   } catch (err: any) {
     console.error('[POST /api/auth/otp/request]', err);
+    reportError('otp.request', err, { route: 'POST /api/auth/otp/request' });
     return NextResponse.json({ error: 'Could not send the code. Please try again.' }, { status: 500 });
   }
 }

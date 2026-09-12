@@ -5,6 +5,7 @@ import { createServerSupabase, mapUser } from '@/lib/supabase-server';
 import { setSessionCookie } from '@/lib/session';
 import { hit } from '@/lib/rate-limit';
 import { track } from '@/lib/analytics';
+import { reportError } from '@/lib/error-report';
 
 /**
  * POST /api/auth/otp/verify
@@ -64,6 +65,7 @@ export async function POST(req: NextRequest) {
     return res;
   } catch (err: any) {
     console.error('[POST /api/auth/otp/verify]', err);
+    reportError('otp.verify', err, { route: 'POST /api/auth/otp/verify' });
     return NextResponse.json({ error: 'Verification failed. Please try again.' }, { status: 500 });
   }
 }

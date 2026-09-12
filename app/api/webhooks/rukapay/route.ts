@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { transitionPayment } from '@/lib/escrow';
 import { getPaymentProvider } from '@/lib/payments/provider';
+import { reportError } from '@/lib/error-report';
 
 /**
  * POST /api/webhooks/rukapay
@@ -38,6 +39,9 @@ export async function POST(req: NextRequest) {
 
     if (!payment) {
       console.warn('[webhooks/rukapay] unknown partnerReference:', partnerReference);
+      // Live-money signal: the provider says a transaction exists that our
+      // ledger doesn't know. Alert, but still 200 so RukaPay doesn't retry-storm.
+      reportError('webhook.unknown-reference', new Error('Webhook reference not in ledger'), { partnerReference });
       return NextResponse.json({ received: true, matched: false });
     }
 
@@ -60,6 +64,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, matched: true, verified: tx.status });
   } catch (err: any) {
     console.error('[POST /api/webhooks/rukapay]', err);
+    reportError('webhook.rukapay', err, { route: 'POST /api/webhooks/rukapay' });
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }

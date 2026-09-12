@@ -5,6 +5,7 @@ import { track } from '@/lib/analytics';
 import { isCronAuthorized } from '@/lib/cron-auth';
 import { recomputeReliabilityScore } from '@/lib/reliability';
 import { issueReferralCreditsForCompletion } from '@/lib/referrals';
+import { reportError } from '@/lib/error-report';
 
 const AUTO_RELEASE_AFTER_MS = 48 * 60 * 60 * 1000; // 48 hours
 
@@ -89,6 +90,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (err: any) {
     console.error('[GET /api/cron/auto-release]', err);
+    reportError('cron.auto-release', err, { route: 'GET /api/cron/auto-release' });
     return NextResponse.json({ error: 'Auto-release job failed.' }, { status: 500 });
   }
 }

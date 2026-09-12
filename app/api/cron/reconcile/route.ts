@@ -3,6 +3,7 @@ import { createServerSupabase } from '@/lib/supabase-server';
 import { getPaymentProvider } from '@/lib/payments/provider';
 import { computeSplit } from '@/lib/escrow';
 import { isCronAuthorized } from '@/lib/cron-auth';
+import { reportError } from '@/lib/error-report';
 
 /**
  * GET /api/cron/reconcile
@@ -199,6 +200,14 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Money inconsistencies found — the founder needs to know TODAY, not
+    // when a user complains. One rate-limited alert per run.
+    if (newFlags > 0) {
+      reportError('cron.reconcile.flags', new Error(`${newFlags} payment mismatch flag(s) opened`), {
+        newFlags, alreadyKnown, flagErrors,
+      });
+    }
+
     return NextResponse.json({
       checked: {
         nonFinal: (nonFinal ?? []).length,
@@ -211,6 +220,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (err: any) {
     console.error('[GET /api/cron/reconcile]', err);
+    reportError('cron.reconcile', err, { route: 'GET /api/cron/reconcile' });
     return NextResponse.json({ error: 'Reconciliation failed.' }, { status: 500 });
   }
 }

@@ -3,6 +3,7 @@ import { createServerSupabase } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
 import { getPaymentProvider } from '@/lib/payments/provider';
 import { normalizeUgPhone } from '@/lib/phone';
+import { reportError } from '@/lib/error-report';
 
 /**
  * GET /api/payments?jobId=xxx
@@ -232,6 +233,7 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
   } catch (err: any) {
     console.error('[POST /api/payments]', err);
+    reportError('payments.fund', err, { route: 'POST /api/payments' });
     return NextResponse.json({ error: 'Payment could not be started. Please try again.' }, { status: 500 });
   }
 }

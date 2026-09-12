@@ -32,7 +32,9 @@ export type FunnelEvent =
   | 'claim_rejected'
   // Phase 2 — worker service listings (migration 016)
   | 'service_posted'
-  | 'service_booked';
+  | 'service_booked'
+  // Layer 9 — platform alarm bell (lib/error-report.ts)
+  | 'error_occurred';
 
 export function track(
   event: FunnelEvent,

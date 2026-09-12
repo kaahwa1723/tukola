@@ -1,0 +1,15 @@
+{
+  "appId": "com.tukola.app",
+  "appName": "Tukola",
+  "webDir": "out",
+  "server": {
+    "url": "https://tukolaapp.com",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "ios": {
+    "contentInset": "automatic"
+  }
+}
