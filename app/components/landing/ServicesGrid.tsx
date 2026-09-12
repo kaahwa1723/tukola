@@ -2,6 +2,18 @@
 
 import { motion, type Variants } from 'framer-motion';
 import { Sparkles, Wrench, Zap, HardHat, Package, Leaf, Utensils, ShieldCheck, Car, PartyPopper, Scissors, Hammer, Wheat, SprayCan, Smartphone, PlusCircle } from 'lucide-react';
+import { SERVICE_TEMPLATES } from '@/lib/service-suggestions';
+
+// Each card shows real example listings (from the Jiji.ug-grounded
+// template library) so visitors instantly see what they can book —
+// a bare word like "Repair" doesn't guide anyone.
+const CATEGORY_KEY: Record<string, string> = {
+  Cleaning: 'Cleaning', Plumbing: 'Plumbing', Electrical: 'Electrical',
+  Construction: 'Construction', Moving: 'Moving & Delivery', Gardening: 'Gardening',
+  Cooking: 'Cooking & Catering', Security: 'Security', Driving: 'Driving',
+  Events: 'Events', Tailoring: 'Tailoring', Repair: 'Technical Repair',
+  Farming: 'Farming', Beauty: 'Beauty & Wellness', Delivery: 'Moving & Delivery',
+};
 
 const services = [
   { name: 'Cleaning', icon: Sparkles, color: 'text-blue-500', baseColor: 'from-blue-50 to-blue-100', bg: 'bg-blue-50' },
@@ -22,6 +34,13 @@ const services = [
   { name: 'More', icon: PlusCircle, color: 'text-primary', baseColor: 'from-primary/10 to-primary/20', bg: 'bg-primary/10' },
 ];
 
+function examplesFor(name: string): string {
+  const key = CATEGORY_KEY[name];
+  const templates = key ? SERVICE_TEMPLATES[key] : null;
+  if (!templates || templates.length === 0) return 'And anything else you need done';
+  return templates.slice(0, 3).map(t => t.title).join(' · ');
+}
+
 const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } } };
 const itemVariants: Variants = { hidden: { opacity: 0, scale: 0.9, y: 20 }, show: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } };
 
@@ -31,7 +50,7 @@ export default function ServicesGrid() {
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-3xl md:text-4xl font-bold font-heading text-navy mb-4">Our Services</motion.h2>
-          <motion.p initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="text-gray-600 text-lg">Whatever the job, we have a verified professional ready to help you get it done right.</motion.p>
+          <motion.p initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="text-gray-600 text-lg">Browse fundis' services at set prices, or post a job and let them come to you. Your money is held safely until the work is done.</motion.p>
         </div>
         <motion.div variants={containerVariants} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-50px" }} className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {services.map((service, index) => {
@@ -43,6 +62,7 @@ export default function ServicesGrid() {
                   <Icon className={`w-7 h-7 ${service.color} group-hover:scale-[1.15] transition-transform duration-250`} />
                 </div>
                 <h3 className="font-heading font-semibold text-navy group-hover:text-primary transition-colors duration-250">{service.name}</h3>
+                <p className="text-gray-400 text-xs leading-relaxed -mt-2">{examplesFor(service.name)}</p>
               </motion.div>
             );
           })}

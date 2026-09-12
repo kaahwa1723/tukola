@@ -10,8 +10,27 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'sw
 const orbitron = Orbitron({ subsets: ['latin'], variable: '--font-orbitron', weight: ['700', '800', '900'], display: 'swap' });
 
 export const metadata: Metadata = {
-  title: 'TUKOLA — Find Work. Hire Workers.',
-  description: "Kampala's fundi marketplace. Hire rated fundis with escrow-protected payments, or find work and get paid on release.",
+  metadataBase: new URL('https://tukolaapp.com'),
+  title: {
+    default: 'Tukola — Hire Trusted Fundis in Uganda | Tukola App',
+    template: '%s | Tukola',
+  },
+  description: "Find verified fundis for cleaning, plumbing, construction, beauty & more. Book at set prices, your money is held safely until the job is done. Uganda's trusted worker marketplace.",
+  keywords: ['fundis Uganda', 'hire workers Kampala', 'cleaning services Uganda', 'plumber Kampala', 'gig workers Uganda', 'tukola'],
+  openGraph: {
+    type: 'website',
+    url: 'https://tukolaapp.com',
+    siteName: 'Tukola',
+    title: 'Tukola — Hire Trusted Fundis in Uganda',
+    description: 'Verified fundis at set prices. Your money is held safely until the job is done.',
+    locale: 'en_UG',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Tukola — Hire Trusted Fundis in Uganda',
+    description: 'Verified fundis at set prices. Your money is held safely until the job is done.',
+  },
+  robots: { index: true, follow: true },
   manifest: '/manifest.json',
   icons: { icon: '/favicon.png?v=2', apple: '/apple-icon.png' },
 };

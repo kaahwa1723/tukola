@@ -6,6 +6,7 @@ import { useKola } from '@/lib/store';
 import { MOCK_WORKERS } from '@/lib/data';
 import { useI18n } from '@/lib/i18n';
 import FundiFinder from '@/app/components/FundiFinder';
+import ServiceBrowser from '@/app/components/ServiceBrowser';
 import InviteEarn from '@/app/components/InviteEarn';
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
@@ -190,8 +191,11 @@ export default function EmployerHomePage() {
           </div>
         </div>
 
-        {/* Right column: Fundi finder + tips */}
+        {/* Right column: services marketplace + fundi finder + tips */}
         <div className="space-y-6 min-w-0 animate-slide-up-d3">
+          {/* Priced service listings — book a fundi in one tap */}
+          <ServiceBrowser />
+
           {/* Real fundi search — location-first, merit-ranked */}
           <FundiFinder />
 

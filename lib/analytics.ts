@@ -29,7 +29,10 @@ export type FunnelEvent =
   // Phase 2 — guarantee claims
   | 'claim_submitted'
   | 'claim_approved'
-  | 'claim_rejected';
+  | 'claim_rejected'
+  // Phase 2 — worker service listings (migration 016)
+  | 'service_posted'
+  | 'service_booked';
 
 export function track(
   event: FunnelEvent,

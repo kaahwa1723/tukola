@@ -331,6 +331,72 @@ const dict: Record<string, { en: string; lg: string; sw: string; luo: string }> 
   'up.addMore':         { en: 'Add more',                    lg: 'Ongeramu',              sw: 'Ongeza zaidi',          luo: 'Med mukene' },
   'up.counter':         { en: '{n} / {max} photos',          lg: 'ebifaananyi {n} / {max}', sw: 'picha {n} / {max}',   luo: 'cal {n} / {max}' },
   'up.uploadingAlt':    { en: 'Uploading',                   lg: 'Kuweereza',             sw: 'Inapakia',              luo: 'Tye ka keto' },
+
+  // ── Worker services (fundis post priced listings) ──────
+  'svc.title':          { en: 'My Services & Prices',        lg: 'Emirimu Gyange n’Ensimbi', sw: 'Huduma Zangu na Bei',  luo: 'Tic Mera ki Cullogi' },
+  'svc.heroTitle':      { en: 'Set your prices, get booked directly', lg: 'Teeka emiwendo gyo, bakugwanike butereevu', sw: 'Weka bei zako, uajiriwe moja kwa moja', luo: 'Ket culli, giculi cut' },
+  'svc.heroSub':        { en: 'Employers see your services and book you at YOUR price — no haggling before work starts.', lg: 'Abagwanika balaba emirimu gyo era bakugwanika ku mwendo GWO — tewali kubagana nga omulimu tegutandika.', sw: 'Waajiri wanaona huduma zako na kukuajiri kwa bei YAKO — hakuna ubishani kabla ya kazi.', luo: 'Lula culi neno tic mera ka giculi ki CUL MERA — ka laro pe onyo tic pe ocakke.' },
+  'svc.emptyTitle':     { en: 'No services yet',             lg: 'Tolinawo mirimu',       sw: 'Bado hakuna huduma',    luo: 'Tic pud pe tye' },
+  'svc.emptySub':       { en: 'Add your first service with a price so employers can book you directly.', lg: 'Teekamu omulimu gwo ogusoose n’omuwendo, abagwanika bakugwanike butereevu.', sw: 'Ongeza huduma yako ya kwanza na bei ili waajiri wakuajiri moja kwa moja.', luo: 'Med tic mera me munyu ki cul, wek lula culi giculi cut.' },
+  'svc.addService':     { en: 'Add a service',               lg: 'Teekamu omulimu',       sw: 'Ongeza huduma',         luo: 'Med tic' },
+  'svc.editService':    { en: 'Edit service',                lg: 'Kyusa omulimu',         sw: 'Badilisha huduma',      luo: 'Lok tic' },
+  'svc.fieldTitle':     { en: 'Service name',                lg: 'Erinnya ly’omulimu',    sw: 'Jina la huduma',        luo: 'Nying tic' },
+  'svc.fieldTitlePh':   { en: 'e.g. House cleaning, Braiding, Plumbing repairs', lg: 'Nga: okuyonja amaka, okusuka enviiri, okuddaabiriza payipu', sw: 'Mf. usafi wa nyumba, kusuka nywele, ufundishaji wa mabomba', luo: 'Cal: cwiyo ot, yedo ywe, yubo paip' },
+  'svc.fieldCategory':  { en: 'Category',                    lg: 'Ekika',                 sw: 'Aina',                  luo: 'Kit' },
+  'svc.fieldPrice':     { en: 'Price (UGX)',                 lg: 'Omwendo (UGX)',         sw: 'Bei (UGX)',             luo: 'Cul (UGX)' },
+  'svc.fieldUnit':      { en: 'Unit (optional)',             lg: 'Ekigero (si ky’amateeka)', sw: 'Kipimo (si lazima)',   luo: 'Apim (pe woro)' },
+  'svc.fieldUnitPh':    { en: 'e.g. per room',               lg: 'Nga: buli kisenge',     sw: 'Mf. kwa chumba',        luo: 'Cal: i ot acel acel' },
+  'svc.fieldDesc':      { en: 'Description (optional)',      lg: 'Ebikwatako (si ky’amateeka)', sw: 'Maelezo (si lazima)', luo: 'Tito iye (pe woro)' },
+  'svc.fieldDescPh':    { en: "What's included, what you bring…", lg: 'Kiki ekiri munda, kiki ky’oleeta…', sw: 'Nini kinachojumuishwa, unachochukua…', luo: 'Ngo ma tye iyie, ngo ma ibiro kede…' },
+  'svc.publish':        { en: 'Publish service',             lg: 'Latula omulimu',        sw: 'Chapisha huduma',       luo: 'Yab tic' },
+  'svc.edit':           { en: 'Edit',                        lg: 'Kyusa',                 sw: 'Badilisha',             luo: 'Lok' },
+  'svc.hide':           { en: 'Hide from employers',         lg: 'Kweka abagwanika',      sw: 'Ficha kwa waajiri',     luo: 'Jo lula culi' },
+  'svc.show':           { en: 'Show to employers',           lg: 'Laga abagwanika',       sw: 'Onyesha waajiri',       luo: 'Nyut lula culi' },
+  'svc.hidden':         { en: 'Hidden',                      lg: 'Ekwese',                sw: 'Imefichwa',             luo: 'Ojowi' },
+  'svc.confirmDelete':  { en: 'Remove "{title}"? Employers will no longer see it.', lg: 'Jja "{title}"? Abagwanika tebajja kugulaba nate.', sw: 'Ondoa "{title}"? Waajiri hataiona tena.', luo: 'Kwany "{title}"? Lula culi pe bineno ne doki.' },
+  'svc.errTitle':       { en: 'Give your service a name',    lg: 'Wa omulimu gwo erinnya', sw: 'Ipe huduma yako jina',  luo: 'Cik tic mera nying' },
+  'svc.errCategory':    { en: 'Choose a category',           lg: 'Londa ekika',           sw: 'Chagua aina',           luo: 'Yer kit' },
+  'svc.errPrice':       { en: 'Enter a valid price',         lg: 'Wandika omuwendo omutuufu', sw: 'Weka bei sahihi',     luo: 'Ket cul ma atir' },
+  'svc.templatesHint':  { en: 'Popular services in this category — tap one to fill the form:', lg: 'Emirimu egimanyiddwa mu kika kino — nyiga ekimu oyijule foomu:', sw: 'Huduma maarufu katika aina hii — gusa moja kujaza fomu:', luo: 'Tic ma ngene i kit man — piny acel wek opong pwodho:' },
+
+  // ── Onboarding: first service step ─────────────────────
+  'role.fsTitle':       { en: 'List your first service',     lg: 'Yatula omulimu gwo ogusoose', sw: 'Orodhesha huduma yako ya kwanza', luo: 'Yab tic mera me munyu' },
+  'role.fsSub':         { en: 'Set one price now and employers can book you from today. You can add more later.', lg: 'Teeka omuwendo gumu kati, abagwanika bakugwanike okuva leero. Osobola okwongera oluvannyuma.', sw: 'Weka bei moja sasa na waajiri wanaweza kukuajiri kuanzia leo. Unaweza kuongeza zaidi baadaye.', luo: 'Ket cul acel kombedi, lula culi twero culi cakki eni. Ibiro medo mukene lacen.' },
+  'role.fsPricePh':     { en: 'Your price (UGX)',            lg: 'Omwendo gwo (UGX)',     sw: 'Bei yako (UGX)',        luo: 'Culli (UGX)' },
+  'role.fsPublish':     { en: 'Publish & start',             lg: 'Latula & otandike',     sw: 'Chapisha & anza',       luo: 'Yab & cak' },
+  'role.fsSkip':        { en: 'Skip for now',                lg: 'Buuka kati',            sw: 'Ruka kwa sasa',         luo: 'Kal kombedi' },
+
+  // ── Hire page: worker price list ───────────────────────
+  'hire.priceList':     { en: "{name}'s services & prices",  lg: 'Emirimu n’emiwendo gya {name}', sw: 'Huduma na bei za {name}', luo: 'Tic ki cul me {name}' },
+  'hire.priceListNote': { en: 'Book a listed service and the price is agreed up front — or describe your own job below.', lg: 'Gwanika omulimu ogutebeddwa, omuwendo mukkiriziganye dda — oba wandika omulimu gwo wansi.', sw: 'Ajira huduma iliyoorodheshwa na bei imekubaliwa mapema — au eleza kazi yako mwenyewe hapa chini.', luo: 'Cul tic ma kiyabo, cul giyee woko — onyo coc tic mera piny.' },
+
+  // ── Service browser (employer marketplace) ─────────────
+  'svcb.title':         { en: 'Services with set prices',    lg: 'Emirimu egy’emiwendo egimazze', sw: 'Huduma zenye bei zilizowekwa', luo: 'Tic ma cullogi kiset' },
+  'svcb.subtitle':      { en: 'Book a fundi directly at their listed price — no haggling.', lg: 'Gwanika fundi butereevu ku mwendo gwe — tewali kubagana.', sw: 'Mwajiri fundi moja kwa moja kwa bei yake — hakuna ubishani.', luo: 'Cul fundi cut ki culge — ka laro pe.' },
+  'svcb.searchPh':      { en: 'Search services… e.g. braiding', lg: 'Noonya emirimu… nga okusuka', sw: 'Tafuta huduma… mf. kusuka', luo: 'Yeny tic… cal yedo ywe' },
+  'svcb.noneTitle':     { en: 'No services listed yet',      lg: 'Tewali mirimu egiyatuddwa', sw: 'Bado hakuna huduma zilizoorodheshwa', luo: 'Tic pud pe giyabo' },
+  'svcb.noneSub':       { en: 'Fundis will list their services here. Post a job instead and they will apply.', lg: 'Bafundi bajja kuyatula emirimu gyabwe wano. Yatula omulimu bo bo basabe.', sw: 'Mafundi wataorodhesha huduma zao hapa. Tangaza kazi badala yake na wataomba.', luo: 'Bafundi biyab ticgi kany. Yab tic ka gi bipenyo.' },
+  'svcb.book':          { en: 'Book at this price',          lg: 'Gwanika ku mwendo guno', sw: 'Ajira kwa bei hii',      luo: 'Cul ki cul man' },
+
+  // ── Booking page ───────────────────────────────────────
+  'book.title':         { en: 'Book this service',           lg: 'Gwanika omulimu guno',  sw: 'Ajira huduma hii',      luo: 'Cul tic man' },
+  'book.notFound':      { en: 'This service is no longer available', lg: 'Omulimu guno teguliwo nate', sw: 'Huduma hii haipatikani tena', luo: 'Tic man pe tye doki' },
+  'book.priceNote':     { en: "The fundi's listed price — agreed before work starts.", lg: 'Omuwendo fundi gwe yateeka — mukkiriziganye nga omulimu tegutandika.', sw: 'Bei aliyoweka fundi — imekubaliwa kabla ya kazi kuanza.', luo: 'Cul ma fundi oketo — giyee ka tic pe ocakke.' },
+  'book.stagedNote':    { en: 'Paid in stages — your money is held safely and released as the work is completed.', lg: 'Osasula mu bitundu — ensimbi zo ziba zikuumiiddwa era zifulumizibwa nga omulimu bw’ogenda guweereza.', sw: 'Unalipa kwa hatua — pesa yako inahifadhiwa salama na kutolewa kazi inapoendelea.', luo: 'Iculli i boc — lim mera kigwoko maber ka kicwalo ne ka tic tye ka woto.' },
+  'book.detailsTitle':  { en: 'Where and when?',             lg: 'Wawa era ddi?',         sw: 'Wapi na lini?',         luo: 'Kwene ki nino?' },
+  'book.detailsSub':    { en: 'Tell {name} where the work is', lg: 'Tegeza {name} omulimu guli wa', sw: 'Mwambie {name} kazi iko wapi', luo: 'Nyut {name} kabedo me tic' },
+  'book.location':      { en: 'Location',                    lg: 'Ekifo',                 sw: 'Eneo',                  luo: 'Kabedo' },
+  'book.locationPh':    { en: 'e.g. Kira, near the market',  lg: 'Nga: Kira, okumpi n’akatale', sw: 'Mf. Kira, karibu na soko', luo: 'Cal: Kira, cok ki cuk' },
+  'book.when':          { en: 'Date & time',                 lg: 'Olunaku n’essawa',      sw: 'Tarehe na muda',        luo: 'Nino ki cawa' },
+  'book.notes':         { en: 'Notes (optional)',            lg: 'Ebikwatako (si ky’amateeka)', sw: 'Maelezo (si lazima)', luo: 'Coc (pe woro)' },
+  'book.notesPh':       { en: 'e.g. 3 bedrooms, bring your own supplies', lg: 'Nga: ebiisenge 3, leeta ebikozesebwa byo', sw: 'Mf. vyumba 3, leta vifaa vyako', luo: 'Cal: ot 3, kel gin mamegi' },
+  'book.urgency':       { en: 'Urgency',                     lg: 'Obuyangu',              sw: 'Uharaka',               luo: 'Oyot oyot' },
+  'book.cta':           { en: 'Book for {price}',            lg: 'Gwanika ku {price}',    sw: 'Ajira kwa {price}',     luo: 'Cul ki {price}' },
+  'book.sending':       { en: 'Booking…',                    lg: 'Kugenda mu maaso…',     sw: 'Inaajiri…',             luo: 'Tye ka culo…' },
+  'book.sentTitle':     { en: 'Booking Sent!',               lg: 'Omulimu Gusabiddwa!',   sw: 'Ombi Limetumwa!',       luo: 'Penyo Ocit!' },
+  'book.sentSub':       { en: '{name} has been invited at the listed price.', lg: '{name} ayitiddwa ku mwendo ogutebeddwa.', sw: '{name} amealikwa kwa bei iliyoorodheshwa.', luo: '{name} olwonge ki cul ma kiketo.' },
+  'book.sentHint':      { en: 'The job starts the moment they accept. Opening the job…', lg: 'Omulimu gutandika bw’akkiriza. Tuggulawo omulimu…', sw: 'Kazi inaanza akikubali. Inafungua kazi…', luo: 'Tic cakke ka oyee. Tye ka yabo tic…' },
+  'book.jobsDone':      { en: 'jobs done',                   lg: 'emirimu gye amaze',     sw: 'kazi alizokamilisha',   luo: 'tic ma otum' },
 };
 
 interface I18nContextValue {

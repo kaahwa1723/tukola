@@ -2,18 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MapPin, Star, CheckCircle, Clock, Zap, ChevronLeft, Send, Images, Gauge } from 'lucide-react';
+import Link from 'next/link';
+import { MapPin, Star, CheckCircle, Clock, Zap, ChevronLeft, Send, Images, Gauge, Tag } from 'lucide-react';
 import { useKola } from '@/lib/store';
+import { useI18n } from '@/lib/i18n';
 import { MOCK_WORKERS } from '@/lib/data';
 import type { User } from '@/lib/types';
 import { UploadImagePicker } from '@/components/UploadImagePicker';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import { formatUgx } from '@/lib/pricing';
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 export default function HireWorkerPage() {
   const { workerId } = useParams<{ workerId: string }>();
   const { user, postJob } = useKola();
+  const { t } = useI18n();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -21,6 +25,10 @@ export default function HireWorkerPage() {
   // Look up the real worker profile first; mock workers only in demo mode
   const [worker, setWorker] = useState<User | null>(null);
   const [workerLoaded, setWorkerLoaded] = useState(false);
+  // The worker's priced listings — an employer who found this fundi via
+  // FundiFinder can book a listed service (fixed price, one tap) instead
+  // of writing a job description from scratch.
+  const [services, setServices] = useState<{ id: string; title: string; unitLabel: string | null; priceUgx: number }[]>([]);
 
   useEffect(() => {
     fetch(`/api/users/${workerId}`)
@@ -33,6 +41,10 @@ export default function HireWorkerPage() {
         if (DEMO_MODE) setWorker(MOCK_WORKERS.find(w => w.id === workerId) ?? null);
       })
       .finally(() => setWorkerLoaded(true));
+    fetch(`/api/services?workerId=${workerId}&limit=10`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (data?.services) setServices(data.services); })
+      .catch(() => {});
   }, [workerId]);
 
   const [form, setForm] = useState({
@@ -225,6 +237,35 @@ export default function HireWorkerPage() {
             </div>
           )}
         </div>
+
+        {/* Worker's price list — book a listed service in one tap */}
+        {services.length > 0 && (
+          <div className="bg-white rounded-2xl p-4"
+            style={{ border: '1px solid #E8EDF8', boxShadow: '0 2px 16px rgba(41,82,232,0.06)' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Tag size={16} color="#2952E8" />
+              <h3 className="font-black text-[#0A0F2C] text-base">{t('hire.priceList', { name: worker.name.split(' ')[0] })}</h3>
+            </div>
+            <div className="space-y-2">
+              {services.map(s => (
+                <Link key={s.id} href={`/employer/book/${s.id}`}
+                  className="flex items-center justify-between gap-3 p-3 rounded-xl bg-[#F7F9FF] border border-blue-100/60 active:scale-[0.98] transition-transform">
+                  <div className="min-w-0">
+                    <p className="font-bold text-[#0A0F2C] text-sm truncate">{s.title}</p>
+                    <p className="font-black text-[#2952E8] text-xs mt-0.5">
+                      {formatUgx(s.priceUgx)}{s.unitLabel ? ` · ${s.unitLabel}` : ''}
+                    </p>
+                  </div>
+                  <span className="flex-shrink-0 text-[11px] font-black text-white px-3 py-1.5 rounded-full"
+                    style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}>
+                    {t('svcb.book')}
+                  </span>
+                </Link>
+              ))}
+            </div>
+            <p className="text-[#8B94B8] text-[11px] mt-2.5">{t('hire.priceListNote')}</p>
+          </div>
+        )}
 
         {/* Job details form */}
         <div className="bg-white rounded-2xl p-4 space-y-4"

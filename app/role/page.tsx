@@ -2,18 +2,28 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Briefcase, UserSearch, ShieldCheck } from 'lucide-react';
+import { Briefcase, UserSearch, ShieldCheck, Tag, Loader2 } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { TukolaLogo } from '@/components/TukolaLogo';
 import LanguageSwitch from '@/components/LanguageSwitch';
 import { useI18n } from '@/lib/i18n';
+import { translateCategory } from '@/lib/i18n';
+import { JOB_CATEGORIES } from '@/lib/constants';
+import { templatesFor } from '@/lib/service-suggestions';
 
 export default function RoleSelectionPage() {
   const [selected, setSelected] = useState<'worker' | 'employer' | null>(null);
   const [name, setName] = useState('');
-  const [step, setStep] = useState<'role' | 'name'>('role');
+  const [step, setStep] = useState<'role' | 'name' | 'firstService'>('role');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // First-service step (workers only): listing one priced service at
+  // signup makes a new fundi bookable IMMEDIATELY — fixes the
+  // empty-marketplace cold start for employers.
+  const [fsCategory, setFsCategory] = useState('');
+  const [fsTitle, setFsTitle] = useState('');
+  const [fsUnit, setFsUnit] = useState('');
+  const [fsPrice, setFsPrice] = useState('');
   const { register } = useKola();
   const router = useRouter();
   const { t } = useI18n();
@@ -39,12 +49,117 @@ export default function RoleSelectionPage() {
     const user = await register(phone, name.trim(), selected, referralCode);
     if (user) {
       try { localStorage.removeItem('kola_referral_code'); } catch {}
-      router.push(selected === 'worker' ? '/worker' : '/employer');
+      if (selected === 'worker') {
+        setStep('firstService');
+        setLoading(false);
+      } else {
+        router.push('/employer');
+      }
     } else {
       setError(t('role.errorCreate'));
       setLoading(false);
     }
   };
+
+  const publishFirstService = async () => {
+    const price = parseInt(fsPrice, 10);
+    if (!fsCategory || !fsTitle.trim() || !Number.isInteger(price) || price <= 0) return;
+    setLoading(true);
+    try {
+      await fetch('/api/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: fsTitle.trim(),
+          category: fsCategory,
+          unitLabel: fsUnit || undefined,
+          priceUgx: price,
+        }),
+      });
+    } catch { /* service can be added later from the profile */ }
+    router.push('/worker');
+  };
+
+  if (step === 'firstService') {
+    const canPublish = fsCategory && fsTitle.trim() && parseInt(fsPrice, 10) > 0;
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <div className="px-5 lg:px-12 pt-10 pb-2 flex items-center justify-between">
+          <TukolaLogo variant="full" size="sm" />
+          <LanguageSwitch />
+        </div>
+        <div className="flex-1 px-5 lg:px-12 py-6 max-w-2xl mx-auto w-full">
+          <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center mb-5">
+            <Tag size={26} className="text-white" />
+          </div>
+          <h2 className="text-2xl font-black text-slate-900 mb-2">{t('role.fsTitle')}</h2>
+          <p className="text-slate-500 text-sm mb-6">{t('role.fsSub')}</p>
+
+          {/* Category */}
+          <p className="text-slate-700 font-semibold text-sm mb-2">{t('svc.fieldCategory')}</p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {JOB_CATEGORIES.map(c => (
+              <button key={c} onClick={() => { setFsCategory(c); setFsTitle(''); setFsUnit(''); }}
+                className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-all"
+                style={{
+                  background: fsCategory === c ? '#2952E8' : '#fff',
+                  color: fsCategory === c ? '#fff' : '#4A5580',
+                  borderColor: fsCategory === c ? '#2952E8' : '#E2E6F0',
+                }}>
+                {translateCategory(c, t)}
+              </button>
+            ))}
+          </div>
+
+          {/* Templates */}
+          {fsCategory && (
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              {templatesFor(fsCategory).map(tp => (
+                <button key={tp.title}
+                  onClick={() => { setFsTitle(tp.title); setFsUnit(tp.unit); }}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all active:scale-95 ${
+                    fsTitle === tp.title ? 'bg-blue-600 text-white border-blue-600' : 'bg-blue-50 text-blue-700 border-blue-100'
+                  }`}>
+                  {tp.title} · {tp.unit}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Title (editable after template tap) */}
+          {fsCategory && (
+            <input value={fsTitle} onChange={e => setFsTitle(e.target.value)}
+              placeholder={t('svc.fieldTitlePh')} maxLength={80}
+              className="w-full border-2 border-slate-200 rounded-2xl px-4 py-3 text-slate-900 text-sm font-semibold placeholder-slate-400 focus:border-blue-500 focus:ring-0 bg-white mb-3" />
+          )}
+
+          {/* Price */}
+          {fsCategory && (
+            <div className="flex gap-3 mb-6">
+              <input type="number" inputMode="numeric" value={fsPrice} onChange={e => setFsPrice(e.target.value)}
+                placeholder={t('role.fsPricePh')}
+                className="flex-1 border-2 border-slate-200 rounded-2xl px-4 py-3 text-slate-900 text-sm font-semibold placeholder-slate-400 focus:border-blue-500 focus:ring-0 bg-white" />
+              <div className="flex items-center px-4 rounded-2xl bg-slate-100 text-slate-500 text-xs font-bold flex-shrink-0">
+                {fsUnit || 'UGX'}
+              </div>
+            </div>
+          )}
+
+          <button onClick={publishFirstService} disabled={!canPublish || loading}
+            className={`w-full py-4 rounded-2xl font-bold text-base transition-all active:scale-95 flex items-center justify-center gap-2 ${
+              canPublish ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+            }`}>
+            {loading && <Loader2 size={16} className="animate-spin" />}
+            {t('role.fsPublish')}
+          </button>
+          <button onClick={() => router.push('/worker')}
+            className="text-slate-400 text-sm text-center mt-4 active:opacity-70 w-full">
+            {t('role.fsSkip')}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (step === 'name') {
     return (

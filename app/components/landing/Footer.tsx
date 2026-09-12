@@ -44,7 +44,16 @@ export default function Footer() {
           </div>
         </motion.div>
         <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-gray-500 text-sm">&copy; 2026 Tukola. All rights reserved. Kampala, Uganda.</p>
+          <div className="text-center md:text-left">
+            <p className="text-gray-500 text-sm">&copy; 2026 Tukola. All rights reserved. Kampala, Uganda.</p>
+            <p className="text-gray-600 text-xs mt-1">
+              Powered by{' '}
+              <a href="https://rune00.com" target="_blank" rel="noopener noreferrer"
+                className="text-gray-400 hover:text-accent transition-colors font-semibold">
+                Rune Solutions
+              </a>
+            </p>
+          </div>
           <div className="flex gap-6 text-sm text-gray-500">
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
