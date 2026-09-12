@@ -174,6 +174,12 @@ export default function HeroSlider() {
                   className="flex flex-col sm:flex-row gap-3 bg-white p-2 rounded-2xl shadow-xl mb-6"
                   onSubmit={(e) => {
                     e.preventDefault();
+                    // Hand the query to the app: after login, the employer
+                    // home's services marketplace opens pre-searched with
+                    // exactly what the visitor typed here.
+                    try {
+                      if (query.trim()) localStorage.setItem('kola_search_query', query.trim());
+                    } catch {}
                     router.push('/login');
                   }}
                 >
@@ -190,7 +196,7 @@ export default function HeroSlider() {
                     />
                   </div>
                   <button type="submit" className="btn-gradient px-8 py-4 rounded-xl whitespace-nowrap text-[15px]">
-                    Search Jobs
+                    Find a Fundi
                   </button>
                 </form>
 
@@ -200,7 +206,10 @@ export default function HeroSlider() {
                     <button
                       key={pill}
                       type="button"
-                      onClick={() => router.push('/login')}
+                      onClick={() => {
+                        try { localStorage.setItem('kola_search_query', pill); } catch {}
+                        router.push('/login');
+                      }}
                       className="shrink-0 text-sm bg-white/10 hover:bg-white/25 hover:border-white/40 backdrop-blur-sm border border-white/20 px-4 py-1.5 rounded-full transition-all duration-200 active:scale-95"
                     >
                       {pill}

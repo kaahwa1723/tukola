@@ -64,7 +64,17 @@ export default function ServiceBrowser() {
     }
   }, []);
 
-  useEffect(() => { search('', ''); }, [search]);
+  useEffect(() => {
+    // Continue a search started on the landing page hero: the visitor
+    // typed there, logged in, and lands here — honour their query once.
+    let initialQ = '';
+    try {
+      initialQ = localStorage.getItem('kola_search_query') ?? '';
+      if (initialQ) localStorage.removeItem('kola_search_query');
+    } catch {}
+    if (initialQ) { setQ(initialQ); setActiveQ(initialQ); }
+    search('', initialQ);
+  }, [search]);
 
   const pickCategory = (c: string) => {
     const next = category === c ? '' : c;

@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
 
     if (category) query = query.eq('category', category);
     if (workerId) query = query.eq('worker_id', workerId);
-    if (q)        query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+    if (q)        query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`);
 
     const { data, error } = await query;
     if (error) throw error;
