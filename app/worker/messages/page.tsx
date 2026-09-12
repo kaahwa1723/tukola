@@ -4,17 +4,24 @@ import { useState, useEffect } from 'react';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { MOCK_CONVERSATIONS } from '@/lib/data';
 import { useKola } from '@/lib/store';
-import { Send, MessageCircle } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
+import { scanForLeakage } from '@/lib/leakage';
+import { Send, MessageCircle, ShieldAlert } from 'lucide-react';
 import type { Conversation } from '@/lib/types';
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 export default function WorkerMessagesPage() {
   const { user } = useKola();
+  const { t } = useI18n();
   const [activeConv, setActiveConv] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [messages, setMessages] = useState<Conversation[]>(DEMO_MODE ? MOCK_CONVERSATIONS : []);
   const [apiLoaded, setApiLoaded] = useState(false);
+
+  // Live off-platform nudge — same scan the server runs, so the sender
+  // sees the consequence BEFORE hitting send. Never blocks the message.
+  const leakNudge = scanForLeakage(newMessage).length > 0;
 
   useEffect(() => {
     if (!user?.id) return;
@@ -142,22 +149,30 @@ export default function WorkerMessagesPage() {
         </div>
 
         {/* Input */}
-        <div className="lg:max-w-4xl lg:mx-auto lg:w-full bg-white border-t border-slate-100 px-4 py-3 flex gap-2">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={e => setNewMessage(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSend()}
-            placeholder="Type a message..."
-            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500"
-          />
-          <button
-            onClick={handleSend}
-            disabled={!newMessage.trim()}
-            className="w-11 h-11 bg-blue-600 text-white rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
-          >
-            <Send size={18} />
-          </button>
+        <div className="lg:max-w-4xl lg:mx-auto lg:w-full bg-white border-t border-slate-100 px-4 py-3">
+          {leakNudge && (
+            <p className="flex items-start gap-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-2 leading-snug">
+              <ShieldAlert size={13} className="shrink-0 mt-0.5" />
+              {t('chat.leakNudge')}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={e => setNewMessage(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSend()}
+              placeholder="Type a message..."
+              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500"
+            />
+            <button
+              onClick={handleSend}
+              disabled={!newMessage.trim()}
+              className="w-11 h-11 bg-blue-600 text-white rounded-xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
+            >
+              <Send size={18} />
+            </button>
+          </div>
         </div>
       </div>
     );

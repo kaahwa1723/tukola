@@ -5,10 +5,11 @@ import { useParams, useRouter } from 'next/navigation';
 import { ThumbsUp, ThumbsDown, ChevronLeft, Star, Search, PartyPopper } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { EscrowPanel } from '@/components/EscrowPanel';
+import { SettleOffPlatform } from '@/components/SettleOffPlatform';
 
 export default function CompletionPage() {
   const { id } = useParams<{ id: string }>();
-  const { jobs, user, completeJob } = useKola();
+  const { jobs, user, completeJob, refreshJobs } = useKola();
   const router = useRouter();
 
   const job = jobs.find(j => j.id === id);
@@ -162,6 +163,18 @@ export default function CompletionPage() {
               user={user}
               isEmployer={isEmployer}
               isAcceptedWorker={isAcceptedWorker}
+            />
+          )}
+
+          {/* The honest cash path — visible while the job is running with
+              nothing in escrow; the server double-checks before closing */}
+          {job.status === 'in_progress' && (
+            <SettleOffPlatform
+              jobId={job.id}
+              onSettled={() => {
+                refreshJobs();
+                router.push(isEmployer ? '/employer' : '/worker');
+              }}
             />
           )}
 

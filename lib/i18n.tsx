@@ -414,6 +414,22 @@ const dict: Record<string, { en: string; lg: string; sw: string; luo: string }> 
   'verify.noCode':      { en: "Didn't get the code?",        lg: 'Tofunye koodi?',        sw: 'Hukupata msimbo?',      luo: 'Pe inwang kod?' },
   'verify.whatsApp':    { en: 'Get help on WhatsApp',        lg: 'Funa obuyambi ku WhatsApp', sw: 'Pata msaada WhatsApp', luo: 'Yen kony i WhatsApp' },
   'verify.contactUs':   { en: 'Contact support',             lg: 'Tukwasagane',           sw: 'Wasiliana nasi',        luo: 'Riabwa' },
+
+  // ── Off-platform (cash) settlement ─────────────────────
+  'off.link':           { en: 'Settled outside the app?',    lg: 'Mumalirizza ebweru wa app?', sw: 'Mmekamilisha nje ya app?', luo: 'Otyeko woko i app?' },
+  'off.title':          { en: 'Paying outside Tukola?',      lg: 'Osasula ebweru wa Tukola?', sw: 'Unalipa nje ya Tukola?', luo: 'Iculo woko pa Tukola?' },
+  'off.b1':             { en: 'No payment protection — we never held the money', lg: 'Tewali kukuuma ssente — tetwazikuuma', sw: 'Hakuna ulinzi wa malipo — hatukuhifadhi pesa', luo: 'Gwoko lim pe — pe wagwoko lim' },
+  'off.b2':             { en: 'No Tukola Guarantee if something goes wrong', lg: 'Tewali Tukola Guarantee bibaawo ebizibu', sw: 'Hakuna Tukola Guarantee ikitokea shida', luo: 'Tukola Guarantee pe tye ka ruch otime' },
+  'off.b3':             { en: 'No receipt, no help if a dispute happens', lg: 'Tewali risiti oba obuyambi mu kubagana', sw: 'Hakuna risiti wala msaada kwa migogoro', luo: 'Risit onyo kony i bara pe tye' },
+  'off.b4':             { en: "No rating — this job builds nobody's reputation", lg: 'Tewali rating — omulimu guno teguzimba kikwate kya muntu yenna', sw: 'Hakuna rating — kazi hii haitajenga sifa ya mtu yeyote', luo: 'Rating pe — tic man pe culo nying ngat' },
+  'off.warn':           { en: 'Repeated cash deals can lead to account suspension.', lg: 'Okusasula mu cash emirundi emingi kusobola okusiba akawunti yo.', sw: 'Malipo ya cash mara kwa mara yanaweza kusitisha akaunti yako.', luo: 'Culo cash ki cene ki cene twero cuko account mero.' },
+  'off.notePh':         { en: 'Optional note (e.g. paid cash on site)', lg: 'Ebikwatako (nga: twasuza ku site)', sw: 'Maelezo (mf. tumelipana cash)', luo: 'Coc (cal: waculo cash)' },
+  'off.keep':           { en: 'Keep Tukola protection',      lg: 'Siga ku kukuuma kwa Tukola', sw: 'Endelea na ulinzi wa Tukola', luo: 'Med ki gwoko pa Tukola' },
+  'off.confirm':        { en: 'Yes, we settled in cash',     lg: 'Yee, twasuza mu cash',  sw: 'Ndiyo, tumelipana cash', luo: 'Eyo, waculo cash' },
+  'off.repeat':         { en: 'This is a repeat off-platform settlement on your account — the next one may lead to suspension.', lg: 'Gunno omurundi ogw’okusasula ebweru wa app ku akawunti yo — oguddiro gusobola okuleetera suspension.', sw: 'Hii ni marudio ya malipo nje ya app kwenye akaunti yako — inayofuata inaweza kusitisha akaunti yako.', luo: 'Man culo woko pa app doki i account mero — malubo twero cuko account mero.' },
+
+  // ── Chat off-platform nudge ────────────────────────────
+  'chat.leakNudge':     { en: 'Sharing numbers or paying outside Tukola means no payment protection, no guarantee and no receipt.', lg: 'Okugabana namba oba okusasula ebweru wa Tukola kitegeeza tewali kukuuma ssente, guarantee oba risiti.', sw: 'Kushiriki namba au kulipa nje ya Tukola kunamaanisha hakuna ulinzi wa malipo, guarantee wala risiti.', luo: 'Poko namba onyo culo woko pa Tukola nyiso ni gwoko lim, guarantee onyo risit pe tye.' },
 };
 
 interface I18nContextValue {
