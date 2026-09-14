@@ -78,6 +78,28 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       }
       updates.payout_preference = body.payoutPreference;
     }
+    // Basic KYC — self-service, validated
+    if (body.sex !== undefined) {
+      if (body.sex !== null && !['male', 'female'].includes(body.sex)) {
+        return NextResponse.json({ error: 'Invalid sex' }, { status: 400 });
+      }
+      updates.sex = body.sex;
+    }
+    if (body.dateOfBirth !== undefined) {
+      if (body.dateOfBirth === null || body.dateOfBirth === '') {
+        updates.date_of_birth = null;
+      } else {
+        const d = new Date(body.dateOfBirth);
+        if (isNaN(d.getTime())) {
+          return NextResponse.json({ error: 'Invalid date of birth' }, { status: 400 });
+        }
+        const age = (Date.now() - d.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+        if (age < 18 || age > 100) {
+          return NextResponse.json({ error: 'You must be 18 or older to use Tukola' }, { status: 400 });
+        }
+        updates.date_of_birth = d.toISOString().slice(0, 10);
+      }
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });

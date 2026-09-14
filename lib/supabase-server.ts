@@ -77,6 +77,8 @@ export function mapUser(r: any): User {
     portfolioImages: r.portfolio_images ?? [],
     momoPayoutPhone: r.momo_payout_phone ?? undefined,
     payoutPreference: r.payout_preference ?? undefined,
+    sex: r.sex ?? undefined,
+    dateOfBirth: r.date_of_birth ?? undefined,
   };
 }
 

@@ -25,11 +25,28 @@ import { sendWelcomeEmail } from '@/lib/email/notify';
  */
 export async function POST(req: NextRequest) {
   try {
-    const { phone: rawPhone, name, role, referralCode } = await req.json();
+    const { phone: rawPhone, name, role, referralCode, sex, dateOfBirth } = await req.json();
     const phone = normalizeUgPhone(rawPhone);
 
     if (!phone || !name?.trim() || !['worker', 'employer'].includes(role)) {
       return NextResponse.json({ error: 'phone, name and a valid role are required' }, { status: 400 });
+    }
+
+    // Optional basic KYC — validated when present, never required to sign up
+    if (sex !== undefined && sex !== null && !['male', 'female'].includes(sex)) {
+      return NextResponse.json({ error: 'Invalid sex' }, { status: 400 });
+    }
+    let dob: string | null = null;
+    if (dateOfBirth) {
+      const d = new Date(dateOfBirth);
+      if (isNaN(d.getTime())) {
+        return NextResponse.json({ error: 'Invalid date of birth' }, { status: 400 });
+      }
+      const age = (Date.now() - d.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+      if (age < 18 || age > 100) {
+        return NextResponse.json({ error: 'You must be 18 or older to use Tukola' }, { status: 400 });
+      }
+      dob = d.toISOString().slice(0, 10);
     }
 
     if (!hit(`register:ip:${clientIp(req)}`, 10, 10 * 60 * 1000)) {
@@ -78,6 +95,8 @@ export async function POST(req: NextRequest) {
         last_active: null,
         is_verified: false,
         portfolio_images: [],
+        sex: sex ?? null,
+        date_of_birth: dob,
       })
       .select()
       .single();

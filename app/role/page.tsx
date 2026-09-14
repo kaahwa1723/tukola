@@ -14,6 +14,8 @@ import { templatesFor } from '@/lib/service-suggestions';
 export default function RoleSelectionPage() {
   const [selected, setSelected] = useState<'worker' | 'employer' | null>(null);
   const [name, setName] = useState('');
+  const [sex, setSex] = useState<'male' | 'female' | null>(null);
+  const [dob, setDob] = useState('');
   const [step, setStep] = useState<'role' | 'name' | 'firstService'>('role');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -46,7 +48,10 @@ export default function RoleSelectionPage() {
     // signup on this device never inherits it.
     const referralCode =
       typeof window !== 'undefined' ? localStorage.getItem('kola_referral_code') : null;
-    const user = await register(phone, name.trim(), selected, referralCode);
+    const user = await register(phone, name.trim(), selected, referralCode, {
+      ...(sex ? { sex } : {}),
+      ...(dob ? { dateOfBirth: dob } : {}),
+    });
     if (user) {
       try { localStorage.removeItem('kola_referral_code'); } catch {}
       if (selected === 'worker') {
@@ -210,7 +215,28 @@ export default function RoleSelectionPage() {
               onChange={e => setName(e.target.value)}
               placeholder={t('role.namePlaceholder')}
               autoFocus
-              className="w-full border-2 border-slate-200 rounded-2xl px-4 py-4 text-slate-900 text-lg font-semibold placeholder-slate-400 focus:border-blue-500 focus:ring-0 transition-colors bg-white mb-6"
+              className="w-full border-2 border-slate-200 rounded-2xl px-4 py-4 text-slate-900 text-lg font-semibold placeholder-slate-400 focus:border-blue-500 focus:ring-0 transition-colors bg-white mb-4"
+            />
+
+            {/* Optional basic KYC — helps trust + safety; never blocks signup */}
+            <p className="text-slate-400 text-xs mb-2">{t('role.kycHint')}</p>
+            <div className="flex gap-2 mb-3">
+              {(['male', 'female'] as const).map(s => (
+                <button key={s} type="button"
+                  onClick={() => setSex(sex === s ? null : s)}
+                  className={`flex-1 py-3 rounded-2xl text-sm font-bold border-2 transition-all active:scale-95 ${
+                    sex === s ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-500'
+                  }`}>
+                  {t(`role.${s}` as any)}
+                </button>
+              ))}
+            </div>
+            <input
+              type="date"
+              value={dob}
+              onChange={e => setDob(e.target.value)}
+              max={new Date(Date.now() - 18 * 365.25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
+              className="w-full border-2 border-slate-200 rounded-2xl px-4 py-3.5 text-slate-900 text-sm font-semibold focus:border-blue-500 focus:ring-0 transition-colors bg-white mb-6"
             />
 
             <button

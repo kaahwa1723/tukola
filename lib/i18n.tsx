@@ -410,6 +410,15 @@ const dict: Record<string, { en: string; lg: string; sw: string; luo: string }> 
   'prof.payoutSave':    { en: 'Save number',                 lg: 'Kuuma namba',           sw: 'Hifadhi namba',         luo: 'Gwok namba' },
   'prof.payoutSaved':   { en: 'Saved!',                      lg: 'Ekuumiddwa!',           sw: 'Imehifadhiwa!',         luo: 'Kigwoko!' },
 
+  // ── Signup KYC + profile strength ──────────────────────
+  'role.kycHint':       { en: 'Optional — helps keep the community safe', lg: 'Si bya ddembe — bituyamba okukuuma abantu mu kifo', sw: 'Si lazima — husaidia kuweka jumuiya salama', luo: 'Pe teko — konyo me gwoko dano maber' },
+  'role.male':          { en: 'Male',                        lg: 'Omusajja',              sw: 'Mwanaume',              luo: 'Co' },
+  'role.female':        { en: 'Female',                      lg: 'Omukyala',              sw: 'Mwanamke',              luo: 'Dako' },
+  'prof.strength':      { en: 'Profile strength',            lg: 'Amaanyi ga profile yo', sw: 'Nguvu ya wasifu',       luo: 'Teko me profile mera' },
+  'prof.strengthTip':   { en: 'Complete profiles get more jobs. Add what’s missing below.', lg: 'Profile ezijjuziddwa zifuna emirimu egyosinga. Jjuza ekyabulawo wansi.', sw: 'Wasifu kamili hupata kazi zaidi. Jaza kinachokosekana hapa chini.', luo: 'Profile ma opong’ opong’ nongo tic mapol. Pong’ gin ma pe piny.' },
+  'prof.personalTitle': { en: 'Personal details',            lg: 'Ebikwata ku ggwe',      sw: 'Taarifa binafsi',       luo: 'Gin maku kwedi' },
+  'prof.dobLabel':      { en: 'Date of birth',               lg: 'Ennaku y’okuzalibwa',   sw: 'Tarehe ya kuzaliwa',    luo: 'Nino ceng ma inywali' },
+
   // ── Escrow panel: unfunded-work nudges ─────────────────
   'esc.waitWorker':     { en: 'Heads up — the money isn’t secured yet. We’ll SMS you the moment it’s held. You can wait before starting.', lg: 'Kissa ku mutima — ssente tezinnaba kukuumibwa. Tujja kukutumira SMS ziba zikuumiddwa. Osobola okusubira nga tonnatandika.', sw: 'Kuwa makini — pesa bado haijahifadhiwa. Tutakutumia SMS mara itakapohifadhiwa. Unaweza kusubiri kabla ya kuanza.', luo: 'Piny odwi — lim pud pe ogwok. Wabicwali SMS ka kigwoko. Itwero rito ka tic pe ocakke.' },
   'esc.fundNudge':      { en: 'Secure the money now so work can start — it’s held safely until you confirm the job is done.', lg: 'Kuumya ssente kati omulimu gutandike — ziba zikuumiiddwa okutuusa lw’okakasa nti omulimu guwedde.', sw: 'Hifadhi pesa sasa ili kazi ianze — inahifadhiwa salama hadi uthibitishe kazi imekamilika.', luo: 'Gwok lim kombedi wek tic ocak — kigwoko ne maber nyaka iyee ni tic otum.' },

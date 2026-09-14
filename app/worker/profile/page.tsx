@@ -22,6 +22,18 @@ export default function WorkerProfilePage() {
   const [portfolioImages, setPortfolioImages] = useState<string[]>(user?.portfolioImages || []);
   const [momoPhone, setMomoPhone] = useState(user?.momoPayoutPhone ?? user?.phone ?? '');
   const [momoSaved, setMomoSaved] = useState(false);
+  const [sexVal, setSexVal] = useState<'male' | 'female' | undefined>(user?.sex);
+  const [dobVal, setDobVal] = useState(user?.dateOfBirth ?? '');
+  const [kycSaved, setKycSaved] = useState(false);
+
+  // Profile strength — honest checklist of fields employers actually see.
+  const checks = [
+    !!avatar, !!user?.location, !!about.trim(),
+    selectedSkills.length > 0, portfolioImages.length > 0,
+    !!user?.sex || !!sexVal, !!user?.dateOfBirth || !!dobVal,
+    !!user?.momoPayoutPhone,
+  ];
+  const strength = Math.round((checks.filter(Boolean).length / checks.length) * 100);
 
   const profile = {
     // Honest trust surface: undefined rating = "New", never a fake 4.5.
@@ -120,6 +132,21 @@ export default function WorkerProfilePage() {
             )}
           </div>
         </div>
+
+        {/* Profile strength bar */}
+        {strength < 100 && (
+          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm animate-slide-up-d1">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-bold text-[#0A0F2C] text-sm">{t('prof.strength')}</h3>
+              <span className="text-sm font-black text-blue-600">{strength}%</span>
+            </div>
+            <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden mb-2">
+              <div className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${strength}%`, background: 'linear-gradient(90deg,#00C8FF,#2952E8)' }} />
+            </div>
+            <p className="text-slate-400 text-[11px] leading-snug">{t('prof.strengthTip')}</p>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 animate-slide-up-d1">
@@ -233,6 +260,44 @@ export default function WorkerProfilePage() {
               {about || 'Add a description about yourself to attract more employers.'}
             </p>
           )}
+        </div>
+
+        {/* Personal details (basic KYC) */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+          <h3 className="font-bold text-[#0A0F2C] mb-3">{t('prof.personalTitle')}</h3>
+          <div className="flex gap-2 mb-3">
+            {(['male', 'female'] as const).map(s => (
+              <button key={s} type="button"
+                onClick={() => { setSexVal(sexVal === s ? undefined : s); setKycSaved(false); }}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-all active:scale-95 ${
+                  sexVal === s ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-500'
+                }`}>
+                {t(`role.${s}` as any)}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="date"
+              value={dobVal}
+              onChange={e => { setDobVal(e.target.value); setKycSaved(false); }}
+              max={new Date(Date.now() - 18 * 365.25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
+              aria-label={t('prof.dobLabel')}
+              className="flex-1 min-w-0 text-[#0A0F2C] text-sm rounded-xl px-3 py-2.5 focus:outline-none"
+              style={{ border: '1.5px solid #E2E6F0' }}
+            />
+            <button
+              onClick={() => {
+                updateUser({ sex: sexVal, dateOfBirth: dobVal || undefined });
+                setKycSaved(true);
+                setTimeout(() => setKycSaved(false), 2500);
+              }}
+              className="shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold text-white active:scale-95 transition-transform"
+              style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}
+            >
+              {kycSaved ? t('prof.payoutSaved') : t('common.save')}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Money payout number — without it a release can't pay the fundi */}

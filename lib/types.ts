@@ -22,6 +22,10 @@ export interface User {
   momoPayoutPhone?: string;
   /** Where released pay goes: 'momo' = instant Mobile Money, 'wallet' = keep in wallet. */
   payoutPreference?: 'momo' | 'wallet';
+  /** Basic KYC — self-declared, optional. */
+  sex?: 'male' | 'female';
+  /** ISO date (YYYY-MM-DD); server enforces 18+. */
+  dateOfBirth?: string;
 }
 
 export type JobUrgency = 'immediate' | 'scheduled';
