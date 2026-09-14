@@ -32,6 +32,7 @@ export function UploadImagePicker({
 }: UploadImagePickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState<UploadingFile[]>([]);
+  const [lastError, setLastError] = useState<string | null>(null);
   const { t } = useI18n();
 
   const uploadFile = useCallback(
@@ -54,6 +55,9 @@ export function UploadImagePicker({
         return url;
       } catch (err: any) {
         console.error('[UploadImagePicker]', err);
+        // Persistent, human-readable failure — a silent drop here once cost
+        // us a user who thought their job photos had attached.
+        setLastError(err?.message ?? t('up.uploadFailed'));
         return null;
       }
     },
@@ -66,6 +70,7 @@ export function UploadImagePicker({
     const toProcess = files.slice(0, remaining);
 
     if (toProcess.length === 0) return;
+    setLastError(null);
 
     // Create preview entries for immediate feedback
     const newUploading: UploadingFile[] = await Promise.all(
@@ -218,6 +223,12 @@ export function UploadImagePicker({
       {images.length > 0 && (
         <p className="text-[11px] mt-1.5 font-medium" style={{ color: '#8B94B8' }}>
           {t('up.counter', { n: images.length, max: maxImages })}
+        </p>
+      )}
+
+      {lastError && (
+        <p className="text-[12px] mt-1.5 font-semibold text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+          {t('up.uploadFailed')}: {lastError}
         </p>
       )}
 

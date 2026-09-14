@@ -123,9 +123,9 @@ export default function FundiFinder() {
         </button>
         <button type="button" onClick={nearMe} disabled={locating}
           aria-label={t('ff.useMyLocation')}
+          title={t('ff.useMyLocation')}
           className="px-4 py-3 rounded-2xl bg-blue-50 text-blue-600 text-sm font-bold active:scale-95 transition-transform flex items-center gap-1.5 disabled:opacity-60">
           {locating ? <Loader2 size={16} className="animate-spin" /> : <Navigation size={16} />}
-          <span className="hidden sm:inline">{t('employer.nearMe')}</span>
         </button>
       </form>
 
@@ -156,7 +156,9 @@ export default function FundiFinder() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        // 2 columns everywhere: this component lives in the ~330px right
+        // column on desktop — 4-across there produced 70px clipped cards.
+        <div className="grid grid-cols-2 gap-3">
           {fundis.map(fundi => (
             <div key={fundi.id}
               className="rounded-2xl p-3.5 bg-white border border-blue-100/40 hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(41,82,232,0.16)] transition-all duration-200 relative">

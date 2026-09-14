@@ -70,6 +70,42 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Recipient not found' }, { status: 404 });
     }
 
+    // ── Chat gate (anti-spam, anti-leakage) ──────────────────────────
+    // Two strangers can never chat. A conversation requires a job link:
+    // one party employs a job the other has applied to / been invited to /
+    // been accepted on. Anyone circumventing this in the client is stopped
+    // here, server-side.
+    const [{ data: myJobs }, { data: theirJobs }] = await Promise.all([
+      sb.from('jobs').select('id').eq('employer_id', user.id),
+      sb.from('jobs').select('id').eq('employer_id', user2Id),
+    ]);
+    const myJobIds = (myJobs ?? []).map((j) => j.id);
+    const theirJobIds = (theirJobs ?? []).map((j) => j.id);
+
+    let linked = false;
+    if (myJobIds.length > 0) {
+      const { count } = await sb
+        .from('applications')
+        .select('id', { count: 'exact', head: true })
+        .eq('worker_id', user2Id)
+        .in('job_id', myJobIds);
+      linked = (count ?? 0) > 0;
+    }
+    if (!linked && theirJobIds.length > 0) {
+      const { count } = await sb
+        .from('applications')
+        .select('id', { count: 'exact', head: true })
+        .eq('worker_id', user.id)
+        .in('job_id', theirJobIds);
+      linked = (count ?? 0) > 0;
+    }
+    if (!linked) {
+      return NextResponse.json(
+        { error: 'You can only message someone once there is a job between you — apply to their job or wait for applicants on yours.' },
+        { status: 403 }
+      );
+    }
+
     // Try to find existing conversation
     let existingQuery = sb
       .from('conversations')

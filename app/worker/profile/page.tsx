@@ -324,8 +324,8 @@ export default function WorkerProfilePage() {
             { label: 'Account Settings',  icon: Settings,   href: '/worker/profile' },
             { label: 'Notifications',      icon: Bell,       href: '/worker/messages' },
             { label: 'Send Feedback',      icon: MessageSquareHeart, href: '/feedback' },
-            { label: 'Privacy Policy',     icon: FileText,   href: '/' },
-            { label: 'Help & Support',     icon: HelpCircle, href: '/' },
+            { label: 'Privacy Policy',     icon: FileText,   href: '/privacy' },
+            { label: 'Help & Support',     icon: HelpCircle, href: '/help' },
           ].map((item, i) => {
             const Icon = item.icon;
             return (

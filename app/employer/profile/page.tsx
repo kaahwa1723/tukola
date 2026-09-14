@@ -203,8 +203,8 @@ export default function EmployerProfilePage() {
             { label: 'Account Settings',  icon: Settings,   href: '/employer/profile' },
             { label: 'My Posted Jobs',     icon: Briefcase,  href: '/employer/jobs' },
             { label: 'Send Feedback',      icon: MessageSquareHeart, href: '/feedback' },
-            { label: 'Privacy Policy',     icon: FileText,   href: '/' },
-            { label: 'Help & Support',     icon: HelpCircle, href: '/' },
+            { label: 'Privacy Policy',     icon: FileText,   href: '/privacy' },
+            { label: 'Help & Support',     icon: HelpCircle, href: '/help' },
           ].map((item, i) => {
             const Icon = item.icon;
             return (
