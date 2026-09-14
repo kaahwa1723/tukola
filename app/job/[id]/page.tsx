@@ -7,7 +7,7 @@ import {
   MapPin, Calendar, Banknote, Phone, Users, Lock, ChevronLeft, CheckCircle,
   Images, Star, Briefcase, ShieldCheck, Wrench, Sparkles, Zap, Car, ChefHat,
   Leaf, Shield, Paintbrush, Package, Scissors, Truck, Hammer, Building2, Search,
-  MessageCircle, RotateCcw
+  MessageCircle, RotateCcw, Pencil
 } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { useI18n } from '@/lib/i18n';
@@ -38,11 +38,18 @@ function getJobIcon(title: string) {
 
 export default function JobDetailsPage() {
   const { id } = useParams<{ id: string }>();
-  const { jobs, user, applyToJob, applications, acceptApplicant } = useKola();
+  const { jobs, user, applyToJob, applications, acceptApplicant, refreshJobs } = useKola();
   const { t } = useI18n();
   const router = useRouter();
   const [rebooking, setRebooking] = useState(false);
   const [recurringMsg, setRecurringMsg] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editBusy, setEditBusy] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editSaved, setEditSaved] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: '', description: '', location: '', dateTime: '', pay: '', workersNeeded: 1, urgency: 'scheduled' as 'immediate' | 'scheduled',
+  });
   // Double-click guard for startConversation — a hook, so it MUST stay above
   // the `if (!job) return` early return below (rules of hooks).
   const startingConv = useRef(false);
@@ -73,6 +80,62 @@ export default function JobDetailsPage() {
 
   const handleApply = () => applyToJob(job.id);
   const handleAccept = (applicantId: string) => acceptApplicant(job.id, applicantId);
+
+  // Employer editing — allowed only while the job is still open (server
+  // enforces this too). Fields are pre-filled from the live job.
+  const startEditing = () => {
+    let dt = '';
+    try {
+      const d = new Date(job.dateTime);
+      if (!isNaN(d.getTime())) dt = d.toISOString().slice(0, 16);
+    } catch {}
+    setEditForm({
+      title: job.title,
+      description: job.description ?? '',
+      location: job.location,
+      dateTime: dt,
+      pay: job.pay ? String(job.pay) : '',
+      workersNeeded: job.workersNeeded,
+      urgency: job.urgency,
+    });
+    setEditError('');
+    setEditSaved(false);
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    if (editBusy) return;
+    setEditBusy(true);
+    setEditError('');
+    try {
+      const res = await fetch(`/api/jobs/${job.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editForm.title.trim(),
+          description: editForm.description.trim(),
+          location: editForm.location.trim(),
+          dateTime: editForm.dateTime ? new Date(editForm.dateTime).toISOString() : undefined,
+          pay: editForm.pay ? Number(editForm.pay) : undefined,
+          workersNeeded: Number(editForm.workersNeeded) || 1,
+          urgency: editForm.urgency,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setEditError(data.error || t('common.networkError'));
+      } else {
+        setEditing(false);
+        setEditSaved(true);
+        setTimeout(() => setEditSaved(false), 3000);
+        refreshJobs();
+      }
+    } catch {
+      setEditError(t('common.networkError'));
+    } finally {
+      setEditBusy(false);
+    }
+  };
 
   // "Book the same fundi again" — one tap clones the completed job and
   // invites the same worker back; they accept with one tap on their side.
@@ -152,6 +215,84 @@ export default function JobDetailsPage() {
           <ChevronLeft size={18} /> {t('common.back')}
         </button>
 
+        {/* Edit form (employer, open jobs only) */}
+        {editing && isMyJob && (
+          <div className="bg-white rounded-3xl border border-blue-100/40 p-5 lg:p-6 mb-5 space-y-3">
+            <h3 className="font-bold text-[#0A0F2C]">{t('pj.edit')}</h3>
+            <p className="text-slate-400 text-[11px]">{t('pj.editNote')}</p>
+            <input
+              value={editForm.title}
+              onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+              placeholder={t('pj.titlePlaceholder')}
+              className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500"
+            />
+            <textarea
+              value={editForm.description}
+              onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+              placeholder={t('pj.descPlaceholder')}
+              rows={3}
+              className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 resize-none"
+            />
+            <input
+              value={editForm.location}
+              onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))}
+              placeholder={t('pj.locationPlaceholder')}
+              className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="datetime-local"
+                value={editForm.dateTime}
+                onChange={e => setEditForm(f => ({ ...f, dateTime: e.target.value }))}
+                className="border border-slate-200 rounded-xl px-3 py-3 text-sm text-slate-900 focus:outline-none focus:border-blue-500"
+              />
+              <input
+                type="tel" inputMode="numeric"
+                value={editForm.pay}
+                onChange={e => setEditForm(f => ({ ...f, pay: e.target.value.replace(/[^\d]/g, '') }))}
+                placeholder={t('pj.payPlaceholder')}
+                className="border border-slate-200 rounded-xl px-3 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={editForm.workersNeeded}
+                onChange={e => setEditForm(f => ({ ...f, workersNeeded: Number(e.target.value) }))}
+                className="border border-slate-200 rounded-xl px-3 py-3 text-sm text-slate-900 focus:outline-none focus:border-blue-500 bg-white"
+              >
+                {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                  <option key={n} value={n}>{t('job.workersNeeded', { n })}</option>
+                ))}
+              </select>
+              <select
+                value={editForm.urgency}
+                onChange={e => setEditForm(f => ({ ...f, urgency: e.target.value as 'immediate' | 'scheduled' }))}
+                className="border border-slate-200 rounded-xl px-3 py-3 text-sm text-slate-900 focus:outline-none focus:border-blue-500 bg-white"
+              >
+                <option value="scheduled">{t('job.scheduled')}</option>
+                <option value="immediate">{t('job.urgent')}</option>
+              </select>
+            </div>
+            {editError && <p className="text-red-500 text-xs font-medium">{editError}</p>}
+            <div className="flex gap-2">
+              <button
+                onClick={saveEdit}
+                disabled={editBusy || !editForm.title.trim() || !editForm.location.trim()}
+                className="flex-1 py-3.5 rounded-2xl font-bold text-white text-sm active:scale-95 transition-transform disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}
+              >
+                {editBusy ? '…' : t('pj.saveEdit')}
+              </button>
+              <button
+                onClick={() => setEditing(false)}
+                className="px-5 py-3.5 rounded-2xl font-bold text-sm text-slate-500 bg-slate-100 active:scale-95 transition-transform"
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Job hero card */}
         <div className="bg-white rounded-3xl border border-blue-100/40 overflow-hidden mb-5">
           {/* Top accent bar */}
@@ -176,6 +317,17 @@ export default function JobDetailsPage() {
                   </span>
                 </div>
                 <p className="text-slate-500 text-sm mt-1">{t('job.postedBy', { name: job.employerName })}</p>
+                {isMyJob && job.status === 'open' && !editing && (
+                  <button onClick={startEditing}
+                    className="mt-2 flex items-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 active:scale-95 transition-transform">
+                    <Pencil size={12} /> {t('pj.edit')}
+                  </button>
+                )}
+                {editSaved && (
+                  <p className="mt-2 flex items-center gap-1 text-xs font-bold text-green-600">
+                    <CheckCircle size={12} /> {t('pj.editSaved')}
+                  </p>
+                )}
               </div>
             </div>
 

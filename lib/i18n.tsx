@@ -263,6 +263,10 @@ const dict: Record<string, { en: string; lg: string; sw: string; luo: string }> 
   'pj.postNow':         { en: 'Post Job Now',                lg: 'Yatula Omulimu Kati',   sw: 'Tangaza Kazi Sasa',     luo: 'Yab Tic Kombedi' },
   'pj.successTitle':    { en: 'Job Posted!',                 lg: 'Omulimu Guwereereddwa!', sw: 'Kazi Imetangazwa!',    luo: 'Tic Oyub!' },
   'pj.successSub':      { en: 'Workers in your area are being notified right now.', lg: 'Bafundi mu kitundu kyo bateegekeddwa kakano.', sw: 'Mafundi wa eneo lako wanaarifiwa sasa hivi.', luo: 'Bafundi i kabedo mera giyeyo gi ngec kombedi.' },
+  'pj.edit':            { en: 'Edit job',                    lg: 'Kyusa omulimu',         sw: 'Hariri kazi',           luo: 'Lok tic' },
+  'pj.editNote':        { en: 'You can edit while no fundi has been accepted yet.', lg: 'Osobola okukyusa nga tewali fundi yakkirizibwa.', sw: 'Unaweza kuhariri kabla mfundi hajakubaliwa.', luo: 'Irom loko ka fundi mo pe okwede.' },
+  'pj.saveEdit':        { en: 'Save changes',                lg: 'Kuuma enkyukakyuka',    sw: 'Hifadhi mabadiliko',    luo: 'Gwok alokoloka' },
+  'pj.editSaved':       { en: 'Job updated!',                lg: 'Omulimu gukyusiddwa!',  sw: 'Kazi imesasishwa!',     luo: 'Tic oloki!' },
 
   // ── Categories (display labels — stored values stay English) ──
   'cat.cleaning':       { en: 'Cleaning',                    lg: 'Okuyonja',              sw: 'Usafi',                 luo: 'Cwiyo' },

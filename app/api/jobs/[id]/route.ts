@@ -74,11 +74,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     // Map camelCase → snake_case
     if (body.status)        updates.status        = body.status;
+    if (body.title)         updates.title         = body.title;
     if (body.description !== undefined) updates.description = body.description;
     if (body.location)      updates.location      = body.location;
     if (body.dateTime)      updates.date_time     = body.dateTime;
     if (body.pay !== undefined) updates.pay        = body.pay;
     if (body.workersNeeded) updates.workers_needed = body.workersNeeded;
+    if (body.urgency)       updates.urgency       = body.urgency;
+    if (body.category !== undefined) updates.category = body.category;
     if (body.images)        updates.images        = body.images;
 
     if (Object.keys(updates).length === 0) {
@@ -99,6 +102,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
     if (updates.workers_needed !== undefined && updates.workers_needed < 1) {
       return NextResponse.json({ error: 'workersNeeded must be at least 1' }, { status: 400 });
+    }
+    if (updates.urgency && !['immediate', 'scheduled'].includes(updates.urgency)) {
+      return NextResponse.json({ error: 'Invalid urgency' }, { status: 400 });
     }
 
     const sb = createServerSupabase();
