@@ -10,19 +10,23 @@ interface Stats {
   totalJobs: number; openJobs: number; activeJobs: number; completedJobs: number;
 }
 
+interface SignupDay { date: string; workers: number; employers: number }
+
 export default function AdminDashboard() {
   const { jobs, refreshJobs } = useKola();
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [workers, setWorkers] = useState<any[]>([]);
+  const [signups, setSignups] = useState<SignupDay[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
     await refreshJobs();
-    const [statsFetch, workersFetch] = await Promise.all([
+    const [statsFetch, workersFetch, chartsFetch] = await Promise.all([
       fetch('/api/admin/stats').catch(() => null),
       fetch('/api/admin/users?role=worker').catch(() => null),
+      fetch('/api/admin/charts').catch(() => null),
     ]);
     if (statsFetch?.status === 401 || workersFetch?.status === 401) {
       router.push('/admin/login');
@@ -30,8 +34,10 @@ export default function AdminDashboard() {
     }
     const statsRes = statsFetch ? await statsFetch.json().catch(() => null) : null;
     const workersRes = workersFetch ? await workersFetch.json().catch(() => null) : null;
+    const chartsRes = chartsFetch ? await chartsFetch.json().catch(() => null) : null;
     if (statsRes && !statsRes.error) setStats(statsRes);
     if (workersRes?.users) setWorkers(workersRes.users);
+    if (chartsRes?.signupsByDay) setSignups(chartsRes.signupsByDay);
     setLoading(false);
   };
 
@@ -93,6 +99,57 @@ export default function AdminDashboard() {
           </div>
         ))}
       </div>
+
+      {/* Sign-ups this month — compact live SVG chart */}
+      {signups.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-8 animate-slide-up-d2">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-black text-[#0A0F2C]">New sign-ups, last 30 days</h2>
+            <div className="flex gap-4">
+              <span className="flex items-center gap-1.5 text-xs text-slate-500 font-semibold">
+                <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: '#2952E8' }} /> Workers
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-slate-500 font-semibold">
+                <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: '#9333EA' }} /> Employers
+              </span>
+            </div>
+          </div>
+          <p className="text-slate-400 text-xs mb-3">How many people joined each day — hover a bar for the exact number.</p>
+          {(() => {
+            const W = 900, H = 120, PAD_B = 18, PAD_T = 6;
+            const max = Math.max(...signups.map(d => d.workers + d.employers), 1);
+            const groupW = W / signups.length;
+            const barW = Math.max((groupW - 6) / 2, 2);
+            const scale = (v: number) => (v / max) * (H - PAD_B - PAD_T);
+            const shortDate = (iso: string) =>
+              new Date(iso + 'T00:00:00').toLocaleDateString('en-UG', { month: 'short', day: 'numeric' });
+            return (
+              <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
+                {signups.map((d, i) => {
+                  const x = i * groupW + 3;
+                  return (
+                    <g key={d.date}>
+                      <rect x={x} y={H - PAD_B - scale(d.workers)} width={barW}
+                        height={Math.max(scale(d.workers), d.workers ? 2 : 0)} rx={1.5} fill="#2952E8">
+                        <title>{`${shortDate(d.date)}: ${d.workers} worker${d.workers === 1 ? '' : 's'} joined`}</title>
+                      </rect>
+                      <rect x={x + barW + 1.5} y={H - PAD_B - scale(d.employers)} width={barW}
+                        height={Math.max(scale(d.employers), d.employers ? 2 : 0)} rx={1.5} fill="#9333EA">
+                        <title>{`${shortDate(d.date)}: ${d.employers} employer${d.employers === 1 ? '' : 's'} joined`}</title>
+                      </rect>
+                      {(i % 7 === 0 || i === signups.length - 1) && (
+                        <text x={i * groupW + groupW / 2} y={H - 5} textAnchor="middle" fontSize={10} fill="#94A3B8">
+                          {shortDate(d.date)}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+              </svg>
+            );
+          })()}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Jobs */}

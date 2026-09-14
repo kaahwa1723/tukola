@@ -9,16 +9,38 @@ interface AdminUser {
   location?: string; rating?: number; completedJobs?: number;
   reliabilityScore?: number;
   skills?: string[]; isVerified: boolean; blocked?: boolean;
+  sex?: 'male' | 'female'; dateOfBirth?: string; createdAt?: string;
+}
+
+type Tab = 'all' | 'worker' | 'employer';
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'all',      label: 'Everyone'  },
+  { key: 'worker',   label: 'Workers'   },
+  { key: 'employer', label: 'Employers' },
+];
+
+function ageFrom(dateOfBirth?: string): number | null {
+  if (!dateOfBirth) return null;
+  const dob = new Date(dateOfBirth);
+  if (isNaN(dob.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - dob.getFullYear();
+  const beforeBirthday =
+    now.getMonth() < dob.getMonth() ||
+    (now.getMonth() === dob.getMonth() && now.getDate() < dob.getDate());
+  if (beforeBirthday) age -= 1;
+  return age >= 0 && age < 120 ? age : null;
 }
 
 export default function AdminUsersPage() {
   const router = useRouter();
-  const [tab, setTab]       = useState<'workers' | 'employers'>('workers');
+  const [tab, setTab]       = useState<Tab>('all');
   const [search, setSearch] = useState('');
   const [users, setUsers]   = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadUsers = async (role: string) => {
+  const loadUsers = async (role: Tab) => {
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/users?role=${role}`);
@@ -49,12 +71,17 @@ export default function AdminUsersPage() {
     if (res.status === 401) router.push('/admin/login');
   };
 
+  const tabLabel = TABS.find(t => t.key === tab)!.label.toLowerCase();
+  const colCount = tab === 'worker' ? 10 : 8;
+
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-[#0A0F2C]">Users</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{users.length} {tab} registered</p>
+          <p className="text-slate-500 text-sm mt-0.5">
+            {users.length} {tab === 'all' ? 'people' : tabLabel} registered
+          </p>
         </div>
         <button onClick={() => loadUsers(tab)} disabled={loading}
           className="flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-xl transition-colors disabled:opacity-60"
@@ -67,13 +94,13 @@ export default function AdminUsersPage() {
       {/* Tabs + Search */}
       <div className="flex gap-3 mb-5 flex-wrap">
         <div className="flex bg-white rounded-xl border border-slate-200 p-1 shadow-sm">
-          {(['workers', 'employers'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)}
               className="px-4 py-2 rounded-lg text-sm font-semibold transition-all active:scale-95"
-              style={tab === t
+              style={tab === t.key
                 ? { background: '#2952E8', color: '#fff' }
                 : { color: '#4A5580' }}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+              {t.label}
             </button>
           ))}
         </div>
@@ -86,7 +113,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
         {loading ? (
           <div className="py-16 text-center text-slate-400">
             <RefreshCw size={20} className="animate-spin mx-auto mb-2" />
@@ -96,9 +123,15 @@ export default function AdminUsersPage() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
-                <th className="text-left px-4 py-3 text-slate-600 font-semibold">User</th>
+                <th className="text-left px-4 py-3 text-slate-600 font-semibold">Name</th>
                 <th className="text-left px-4 py-3 text-slate-600 font-semibold hidden md:table-cell">Phone</th>
-                {tab === 'workers' && (
+                {tab === 'all' && (
+                  <th className="text-left px-4 py-3 text-slate-600 font-semibold">Role</th>
+                )}
+                <th className="text-left px-4 py-3 text-slate-600 font-semibold hidden lg:table-cell">Sex</th>
+                <th className="text-left px-4 py-3 text-slate-600 font-semibold hidden lg:table-cell">Age</th>
+                <th className="text-left px-4 py-3 text-slate-600 font-semibold hidden md:table-cell">Joined</th>
+                {tab === 'worker' && (
                   <>
                     <th className="text-left px-4 py-3 text-slate-600 font-semibold hidden md:table-cell">Rating</th>
                     <th className="text-left px-4 py-3 text-slate-600 font-semibold hidden lg:table-cell" title="Computed from completed jobs, disputes and cancellations — not editable">Trust Score</th>
@@ -110,7 +143,9 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filtered.map(user => (
+              {filtered.map(user => {
+                const age = ageFrom(user.dateOfBirth);
+                return (
                 <tr key={user.id} className={`table-row-hover transition-colors ${user.blocked ? 'bg-red-50/40' : ''}`}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -129,7 +164,27 @@ export default function AdminUsersPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{user.phone}</td>
-                  {tab === 'workers' && (
+                  {tab === 'all' && (
+                    <td className="px-4 py-3">
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                        user.role === 'worker' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                      }`}>
+                        {user.role === 'worker' ? 'Worker' : 'Employer'}
+                      </span>
+                    </td>
+                  )}
+                  <td className="px-4 py-3 text-slate-600 hidden lg:table-cell">
+                    {user.sex ? (user.sex === 'male' ? 'Male' : 'Female') : <span className="text-slate-400 text-xs">Not shared</span>}
+                  </td>
+                  <td className="px-4 py-3 text-slate-600 hidden lg:table-cell">
+                    {age != null ? age : <span className="text-slate-400 text-xs">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-slate-600 hidden md:table-cell whitespace-nowrap">
+                    {user.createdAt
+                      ? new Date(user.createdAt).toLocaleDateString('en-UG', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : '—'}
+                  </td>
+                  {tab === 'worker' && (
                     <>
                       <td className="px-4 py-3 hidden md:table-cell">
                         {user.rating != null ? (
@@ -169,11 +224,11 @@ export default function AdminUsersPage() {
                       </span>
                     ) : user.isVerified ? (
                       <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-green-100 text-green-700">
-                        <CheckCircle size={11} /> Verified
+                        <CheckCircle size={11} /> ID verified
                       </span>
                     ) : (
                       <span className="inline-flex text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500">
-                        Pending
+                        Not verified
                       </span>
                     )}
                   </td>
@@ -203,10 +258,11 @@ export default function AdminUsersPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={tab === 'workers' ? 7 : 4}>
+                  <td colSpan={colCount}>
                     <div className="empty-state">
                       <div className="empty-icon"><Users size={30} color="#2952E8" /></div>
                       <p className="empty-title">No users found</p>

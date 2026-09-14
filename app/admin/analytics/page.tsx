@@ -6,6 +6,7 @@ import {
   CheckCircle2, BarChart3, RefreshCw, Star, FileText, CreditCard,
   UserPlus, PhoneCall, Send, Handshake, Lock, Flag,
 } from 'lucide-react';
+import GrowthCharts from './charts';
 
 interface Stats {
   totalUsers: number;
@@ -303,6 +304,9 @@ export default function AdminAnalyticsPage() {
           </div>
         </div>
       </div>
+
+      {/* Growth graphs — live SVG charts, no estimates */}
+      <GrowthCharts />
 
       {/* Reconciliation flags — raised by the daily /api/cron/reconcile run */}
       <div className="mt-6 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
