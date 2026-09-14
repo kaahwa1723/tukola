@@ -12,7 +12,7 @@ A **transaction-owning marketplace** connecting households and SMEs in Greater K
 
 **Positioning:** *"Tukola stands behind every job."* We sell certainty and recourse — never cheapness.
 
-**Revenue:** 10% flat launch commission on completed platform-paid jobs (all jobs incl. B2B; negotiable band 7%–15%, path to 12–15% after density is proven) · B2B contracts (UGX 150K/mo service fee + EFRIS invoicing) · Featured Passes (garnish only) · fundi fintech (Phase 3, M12+).
+**Revenue:** 17% commission on completed platform-paid consumer jobs (15% B2B) · B2B contracts (UGX 150K/mo service fee + EFRIS invoicing) · Featured Passes (garnish only) · fundi fintech (Phase 3, M12+).
 
 ## 2. Who it's for
 
@@ -29,7 +29,7 @@ A **transaction-owning marketplace** connecting households and SMEs in Greater K
 - Real OTP login via local SMS (Africa's Talking class stubbed; mock provider live)
 - Server-side sessions; all API routes derive identity from session
 - Escrow ledger: `pending → held → released/refunded/disputed`, guarded transitions
-- Commission split 10%/90% on release + 2% guarantee accrual
+- Commission split 17%/83% on release + 2% guarantee accrual
 - Two-tap completion (fundi "Job done" → customer "Confirm & release" or dispute)
 - EFRIS-ready receipts · idempotent payment webhooks · auto-release cron
 - Honest analytics: 10 real funnel events, live DB counters, zero fabricated stats

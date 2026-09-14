@@ -55,7 +55,7 @@ kola/
 
 `escrow.ts` (state machine below) · `payments/` (MoMo + Flutterwave providers, idempotent webhooks via `PAYMENT_WEBHOOK_SECRET`) · `otp.ts` + `sms/` (swappable provider) · `session.ts` · `analytics.ts` (10 funnel events) · `leakage.ts` · `rate-limit.ts` · `phone.ts` (E.164 +256 normalization at every entry point) · `i18n.tsx` · `store.tsx` (client state) · `data.ts` · `types.ts` · `constants.ts`.
 
-**Escrow states:** `pending → held → released / refunded / disputed` — transitions guarded. Release splits 10% platform / 90% fundi and accrues 2% to `guarantee_reserve`. Two-tap completion: fundi marks done → employer confirms release or disputes. Auto-release 48h post-completion via cron.
+**Escrow states:** `pending → held → released / refunded / disputed` — transitions guarded. Release splits 17% platform / 83% fundi and accrues 2% to `guarantee_reserve`. Two-tap completion: fundi marks done → employer confirms release or disputes. Auto-release 48h post-completion via cron.
 
 ## 5. API surface (39 routes)
 

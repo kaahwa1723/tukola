@@ -7,7 +7,7 @@
 
 1. **DB access:** service-role key in API routes only. RLS deny-all for anon/authenticated (migration 006). Custom OTP sessions — there is no `auth.uid()`, ever.
 2. **Server-owned fields** (never accept from client): `is_verified`, `rating`, `completed_jobs`, role, escrow/payment amounts, guarantee payouts.
-3. **Escrow state machine:** `pending → held → released/refunded/disputed`. Guarded transitions only. Release = 10% platform / 90% fundi + 2% guarantee accrual.
+3. **Escrow state machine:** `pending → held → released/refunded/disputed`. Guarded transitions only. Release = 17% platform / 83% fundi + 2% guarantee accrual.
 4. **Phones:** E.164 `+256` normalization at every entry point (`lib/phone.ts`). MoMo number ≠ contact number. Contact details locked behind escrow.
 5. **Payments:** dual-rail — MTN MoMo primary, Flutterwave redundancy. Idempotent webhooks. USSD-push UX reality.
 6. **No fabricated data anywhere.** Landing counters query the live DB.

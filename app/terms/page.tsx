@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Terms of Service — Tukola',
-  description: 'The terms for using Tukola — escrow payments, the 10% fee, the Tukola Guarantee, and marketplace rules.',
+  description: 'The terms for using Tukola — escrow payments, the 17% fee, the Tukola Guarantee, and marketplace rules.',
 };
 
 const sections = [
@@ -31,7 +31,7 @@ const sections = [
   {
     id: 'fees',
     title: '4. Fees',
-    body: `Tukola charges a flat 10% platform fee on completed platform-paid jobs, deducted from the job amount before the fundi is paid — the fundi always receives 90%. There are no subscription fees, no listing fees, and no hidden charges. A further 2% of every completed job goes into the guarantee reserve (see below) — this does not change what you pay.`,
+    body: `Tukola charges a flat 17% platform fee on completed platform-paid jobs, deducted from the job amount before the fundi is paid (business accounts: 15%). There are no subscription fees, no listing fees, and no hidden charges. A further 2% of every completed job goes into the guarantee reserve (see below) — this does not change what you pay.`,
   },
   {
     id: 'guarantee',

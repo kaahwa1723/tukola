@@ -15,21 +15,21 @@ import { creditWallet } from './wallet';
  *
  * Split on release (per the rebuild plan):
  *   - fundi payout  = amount − commission
- *   - commission    = 10% flat launch rate on ALL jobs (incl. B2B-flagged)
+ *   - commission    = 17% of GMV (15% for B2B-flagged jobs)
  *   - guarantee     = 2% of GMV, accrued FROM the platform's commission
  *                     into the guarantee_reserve ledger
  *   - platform net  = commission − guarantee_accrual − psp_fee
  * ASSUMPTION (flagged to founder): the 2% guarantee accrual comes out of
- * the platform's 10%, not on top of it — the fundi always gets exactly
- * 90%. If the 2% should come off the fundi's side instead,
+ * the platform's 17%, not on top of it — the fundi always gets exactly
+ * 83% (85% B2B). If the 2% should come off the fundi's side instead,
  * change computeSplit() — one place.
- * REPRICING (founder decision, Sept 2026): launch rate 10%, negotiable
- * band 7%–15%; path to 12–15% once density is proven. B2B rate kept at
- * 10% for launch — raise COMMISSION_RATE_B2B when B2B pricing is set.
+ * NOTE: a flat 10% rate was trialed briefly on 15 Sep 2026 and reverted
+ * the same day (founder decision) — payment costs come OUT of the take,
+ * so 17%/15% is the operating rate.
  */
 
-export const COMMISSION_RATE = 0.10;
-export const COMMISSION_RATE_B2B = 0.10;
+export const COMMISSION_RATE = 0.17;
+export const COMMISSION_RATE_B2B = 0.15;
 export const GUARANTEE_RATE = 0.02;
 
 export interface Split {
