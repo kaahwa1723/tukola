@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MapPin, Briefcase, LogOut, ChevronRight, Edit2, Building2, Phone, CheckCircle, Settings, FileText, HelpCircle, Users, Star, MessageSquareHeart } from 'lucide-react';
+import { MapPin, Briefcase, LogOut, ChevronRight, Edit2, Building2, Phone, CheckCircle, Settings, FileText, HelpCircle, Users, Star, MessageSquareHeart, Wallet } from 'lucide-react';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { useKola } from '@/lib/store';
 
@@ -199,6 +199,7 @@ export default function EmployerProfilePage() {
         <div className="bg-white rounded-2xl overflow-hidden"
           style={{ border: '1px solid rgba(41,82,232,0.08)', boxShadow: '0 2px 12px rgba(41,82,232,0.05)' }}>
           {[
+            { label: 'My Wallet',          icon: Wallet,     href: '/wallet' },
             { label: 'Account Settings',  icon: Settings,   href: '/employer/profile' },
             { label: 'My Posted Jobs',     icon: Briefcase,  href: '/employer/jobs' },
             { label: 'Send Feedback',      icon: MessageSquareHeart, href: '/feedback' },

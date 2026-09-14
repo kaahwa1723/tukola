@@ -3,8 +3,9 @@ import { getPaymentProvider } from './payments/provider';
 import { track } from './analytics';
 import { redeemCreditsForRelease, reverseRedemption } from './referrals';
 import { sendPaymentHeldEmail, sendPaymentReleasedEmail } from './email/notify';
-import { notifyJobEvent } from './notify';
+import { notifyJobEvent, notifyUser } from './notify';
 import { reportError } from './error-report';
+import { creditWallet } from './wallet';
 
 /**
  * Escrow — state machine + money math.
@@ -91,6 +92,24 @@ export async function transitionPayment(paymentId: number, to: string): Promise<
     // SMS too — most fundis check texts, not email (fire-and-forget).
     notifyJobEvent(sb, payment.job_id, payment.payee_id, (title) =>
       `Tukola: UGX ${Number(payment.amount).toLocaleString()} for "${title}" is now held safely. You can start the work — payment is guaranteed when the job is confirmed.`
+    ).catch(() => {});
+  }
+
+  // Refund of money that was actually collected (held → refunded) lands in
+  // the payer's Tukola wallet — instant, no MoMo payout fee, and it keeps
+  // the money on-platform for their next job. pending → refunded means the
+  // debit never happened, so NOTHING is credited (that would mint money).
+  if (to === 'refunded' && payment.status === 'held') {
+    await creditWallet(sb, {
+      userId: payment.payer_id,
+      kind: 'refund',
+      amountUgx: Number(payment.amount),
+      paymentId,
+      idempotencyKey: `refund_${paymentId}`,
+      note: 'Escrow refund to wallet',
+    });
+    notifyUser(sb, payment.payer_id,
+      `Tukola: UGX ${Number(payment.amount).toLocaleString()} was refunded to your Tukola wallet. Open the app to see your balance.`
     ).catch(() => {});
   }
 }

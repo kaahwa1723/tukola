@@ -430,6 +430,31 @@ const dict: Record<string, { en: string; lg: string; sw: string; luo: string }> 
 
   // ── Chat off-platform nudge ────────────────────────────
   'chat.leakNudge':     { en: 'Sharing numbers or paying outside Tukola means no payment protection, no guarantee and no receipt.', lg: 'Okugabana namba oba okusasula ebweru wa Tukola kitegeeza tewali kukuuma ssente, guarantee oba risiti.', sw: 'Kushiriki namba au kulipa nje ya Tukola kunamaanisha hakuna ulinzi wa malipo, guarantee wala risiti.', luo: 'Poko namba onyo culo woko pa Tukola nyiso ni gwoko lim, guarantee onyo risit pe tye.' },
+
+  // ── Wallet ─────────────────────────────────────────────
+  'wallet.title':       { en: 'My Wallet',                   lg: 'Wallet Yange',          sw: 'Wallet Yangu',          luo: 'Wallet Na' },
+  'wallet.balance':     { en: 'Available balance',           lg: 'Ssente ziriwo',         sw: 'Salio lililopo',        luo: 'Lim ma tye' },
+  'wallet.load':        { en: 'Load wallet',                 lg: 'Teeeza ssente',         sw: 'Weka pesa',             luo: 'Ket lim' },
+  'wallet.loadTitle':   { en: 'Load your wallet',            lg: 'Teeza ssente mu wallet yo', sw: 'Weka pesa kwenye wallet yako', luo: 'Ket lim i wallet mera' },
+  'wallet.amountPh':    { en: 'Amount (UGX)',                lg: 'Omuwendo (UGX)',        sw: 'Kiasi (UGX)',           luo: 'Cul (UGX)' },
+  'wallet.phonePh':     { en: 'MoMo number',                 lg: 'Namba ya MoMo',         sw: 'Namba ya MoMo',         luo: 'Namba me MoMo' },
+  'wallet.loadCta':     { en: 'Load via MoMo',               lg: 'Teeza nga MoMo',        sw: 'Weka kwa MoMo',         luo: 'Ket ki MoMo' },
+  'wallet.waiting':     { en: 'Check your phone — enter your MoMo PIN to approve.', lg: 'Keera ku ssimu yo — yingiza PIN yo okakasa.', sw: 'Angalia simu yako — weka PIN yako kuthibitisha.', luo: 'Nen cim mera — ket PIN mero me moko.' },
+  'wallet.success':     { en: 'Wallet loaded!',              lg: 'Ssente zitussiddwa!',   sw: 'Pesa imewekwa!',        luo: 'Lim ooko!' },
+  'wallet.failed':      { en: 'The debit was declined or timed out.', lg: 'Okusasula kugaanye oba kiseera kyewedde.', sw: 'Malipo yamekataliwa au muda umeisha.', luo: 'Culo okwero onyo cawa orum.' },
+  'wallet.history':     { en: 'History',                     lg: 'Ebyafaayo',             sw: 'Historia',              luo: 'Gin ma otime' },
+  'wallet.empty':       { en: 'No transactions yet',         lg: 'Tewali nsasula na emu', sw: 'Hakuna miamala bado',   luo: 'Gin mo pe otime' },
+  'wallet.note':        { en: 'Wallet money pays for jobs instantly — no PIN each time. Refunds come back here.', lg: 'Ssente za wallet zisasula omulimu amangwago — tewali PIN buli lwe osasula. Zizzaayo wano.', sw: 'Pesa ya wallet hulipa kazi mara moja — hakuna PIN kila mara. Marejesho yanarudi hapa.', luo: 'Lim me wallet culo tic cut — PIN pe ki cene. Lim ma gigo dok kany.' },
+  'wallet.pendingTopup': { en: 'Waiting for PIN approval…',  lg: 'Tulinde okukakasa kwa PIN…', sw: 'Inasubiri idhini ya PIN…', luo: 'Tye ka rito moko me PIN…' },
+  'wallet.kind.topup':  { en: 'Top-up',                      lg: 'Okuteeka ssente',       sw: 'Kuweka pesa',           luo: 'Keto lim' },
+  'wallet.kind.job_funding': { en: 'Job payment',            lg: 'Okusasula omulimu',     sw: 'Malipo ya kazi',        luo: 'Cul me tic' },
+  'wallet.kind.refund': { en: 'Refund',                      lg: 'Okuzza ssente',         sw: 'Marejesho',             luo: 'Dwogo lim' },
+  'wallet.kind.adjustment': { en: 'Adjustment',              lg: 'Okutereeza',            sw: 'Marekebisho',           luo: 'Yubo' },
+
+  // ── Escrow: wallet funding ─────────────────────────────
+  'esc.useWallet':      { en: 'Pay instantly from wallet',   lg: 'Sasula amangwago okuva mu wallet', sw: 'Lipa mara moja kutoka wallet', luo: 'Cul cut ki wallet' },
+  'esc.walletLow':      { en: 'Wallet: {bal} — top up to skip the PIN next time', lg: 'Wallet: {bal} — teeka ssente oleme PIN omulundi oguddiro', sw: 'Wallet: {bal} — weka pesa uepuke PIN wakati ujao', luo: 'Wallet: {bal} — ket lim wek ikwany PIN i kare malubo' },
+  'esc.walletFunded':   { en: 'Funded instantly from your wallet.', lg: 'Osasudde amangwago okuva mu wallet yo.', sw: 'Imefadhiliwa mara moja kutoka wallet yako.', luo: 'Ocule cut ki wallet mera.' },
 };
 
 interface I18nContextValue {

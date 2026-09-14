@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { ShieldCheck, Banknote, AlertTriangle, Camera, CheckCircle, Clock, CircleDashed } from 'lucide-react';
 import { UploadImagePicker } from './UploadImagePicker';
 import type { Job, User } from '@/lib/types';
@@ -51,6 +52,7 @@ export function EscrowPanel({ job, user, isEmployer, isAcceptedWorker }: Props) 
   const [loaded, setLoaded] = useState(false);                        // gate banners until first fetch lands
   const [workerDoneAt, setWorkerDoneAt] = useState<string | null>((job as any).workerDoneAt ?? null);
   const [momoPhone, setMomoPhone] = useState('');
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
@@ -97,6 +99,15 @@ export function EscrowPanel({ job, user, isEmployer, isAcceptedWorker }: Props) 
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Employers: load wallet balance so "Pay from wallet" appears when it covers the stage
+  useEffect(() => {
+    if (!isEmployer) return;
+    fetch('/api/wallet')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d) setWalletBalance(d.balance ?? 0); })
+      .catch(() => {});
+  }, [isEmployer, payment, payments]);
+
   // While any debit is pending, poll for the customer's PIN approval
   const anyPending = payment?.status === 'pending' || payments.some((p) => p.status === 'pending');
   useEffect(() => {
@@ -138,6 +149,26 @@ export function EscrowPanel({ job, user, isEmployer, isAcceptedWorker }: Props) 
     }
     return res;
   }, 'Could not start the payment.');
+
+  // Wallet funding completes instantly — the money is already on-platform,
+  // so the escrow row goes straight to 'held' with no USSD prompt.
+  const fundFromWallet = () => act(async () => {
+    const res = await fetch('/api/payments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jobId: job.id,
+        source: 'wallet',
+        ...(currentStage ? { milestoneIdx: currentStage.idx } : {}),
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    if (res.ok) {
+      setNote(t('esc.walletFunded'));
+      refresh();
+    }
+    return res;
+  }, 'Could not fund from the wallet.');
 
   const markDone = () => act(async () => {
     const res = await fetch(`/api/jobs/${job.id}/mark-done`, {
@@ -210,6 +241,24 @@ export function EscrowPanel({ job, user, isEmployer, isAcceptedWorker }: Props) 
           ? `Fund Stage ${currentStage.idx} of ${milestones.length} — "${currentStage.label}". The money is held safely by Tukola and the fundi is paid only when you confirm this stage.`
           : 'Fund this job with Mobile Money. The money is held safely by Tukola until you confirm the work.'}
       </p>
+
+      {/* Wallet funding — instant, no PIN. Only when the balance covers it. */}
+      {walletBalance !== null && walletBalance >= activeAmount && activeAmount > 0 && (
+        <button
+          onClick={fundFromWallet}
+          disabled={busy}
+          className="w-full text-white rounded-xl py-3 font-bold text-sm active:scale-95 transition-transform disabled:opacity-40"
+          style={{ background: 'linear-gradient(135deg,#00C8FF,#2952E8)' }}
+        >
+          {busy ? '…' : `${t('esc.useWallet')} (${formatUgx(walletBalance)})`}
+        </button>
+      )}
+      {walletBalance !== null && walletBalance < activeAmount && (
+        <Link href="/wallet" className="block text-center text-blue-600 text-xs font-semibold">
+          {t('esc.walletLow', { bal: formatUgx(walletBalance) })}
+        </Link>
+      )}
+
       <input
         type="tel"
         inputMode="numeric"

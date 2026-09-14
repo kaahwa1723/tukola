@@ -4,6 +4,8 @@ import { getSessionUser } from '@/lib/session';
 import { getPaymentProvider } from '@/lib/payments/provider';
 import { normalizeUgPhone } from '@/lib/phone';
 import { reportError } from '@/lib/error-report';
+import { debitWallet, creditWallet, InsufficientFundsError } from '@/lib/wallet';
+import { transitionPayment } from '@/lib/escrow';
 
 /**
  * GET /api/payments?jobId=xxx
@@ -72,9 +74,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const { jobId, momoPhone: rawPhone, milestoneIdx: rawMilestoneIdx } = await req.json();
+    const { jobId, momoPhone: rawPhone, milestoneIdx: rawMilestoneIdx, source } = await req.json();
+    const fromWallet = source === 'wallet';
     const momoPhone = normalizeUgPhone(rawPhone);
-    if (!jobId || !momoPhone) {
+    if (!jobId || (!fromWallet && !momoPhone)) {
       return NextResponse.json({ error: 'jobId and a valid Uganda MoMo number are required' }, { status: 400 });
     }
 
@@ -178,6 +181,78 @@ export async function POST(req: NextRequest) {
     const provider = getPaymentProvider();
     const idempotencyKey = milestone ? `pay_${jobId}_m${milestone.idx}` : `pay_${jobId}`;
 
+    // ── Wallet funding: the money is already on the platform ─────────
+    // Debit the employer's wallet, create the escrow row, move it
+    // straight to 'held' — no USSD prompt, no PIN, no waiting.
+    if (fromWallet) {
+      try {
+        await debitWallet(sb, {
+          userId: user.id,
+          kind: 'job_funding',
+          amountUgx,
+          idempotencyKey: `wallet_fund_${idempotencyKey}`,
+          note: milestone ? `Job funding — stage ${milestone.idx}` : 'Job funding',
+        });
+      } catch (e) {
+        if (e instanceof InsufficientFundsError) {
+          return NextResponse.json(
+            { error: `Your wallet has UGX ${e.balance.toLocaleString()} but this needs UGX ${e.required.toLocaleString()}. Top up first.`, balance: e.balance, required: e.required },
+            { status: 402 }
+          );
+        }
+        throw e;
+      }
+
+      const { data: payment, error } = await sb
+        .from('payments')
+        .insert({
+          job_id: jobId,
+          payer_id: user.id,
+          payee_id: payeeId,
+          amount: amountUgx,
+          status: 'pending',
+          provider: 'wallet',
+          idempotency_key: idempotencyKey,
+          payer_momo_phone: null,
+          payee_momo_phone: payeeMomoPhone,
+          ...(milestone ? { milestone_id: milestone.id } : {}),
+        })
+        .select()
+        .single();
+
+      if (error) {
+        // Never strand a debit: put the money back, then fail loudly
+        await creditWallet(sb, {
+          userId: user.id,
+          kind: 'refund',
+          amountUgx,
+          idempotencyKey: `wallet_fund_reversal_${idempotencyKey}`,
+          note: 'Reversal — escrow row could not be created',
+        });
+        throw error;
+      }
+
+      if (milestone) {
+        await sb.from('job_milestones').update({ payment_id: payment.id }).eq('id', milestone.id);
+      }
+
+      try {
+        await transitionPayment(payment.id, 'held'); // fires held SMS/email
+      } catch (heldErr) {
+        // Fallback: set held directly so the payment never hangs
+        await sb.from('payments')
+          .update({ status: 'held', held_at: new Date().toISOString() })
+          .eq('id', payment.id);
+        reportError('payments.wallet-hold', heldErr, { paymentId: payment.id, jobId });
+      }
+
+      return NextResponse.json({
+        payment: { ...payment, status: 'held' },
+        walletFunded: true,
+        message: 'Funded instantly from your wallet.',
+      }, { status: 201 });
+    }
+
     // Create the escrow row first (money moves only against a ledger row)
     const { data: payment, error } = await sb
       .from('payments')
@@ -206,8 +281,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Ask the customer's phone for the money (USSD push + PIN)
+    // (wallet source returned above — here momoPhone is guaranteed valid)
     const tx = await provider.requestToPay({
-      phone: momoPhone,
+      phone: momoPhone as string,
       amountUgx,
       externalRef: idempotencyKey,
       narration: milestone

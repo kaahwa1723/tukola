@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { transitionPayment } from '@/lib/escrow';
 import { getPaymentProvider } from '@/lib/payments/provider';
+import { settleTopup } from '@/lib/wallet';
 import { reportError } from '@/lib/error-report';
 
 /**
@@ -38,6 +39,26 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (!payment) {
+      // Maybe it's a wallet top-up, not a job escrow payment
+      const { data: topup } = await sb
+        .from('wallet_topups')
+        .select('id, user_id, amount_ugx, status')
+        .eq('provider_ref', partnerReference)
+        .maybeSingle();
+
+      if (topup) {
+        if (topup.status !== 'pending') {
+          return NextResponse.json({ received: true, matched: true, replay: true });
+        }
+        // Same discipline as escrow: verify server-to-server before crediting
+        const provider = getPaymentProvider();
+        const tx = await provider.getTransactionStatus(partnerReference);
+        if (tx.status !== 'pending') {
+          await settleTopup(sb, topup, tx.status === 'successful' ? 'successful' : 'failed');
+        }
+        return NextResponse.json({ received: true, matched: true, wallet: true, verified: tx.status });
+      }
+
       console.warn('[webhooks/rukapay] unknown partnerReference:', partnerReference);
       // Live-money signal: the provider says a transaction exists that our
       // ledger doesn't know. Alert, but still 200 so RukaPay doesn't retry-storm.

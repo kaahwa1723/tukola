@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MapPin, Star, CheckCircle, Clock, Zap, LogOut, Edit2, ChevronRight, Plus, Settings, Bell, FileText, HelpCircle, MessageSquareHeart, Tag } from 'lucide-react';
+import { MapPin, Star, CheckCircle, Clock, Zap, LogOut, Edit2, ChevronRight, Plus, Settings, Bell, FileText, HelpCircle, MessageSquareHeart, Tag, Wallet } from 'lucide-react';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { useKola } from '@/lib/store';
 import { useI18n } from '@/lib/i18n';
@@ -319,6 +319,7 @@ export default function WorkerProfilePage() {
         <div className="bg-white rounded-2xl overflow-hidden"
           style={{ border: '1px solid rgba(41,82,232,0.08)', boxShadow: '0 2px 12px rgba(41,82,232,0.05)' }}>
           {[
+            { label: 'My Wallet',           icon: Wallet,     href: '/wallet' },
             { label: 'My Services & Prices', icon: Tag,        href: '/worker/services' },
             { label: 'Account Settings',  icon: Settings,   href: '/worker/profile' },
             { label: 'Notifications',      icon: Bell,       href: '/worker/messages' },
