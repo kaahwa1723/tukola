@@ -21,7 +21,7 @@ import { reportError } from '@/lib/error-report';
  *      should have fired — something is wrong).
  *   3. Split math on released payments — guarantee accrual must equal
  *      2% of GMV (±1 UGX rounding); commission must not EXCEED the
- *      17%/15% (B2B) expectation (it can legitimately be LOWER after
+ *      10% flat expectation (it can legitimately be LOWER after
  *      referral-credit redemption — see lib/escrow.ts releasePayment);
  *      commission + fundi payout must not exceed the amount collected.
  *   4. Missing receipts — a released payment without an EFRIS receipt
@@ -169,7 +169,7 @@ export async function GET(req: NextRequest) {
           amount: payment.amount,
           maxExpected: expected.commission,
           actual: payment.commission,
-          note: 'Commission above the 17%/15% rate expectation (below it is normal after credit redemption).',
+          note: 'Commission above the 10% flat rate expectation (below it is normal after credit redemption).',
         });
       }
 

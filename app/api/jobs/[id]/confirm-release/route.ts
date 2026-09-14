@@ -15,7 +15,7 @@ type Params = { params: { id: string } };
  * releases escrow. Consequences:
  *   - the job is marked completed (if not already),
  *   - the accepted worker's completed_jobs count bumps,
- *   - the held payment is released: 83/85% to the fundi, 17/15% commission,
+ *   - the held payment is released: 90% to the fundi, 10% commission,
  *     2% of GMV accrues to the guarantee reserve, receipt issued.
  * Idempotent: confirming twice does not pay twice.
  */
