@@ -157,9 +157,26 @@ export async function releasePayment(paymentId: number): Promise<{
   const commission = split.commission - redemption.payerRedeemed - redemption.payeeRedeemed;
   const fundiPayout = split.fundiPayout + redemption.payeeRedeemed;
 
-  // 1. Pay the fundi (in real life: MoMo disbursement; mock: instant success)
+  // 1. Pay the fundi — to their MoMo (default) or into their Tukola
+  // wallet when they've chosen to batch cash-outs (fewer MoMo fees).
   const provider = getPaymentProvider();
-  if (payment.payee_momo_phone) {
+  const { data: payeePref } = await sb
+    .from('profiles')
+    .select('payout_preference')
+    .eq('id', payment.payee_id)
+    .maybeSingle();
+  const payToWallet = payeePref?.payout_preference === 'wallet';
+
+  if (payToWallet) {
+    await creditWallet(sb, {
+      userId: payment.payee_id,
+      kind: 'earnings',
+      amountUgx: fundiPayout,
+      paymentId: payment.id,
+      idempotencyKey: `earnings_${payment.id}`,
+      note: `Job earnings ${receiptNumber}`,
+    });
+  } else if (payment.payee_momo_phone) {
     const payout = await provider.payout({
       phone: payment.payee_momo_phone,
       amountUgx: fundiPayout,
@@ -248,10 +265,11 @@ export async function releasePayment(paymentId: number): Promise<{
     fundiPayoutUgx: fundiPayout,
   });
 
-  // SMS the fundi — money has actually landed (or is queued) on their
-  // Mobile Money. Fire-and-forget: never affects the release.
+  // SMS the fundi — money has actually landed (or is queued). Fire-and-forget.
   notifyJobEvent(sb, payment.job_id, payment.payee_id, (title) =>
-    `Tukola: UGX ${Number(fundiPayout).toLocaleString()} for "${title}" has been sent to your Mobile Money${payment.payee_momo_phone ? ` ${payment.payee_momo_phone}` : ''}. Receipt ${receiptNumber}.`
+    payToWallet
+      ? `Tukola: UGX ${Number(fundiPayout).toLocaleString()} for "${title}" is now in your Tukola wallet. Cash out to MoMo anytime. Receipt ${receiptNumber}.`
+      : `Tukola: UGX ${Number(fundiPayout).toLocaleString()} for "${title}" has been sent to your Mobile Money${payment.payee_momo_phone ? ` ${payment.payee_momo_phone}` : ''}. Receipt ${receiptNumber}.`
   ).catch(() => {});
 
   return {

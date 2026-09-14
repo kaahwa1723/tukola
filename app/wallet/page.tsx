@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Wallet, Plus, ArrowDownLeft, ArrowUpRight, Clock, CheckCircle, XCircle, ChevronLeft } from 'lucide-react';
+import { Wallet, Plus, ArrowDownLeft, ArrowUpRight, Clock, CheckCircle, XCircle, ChevronLeft, Smartphone, PiggyBank } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { useI18n } from '@/lib/i18n';
 import { formatUgx } from '@/lib/pricing';
@@ -11,7 +11,7 @@ interface Entry { id: number; kind: string; amount_ugx: number; note: string | n
 interface Topup { id: number; amount_ugx: number; status: string; created_at: string; }
 
 export default function WalletPage() {
-  const { user } = useKola();
+  const { user, updateUser } = useKola();
   const { t } = useI18n();
   const router = useRouter();
 
@@ -24,6 +24,9 @@ export default function WalletPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [justLoaded, setJustLoaded] = useState(false);
+  const [withdrawBusy, setWithdrawBusy] = useState(false);
+  const [withdrawMsg, setWithdrawMsg] = useState('');
+  const [prefBusy, setPrefBusy] = useState(false);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
   const refresh = useCallback(async () => {
@@ -91,6 +94,36 @@ export default function WalletPage() {
 
   const kindLabel = (kind: string) =>
     t(`wallet.kind.${kind}` as any) !== `wallet.kind.${kind}` ? t(`wallet.kind.${kind}` as any) : kind;
+
+  const setPayoutPref = async (pref: 'momo' | 'wallet') => {
+    if (!user || user.payoutPreference === pref || prefBusy) return;
+    setPrefBusy(true);
+    try {
+      await updateUser({ payoutPreference: pref });
+    } finally {
+      setPrefBusy(false);
+    }
+  };
+
+  const cashOut = async () => {
+    if (withdrawBusy || !balance || balance <= 0) return;
+    setWithdrawBusy(true);
+    setWithdrawMsg('');
+    try {
+      const res = await fetch('/api/wallet/withdraw', { method: 'POST' });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setWithdrawMsg(data?.error ?? t('common.networkError'));
+      } else {
+        setWithdrawMsg(t('wallet.withdrawDone'));
+        refresh();
+      }
+    } catch {
+      setWithdrawMsg(t('common.networkError'));
+    } finally {
+      setWithdrawBusy(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 pb-nav lg:pb-0">
@@ -168,6 +201,55 @@ export default function WalletPage() {
 
         {/* Honest usage note */}
         <p className="text-slate-500 text-[12px] leading-snug px-1">{t('wallet.note')}</p>
+
+        {/* Worker: where released pay goes + cash out */}
+        {user?.role === 'worker' && (
+          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm space-y-3">
+            <h3 className="font-bold text-slate-900">{t('wallet.prefTitle')}</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setPayoutPref('momo')}
+                disabled={prefBusy}
+                className={`flex flex-col items-center gap-1.5 rounded-2xl border-2 px-3 py-3 text-center transition-all ${
+                  (user.payoutPreference ?? 'momo') === 'momo'
+                    ? 'border-blue-600 bg-blue-50'
+                    : 'border-slate-100 bg-slate-50'
+                }`}
+              >
+                <Smartphone size={18} className={(user.payoutPreference ?? 'momo') === 'momo' ? 'text-blue-600' : 'text-slate-400'} />
+                <span className="text-xs font-bold text-slate-800">{t('wallet.prefMomo')}</span>
+              </button>
+              <button
+                onClick={() => setPayoutPref('wallet')}
+                disabled={prefBusy}
+                className={`flex flex-col items-center gap-1.5 rounded-2xl border-2 px-3 py-3 text-center transition-all ${
+                  user.payoutPreference === 'wallet'
+                    ? 'border-blue-600 bg-blue-50'
+                    : 'border-slate-100 bg-slate-50'
+                }`}
+              >
+                <PiggyBank size={18} className={user.payoutPreference === 'wallet' ? 'text-blue-600' : 'text-slate-400'} />
+                <span className="text-xs font-bold text-slate-800">{t('wallet.prefWallet')}</span>
+              </button>
+            </div>
+            {balance !== null && balance > 0 && (
+              <button
+                onClick={cashOut}
+                disabled={withdrawBusy}
+                className="w-full py-3 rounded-2xl font-bold text-white text-sm active:scale-95 transition-transform disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}
+              >
+                {withdrawBusy ? '…' : `${t('wallet.withdraw')} · ${formatUgx(balance)}`}
+              </button>
+            )}
+            {withdrawMsg && (
+              <p className={`text-xs font-medium ${withdrawMsg === t('wallet.withdrawDone') ? 'text-green-600' : 'text-red-500'}`}>
+                {withdrawMsg}
+              </p>
+            )}
+            <p className="text-slate-400 text-[11px] leading-snug">{t('wallet.feeTip')}</p>
+          </div>
+        )}
 
         {/* History */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">

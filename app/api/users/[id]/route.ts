@@ -70,6 +70,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       }
       updates.momo_payout_phone = p || null;
     }
+    // Where the worker's pay goes when a job is released: straight to
+    // Mobile Money ('momo') or kept in the Tukola wallet ('wallet').
+    if (body.payoutPreference !== undefined) {
+      if (!['momo', 'wallet'].includes(body.payoutPreference)) {
+        return NextResponse.json({ error: 'Invalid payout preference' }, { status: 400 });
+      }
+      updates.payout_preference = body.payoutPreference;
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });

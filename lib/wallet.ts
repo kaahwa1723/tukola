@@ -33,11 +33,13 @@ export async function getWalletBalance(sb: Sb, userId: string): Promise<number> 
  * Append a ledger row. Returns true when the row was written, false when
  * the idempotency key already existed (safe no-op on replay/retry).
  */
+export type WalletEntryKind = 'topup' | 'job_funding' | 'refund' | 'adjustment' | 'earnings' | 'withdrawal';
+
 async function appendEntry(
   sb: Sb,
   entry: {
     userId: string;
-    kind: 'topup' | 'job_funding' | 'refund' | 'adjustment';
+    kind: WalletEntryKind;
     amountUgx: number;               // signed
     paymentId?: number;
     topupId?: number;

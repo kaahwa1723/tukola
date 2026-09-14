@@ -450,6 +450,14 @@ const dict: Record<string, { en: string; lg: string; sw: string; luo: string }> 
   'wallet.kind.job_funding': { en: 'Job payment',            lg: 'Okusasula omulimu',     sw: 'Malipo ya kazi',        luo: 'Cul me tic' },
   'wallet.kind.refund': { en: 'Refund',                      lg: 'Okuzza ssente',         sw: 'Marejesho',             luo: 'Dwogo lim' },
   'wallet.kind.adjustment': { en: 'Adjustment',              lg: 'Okutereeza',            sw: 'Marekebisho',           luo: 'Yubo' },
+  'wallet.kind.earnings': { en: 'Job earnings',              lg: 'Empeera y\'omulimu',    sw: 'Mapato ya kazi',        luo: 'Cul me tic' },
+  'wallet.kind.withdrawal': { en: 'Cash-out',                lg: 'Okujja ssente',         sw: 'Kutoa pesa',            luo: 'Golo lim' },
+  'wallet.withdraw':      { en: 'Cash out to MoMo',          lg: 'Jja ssente ku MoMo',    sw: 'Toa pesa kwenda MoMo',  luo: 'Gol lim ci i MoMo' },
+  'wallet.withdrawDone':  { en: 'Sent! Check your phone to approve.', lg: 'Bitumiddwa! Keera ku ssimu yo okakasa.', sw: 'Imetumwa! Angalia simu yako kuthibitisha.', luo: 'Ocito! Nen cim mero me moko.' },
+  'wallet.feeTip':        { en: 'Tip: cashing out bigger sums at once means fewer MoMo fees.', lg: 'Amagezi: okujja ssente nyingi omulundi gumu kuggazaawo fees za MoMo.', sw: 'Kidokezo: kutoa pesa nyingi kwa mara moja hupunguza ada za MoMo.', luo: 'Ngec: golo lim madit cut kelo cul matidi i MoMo.' },
+  'wallet.prefTitle':     { en: 'Where your pay goes',       lg: 'Empeera yo gy\'egenda', sw: 'Malipo yako yanaenda wapi', luo: 'Cul meri wot iye' },
+  'wallet.prefMomo':      { en: 'Straight to Mobile Money',  lg: 'Ku Mobile Money dda',   sw: 'Moja kwa moja Mobile Money', luo: 'Ter i Mobile Money cut' },
+  'wallet.prefWallet':    { en: 'Keep in my wallet',         lg: 'Zissa mu wallet yange', sw: 'Hifadhi kwenye wallet yangu', luo: 'Gwok i wallet na' },
 
   // ── Escrow: wallet funding ─────────────────────────────
   'esc.useWallet':      { en: 'Pay instantly from wallet',   lg: 'Sasula amangwago okuva mu wallet', sw: 'Lipa mara moja kutoka wallet', luo: 'Cul cut ki wallet' },

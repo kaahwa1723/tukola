@@ -20,6 +20,8 @@ export interface User {
   portfolioImages?: string[];
   /** Worker's Mobile Money payout number — where released money is sent. */
   momoPayoutPhone?: string;
+  /** Where released pay goes: 'momo' = instant Mobile Money, 'wallet' = keep in wallet. */
+  payoutPreference?: 'momo' | 'wallet';
 }
 
 export type JobUrgency = 'immediate' | 'scheduled';
