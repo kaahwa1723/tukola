@@ -7,6 +7,7 @@ You are a coding agent working on Tukola, a Ugandan fundi marketplace. Read thes
 3. `ARCHITECTURE.md` — full technical reference (when you need detail)
 4. `../Tukola-App-Rebuild-Plan-v2.md` — live build status (what's done/blocked/buildable)
 5. `../Tukola-Lessons-Applied.md` — field-tested mistakes already encoded as rules
+6. `SECURITY-CHECKLIST.md` — security posture; re-run before every deploy, after any new table or API route
 
 ## Working rules (hard)
 
@@ -16,6 +17,7 @@ You are a coding agent working on Tukola, a Ugandan fundi marketplace. Read thes
 - **DB changes:** draft SQL in `supabase/migrations/`, show it to the founder, get explicit approval, THEN apply (Supabase MCP `apply_migration` or SQL Editor). Never apply DDL unconfirmed. Prefer read-only queries for investigation.
 - **API routes:** when you touch one, check its neighbors for the same vulnerability class — pattern bugs travel in packs. Derive user ID from session, never from client input.
 - **Security:** server-owned fields (verified badge, ratings, escrow, roles) are written by server logic only. Validate and normalize phones server-side. No secrets in code.
+- **PER-UPDATE SECURITY GATE (mandatory, every change, no exceptions):** before committing ANY code change, run the 60-second gate in `SECURITY-CHECKLIST.md` §"Per-Update Gate" that matches what you touched (route / table / dependency / config / UI). Record the result in your end-of-turn report. A change is not "done" until its gate row is ✅ or the failure is disclosed to the founder.
 - **Honesty:** no fabricated numbers/data, no mock fallbacks presented as real, no claiming success when something failed.
 - **Plan conflicts:** if the plan disagrees with the code, STOP and ask — do not guess.
 - **Off-limits:** `tukola-native/` entirely; anything needing live credentials (real SMS, real MoMo, WhatsApp, PostHog activation); Vercel deploys; external pushes.

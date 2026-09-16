@@ -37,7 +37,7 @@ A **transaction-owning marketplace** connecting households and SMEs in Greater K
 **Phase 1 — Liquidity UX (partially built):**
 - ✅ Location-first matching (parish-level, no precise GPS) + merit-ranked Top-3 suggestions
 - ✅ Re-book same fundi (1 tap) · recurring bookings (weekly/biweekly + cron)
-- ⚠️ EN/Luganda switch (AI-drafted Luganda needs native-speaker review)
+- ⚠️ EN/LG/SW/LUO switch live (founder added Swahili + Luo). **ALL non-English strings AI-drafted — native-speaker review required before marketing in them.**
 - ⬜ WhatsApp integration (blocked on Meta/Africa's Talking account)
 - ⬜ PWA offline queue for job posts/applications · bundle/2G audit
 
@@ -54,7 +54,7 @@ A **transaction-owning marketplace** connecting households and SMEs in Greater K
 
 ## 5. Explicitly OUT of scope (do not build)
 
-Native iOS · USSD app · ads · "AI matching"/ML claims · languages beyond EN+Luganda · beyond GKMA (24 months) · data reports · enterprise packages · consumer subscriptions (no recurring MoMo debit exists in Uganda — verified).
+Native iOS · USSD app · ads · "AI matching"/ML claims · languages beyond EN/LG/SW/LUO · beyond GKMA (24 months) · data reports · enterprise packages · consumer subscriptions (no recurring MoMo debit exists in Uganda — verified).
 
 ## 6. Success gates (Day-90)
 

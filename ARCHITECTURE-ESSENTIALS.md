@@ -14,7 +14,7 @@
 7. **No secrets in repo.** Env vars only. `NEXT_PUBLIC_DEMO_MODE=false`.
 8. **Software budget <$100/month.** Free tiers first.
 9. **Offline-tolerant, 2G-conscious, parish-level location** (never precise GPS).
-10. **EN + Luganda only.** AI-drafted Luganda flagged for native review before marketing.
+10. **EN + LG + SW + LUO only** (founder added Swahili/Luo Sep 2026). All non-English strings AI-drafted — flagged for native review before marketing.
 
 ## Flow order (do not rearrange)
 
