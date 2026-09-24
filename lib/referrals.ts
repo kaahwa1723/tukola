@@ -3,25 +3,35 @@ import { createServerSupabase } from './supabase-server';
 import { track } from './analytics';
 
 /**
- * Referral mechanics (Phase 2 of the rebuild plan).
+ * Referral mechanics (Phase 2 of the rebuild plan; v2 rules per founder
+ * decision 24 Sep 2026 — amounts in UGX).
  *
- * THE RULES (as implemented — amounts in UGX)
- * ───────────────────────────────────────────
+ * THE RULES (as implemented)
+ * ──────────────────────────
  *   Customer referral (referee signs up as an EMPLOYER):
- *     when the referred customer's FIRST paid job completes (escrow
- *     released), BOTH sides earn UGX 10,000 of credit.
+ *     the referred customer gets UGX 10,000 of WELCOME CREDIT AT SIGNUP
+ *     (so "UGX 10,000 off your first job" is literally true); the
+ *     REFERRER earns UGX 10,000 when the referred customer's FIRST paid
+ *     job completes (escrow released) — paying the referrer only on a
+ *     completed paid job keeps fake signups from minting credit.
  *   Fundi referral (referee signs up as a WORKER):
- *     on the referred fundi's activation — their first completed paid
- *     job — the REFERRER earns UGX 5,000 and the REFERRED FUNDI earns
- *     UGX 5,000. (The plan's "activation + first job" are the same event
- *     in the current schema: a fundi is activated by completing their
- *     first paid job. If a separate activation signal appears later —
- *     e.g. ID verification — split the two 5K grants there.)
+ *     on the referred fundi's first completed paid job, the REFERRER
+ *     earns UGX 10,000 and the REFERRED FUNDI earns UGX 5,000.
+ *
+ *   CREDITS NEVER LEAVE THE APP (hard rule, 24 Sep 2026):
+ *     • Customer credit is a DISCOUNT AT FUNDING TIME — the employer's
+ *       MoMo charge / wallet debit is reduced (see applyFundingCredit()
+ *       and app/api/payments/route.ts). The discount is capped at
+ *       commission − guarantee accrual so a discounted job can never
+ *       dip into the guarantee reserve or go negative for the platform.
+ *     • Fundi credit reduces the platform commission at escrow release
+ *       and is added to the fundi's job payout (redeemCreditsForRelease).
+ *     • There is NO cashback path. A refund returns only what was
+ *       actually paid (amount − discount) and restores the credit —
+ *       otherwise refunds would mint money.
  *
  *   Credits are ledger rows (referral_credits), never stored counters:
  *     balance = SUM(earned) − SUM(redeemed) − SUM(expired)
- *   Credits are redeemable against the platform commission at escrow
- *   release — see redeemCreditsForRelease() and lib/escrow.ts.
  *
  * SAFETY INVARIANTS
  * ─────────────────
@@ -38,8 +48,8 @@ import { track } from './analytics';
 
 // ── Amounts (UGX) ────────────────────────────────────────────────────────────
 export const CUSTOMER_REFERRAL_CREDIT_UGX = 10_000; // both sides
-export const FUNDI_REFERRER_CREDIT_UGX = 5_000;     // referrer on activation
-export const FUNDI_REFEREE_CREDIT_UGX = 5_000;      // referred fundi
+export const FUNDI_REFERRER_CREDIT_UGX = 10_000;    // referrer on first paid job (founder, 24 Sep 2026)
+export const FUNDI_REFEREE_CREDIT_UGX = 5_000;      // referred fundi welcome credit
 
 // ── Codes ────────────────────────────────────────────────────────────────────
 // 8 chars from an unambiguous alphabet (no 0/O/1/I/L) — readable aloud.
@@ -125,18 +135,33 @@ export async function attributeSignup(
 
     if (!owner || owner.user_id === refereeId) return false; // unknown code / self-referral
 
-    const { error } = await sb.from('referrals').insert({
+    const { data: inserted, error } = await sb.from('referrals').insert({
       referrer_id: owner.user_id,
       referee_id: refereeId,
       referee_role: refereeRole,
       code,
       status: 'pending',
-    });
+    }).select('id').single();
 
     if (error) {
       // 23505 = already attributed (resume race) — treat as success-neutral
       if (error.code !== '23505') throw error;
       return false;
+    }
+
+    // Customer referrals: the welcome credit lands AT SIGNUP so the new
+    // customer's first job is genuinely discounted at funding time. The
+    // referrer's side still waits for the referee's first completed paid
+    // job (fake signups never pay the referrer). Fundi welcome credit is
+    // paid with the referrer reward at first completed paid job instead —
+    // a fundi has no funding step to discount.
+    if (refereeRole === 'employer') {
+      try {
+        await issueCredit(refereeId, CUSTOMER_REFERRAL_CREDIT_UGX, inserted.id,
+          'Referral welcome credit — UGX 10,000 off your first job');
+      } catch (e) {
+        console.warn(`[referrals] welcome credit failed for ${refereeId}:`, e);
+      }
     }
 
     track('referral_attributed', refereeId, {
@@ -227,17 +252,16 @@ async function rewardPendingReferral(refereeId: string, refereeRole: 'worker' | 
   if (!referral) return; // nobody referred them, or already rewarded
 
   if (refereeRole === 'employer') {
-    // Customer referral: UGX 10K to BOTH sides
+    // Customer referral: UGX 10K to the REFERRER only — the referee's
+    // 10K welcome credit was already issued at signup (attributeSignup).
     await issueCredit(referral.referrer_id, CUSTOMER_REFERRAL_CREDIT_UGX, referral.id,
       'Customer referral — referred customer completed their first paid job');
-    await issueCredit(refereeId, CUSTOMER_REFERRAL_CREDIT_UGX, referral.id,
-      'Referral welcome credit — your first paid job completed');
   } else {
-    // Fundi referral: UGX 5K to the referrer (activation) + UGX 5K to the fundi
+    // Fundi referral: UGX 10K to the referrer + UGX 5K welcome credit to the fundi
     await issueCredit(referral.referrer_id, FUNDI_REFERRER_CREDIT_UGX, referral.id,
-      'Fundi referral — referred fundi activated (first completed paid job)');
+      'Fundi referral — referred fundi completed their first paid job');
     await issueCredit(refereeId, FUNDI_REFEREE_CREDIT_UGX, referral.id,
-      'Referral activation credit — your first paid job completed');
+      'Referral welcome credit — your first paid job completed');
   }
 
   // Terminal flip; if a concurrent call already flipped it, the row is
@@ -319,76 +343,155 @@ export async function issueReferralCreditsForCompletion(jobId: string): Promise<
   }
 }
 
-// ── Redemption against commission ────────────────────────────────────────────
-
-export interface ReleaseRedemption {
-  payerRedeemed: number; // employer credit consumed (cashback to employer)
-  payeeRedeemed: number; // fundi credit consumed (added to fundi payout)
-}
+// ── Redemption (in-app only — credit NEVER becomes cash) ─────────────────────
 
 /**
- * Consume referral credits against the platform commission on release.
+ * Consume a FUNDI's referral credit against the platform commission at
+ * escrow release: the credit reduces the commission and is added to the
+ * fundi's payout — one disbursement, just bigger, on a real completed job.
  *
- * THE CHOICE (documented per plan — keep it simple):
- *   • The PAYEE's (fundi's) balance reduces the commission and is added
- *     to the fundi payout — one MoMo disbursement, just bigger.
- *   • The PAYER's (employer's) balance also reduces the commission and is
- *     returned to the employer as a cashback payout at release — the
- *     escrowed amount was fixed at charge time, so the employer's benefit
- *     can only materialise as money back.
- *   • Combined redemption is CAPPED at the commission: credit can zero
- *     the platform's take but can NEVER make any leg of a payment
- *     negative. The fundi always receives at least their base payout.
- *   • Guarantee accrual (2% of GMV) is unchanged — it is computed from
- *     GMV, not from the post-credit commission.
+ * CAPPED at the commission: credit can zero the platform's take but can
+ * never make a payment leg negative. The 2% guarantee accrual is
+ * unchanged — it is computed from GMV, not from the post-credit commission.
  *
- * Ledger discipline: 'redeemed' rows are inserted here, BEFORE payouts
+ * Customer (payer) credit is NOT redeemed here — it is a discount at
+ * funding time (applyFundingCredit). There is no cashback path.
+ *
+ * Ledger discipline: the 'redeemed' row is inserted BEFORE the payout
  * (a crash after payout without a redeemed row would let the user
- * double-spend). If a downstream payout fails, the caller reverses via
+ * double-spend). If the payout fails, the caller reverses via
  * reverseRedemption() — corrections are new rows, never edits.
  */
 export async function redeemCreditsForRelease(
   paymentId: number,
-  payerId: string,
   payeeId: string,
   commission: number
-): Promise<ReleaseRedemption> {
-  const zero: ReleaseRedemption = { payerRedeemed: 0, payeeRedeemed: 0 };
+): Promise<number> {
   try {
-    if (commission <= 0) return zero;
-    const sb = createServerSupabase();
-
-    const [payerBalance, payeeBalance] = await Promise.all([
-      getCreditBalance(payerId),
-      getCreditBalance(payeeId),
-    ]);
-
-    // Payee first (their benefit is certain — bigger payout), then the
-    // payer from whatever commission remains.
+    if (commission <= 0) return 0;
+    const payeeBalance = await getCreditBalance(payeeId);
     const payeeRedeemed = Math.min(payeeBalance, commission);
-    const payerRedeemed = Math.min(payerBalance, commission - payeeRedeemed);
-    if (payeeRedeemed === 0 && payerRedeemed === 0) return zero;
+    if (payeeRedeemed === 0) return 0;
 
-    const rows: Record<string, unknown>[] = [];
-    if (payeeRedeemed > 0) rows.push({
+    const sb = createServerSupabase();
+    const { error } = await sb.from('referral_credits').insert({
       user_id: payeeId, amount_ugx: payeeRedeemed, kind: 'redeemed',
       payment_id: paymentId,
       note: `Redeemed against commission on payment #${paymentId} (added to payout)`,
     });
-    if (payerRedeemed > 0) rows.push({
-      user_id: payerId, amount_ugx: payerRedeemed, kind: 'redeemed',
-      payment_id: paymentId,
-      note: `Redeemed against commission on payment #${paymentId} (cashback)`,
-    });
-
-    const { error } = await sb.from('referral_credits').insert(rows);
     if (error) throw error;
 
-    return { payerRedeemed, payeeRedeemed };
+    return payeeRedeemed;
   } catch (e) {
     // Redemption failure must not block a release — commission stands
     console.warn(`[referrals] redeemCreditsForRelease failed for payment ${paymentId}:`, e);
-    return zero;
+    return 0;
+  }
+}
+
+/**
+ * Consume a CUSTOMER's referral credit as a funding-time discount.
+ * Called from POST /api/payments AFTER the escrow row exists and BEFORE
+ * the employer is charged: the MoMo debit / wallet debit is reduced by
+ * the returned amount. The escrowed amount stays the full job price —
+ * the platform absorbs the discount from its commission at release.
+ *
+ * The CALLER caps maxDiscountUgx at commission − guarantee accrual (it
+ * owns the split math — this module must not import lib/escrow.ts), so
+ * a discounted job can never dip into the guarantee reserve.
+ *
+ * If the funding later fails or the payment is refunded, the caller
+ * restores the credit via restoreFundingCredit(). Non-fatal: a failure
+ * here returns 0 (full price charged, credit intact).
+ */
+export async function applyFundingCredit(
+  paymentId: number,
+  payerId: string,
+  maxDiscountUgx: number
+): Promise<number> {
+  try {
+    if (maxDiscountUgx <= 0) return 0;
+    const balance = await getCreditBalance(payerId);
+    const discount = Math.min(balance, maxDiscountUgx);
+    if (discount <= 0) return 0;
+
+    const sb = createServerSupabase();
+    const { error } = await sb.from('referral_credits').insert({
+      user_id: payerId, amount_ugx: discount, kind: 'redeemed',
+      payment_id: paymentId,
+      note: `Redeemed as a discount on job funding (payment #${paymentId})`,
+    });
+    if (error) throw error;
+
+    track('referral_credit_redeemed', payerId, { amountUgx: discount, paymentId, via: 'funding_discount' });
+    return discount;
+  } catch (e) {
+    console.warn(`[referrals] applyFundingCredit failed for payment ${paymentId}:`, e);
+    return 0;
+  }
+}
+
+/** Sum of a user's 'redeemed' ledger rows against one payment. */
+async function getPaymentRedeemedCredit(paymentId: number, userId: string): Promise<number> {
+  const sb = createServerSupabase();
+  const { data, error } = await sb
+    .from('referral_credits')
+    .select('amount_ugx')
+    .eq('payment_id', paymentId)
+    .eq('user_id', userId)
+    .eq('kind', 'redeemed');
+  if (error) throw error;
+  return (data ?? []).reduce((sum, row) => sum + row.amount_ugx, 0);
+}
+
+/**
+ * Exported for lib/escrow.ts refund math: how much of this payment was
+ * covered by the payer's funding discount (0 if none / on error). A
+ * refund must return only amount − discount and restore the credit —
+ * refunding the full escrowed amount after a discount would mint money.
+ */
+export async function getFundingDiscount(paymentId: number, payerId: string): Promise<number> {
+  try {
+    return await getPaymentRedeemedCredit(paymentId, payerId);
+  } catch (e) {
+    console.warn(`[referrals] getFundingDiscount failed for payment ${paymentId}:`, e);
+    return 0; // safe default: assume no discount (never short a refund silently)
+  }
+}
+
+/**
+ * Restore a funding discount after the funding failed or the payment was
+ * refunded — an 'earned' reversal row referencing the same payment.
+ * Idempotent: if a funding reversal row already exists for this payment,
+ * this is a no-op (safe retries from refund/decline paths). Append-only:
+ * the original 'redeemed' row is never edited.
+ */
+export async function restoreFundingCredit(paymentId: number, payerId: string): Promise<void> {
+  try {
+    const redeemed = await getPaymentRedeemedCredit(paymentId, payerId);
+    if (redeemed <= 0) return;
+
+    const sb = createServerSupabase();
+    const reversalNote = `Reversal — job funding #${paymentId} did not complete, credit restored`;
+    const { data: existing } = await sb
+      .from('referral_credits')
+      .select('id')
+      .eq('payment_id', paymentId)
+      .eq('user_id', payerId)
+      .eq('kind', 'earned')
+      .like('note', 'Reversal — job funding%')
+      .limit(1);
+    if (existing && existing.length > 0) return; // already restored
+
+    await sb.from('referral_credits').insert({
+      user_id: payerId,
+      amount_ugx: redeemed,
+      kind: 'earned',
+      payment_id: paymentId,
+      note: reversalNote,
+    });
+  } catch (e) {
+    console.warn(`[referrals] restoreFundingCredit failed for payment ${paymentId}:`, e);
   }
 }
 

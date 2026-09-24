@@ -1,7 +1,7 @@
 import { createServerSupabase } from './supabase-server';
 import { getPaymentProvider } from './payments/provider';
 import { track } from './analytics';
-import { redeemCreditsForRelease, reverseRedemption } from './referrals';
+import { redeemCreditsForRelease, reverseRedemption, getFundingDiscount, restoreFundingCredit } from './referrals';
 import { sendPaymentHeldEmail, sendPaymentReleasedEmail } from './email/notify';
 import { notifyJobEvent, notifyUser } from './notify';
 import { reportError } from './error-report';
@@ -102,17 +102,25 @@ export async function transitionPayment(paymentId: number, to: string): Promise<
   // the payer's Tukola wallet — instant, no MoMo payout fee, and it keeps
   // the money on-platform for their next job. pending → refunded means the
   // debit never happened, so NOTHING is credited (that would mint money).
+  // If the employer paid with a referral-credit discount, only the amount
+  // ACTUALLY collected (amount − discount) comes back and the credit is
+  // restored — refunding the full escrowed amount would mint money.
   if (to === 'refunded' && payment.status === 'held') {
-    await creditWallet(sb, {
-      userId: payment.payer_id,
-      kind: 'refund',
-      amountUgx: Number(payment.amount),
-      paymentId,
-      idempotencyKey: `refund_${paymentId}`,
-      note: 'Escrow refund to wallet',
-    });
+    const discount = await getFundingDiscount(paymentId, payment.payer_id);
+    const refundUgx = Number(payment.amount) - discount;
+    if (refundUgx > 0) {
+      await creditWallet(sb, {
+        userId: payment.payer_id,
+        kind: 'refund',
+        amountUgx: refundUgx,
+        paymentId,
+        idempotencyKey: `refund_${paymentId}`,
+        note: 'Escrow refund to wallet',
+      });
+    }
+    if (discount > 0) await restoreFundingCredit(paymentId, payment.payer_id);
     notifyUser(sb, payment.payer_id,
-      `Tukola: UGX ${Number(payment.amount).toLocaleString()} was refunded to your Tukola wallet. Open the app to see your balance.`
+      `Tukola: UGX ${refundUgx.toLocaleString()} was refunded to your Tukola wallet. Open the app to see your balance.`
     ).catch(() => {});
   }
 }
@@ -148,17 +156,18 @@ export async function releasePayment(paymentId: number): Promise<{
   const split = computeSplit(payment.amount, payment.jobs?.is_b2b ?? false);
   const receiptNumber = `TKL-${new Date().getFullYear()}-${String(payment.id).padStart(6, '0')}`;
 
-  // Referral credit redemption (Phase 2) — see lib/referrals.ts.
-  // The payee's balance reduces the platform commission and is added to
-  // the fundi payout; the payer's balance also reduces the commission and
-  // is returned as cashback below. Capped at the commission, so credit
-  // can never make any leg of the payment negative. The 2% guarantee
-  // accrual is unchanged (computed from GMV, not post-credit commission).
-  const redemption = await redeemCreditsForRelease(
-    payment.id, payment.payer_id, payment.payee_id, split.commission
+  // Fundi referral-credit redemption (Phase 2, v2 rules 24 Sep 2026) —
+  // see lib/referrals.ts. The fundi's balance reduces the platform
+  // commission and is added to their payout. Capped at the commission,
+  // so credit can never make any leg of the payment negative. The 2%
+  // guarantee accrual is unchanged (computed from GMV, not post-credit
+  // commission). Customer credit is NOT touched here — it was already
+  // consumed as a discount at funding time; there is no cashback path.
+  const payeeRedeemed = await redeemCreditsForRelease(
+    payment.id, payment.payee_id, split.commission
   );
-  const commission = split.commission - redemption.payerRedeemed - redemption.payeeRedeemed;
-  const fundiPayout = split.fundiPayout + redemption.payeeRedeemed;
+  const commission = split.commission - payeeRedeemed;
+  const fundiPayout = split.fundiPayout + payeeRedeemed;
 
   // 1. Pay the fundi — to their MoMo (default) or into their Tukola
   // wallet when they've chosen to batch cash-outs (fewer MoMo fees).
@@ -187,10 +196,9 @@ export async function releasePayment(paymentId: number): Promise<{
       narration: `Tukola job payment ${receiptNumber}`,
     });
     if (payout.status !== 'successful') {
-      // Nothing was paid — restore the consumed credits before throwing
-      // (append-only reversal rows; redeemed rows are never edited)
-      await reverseRedemption(payment.payee_id, redemption.payeeRedeemed, payment.id);
-      await reverseRedemption(payment.payer_id, redemption.payerRedeemed, payment.id);
+      // Nothing was paid — restore the consumed credit before throwing
+      // (append-only reversal row; the redeemed row is never edited)
+      await reverseRedemption(payment.payee_id, payeeRedeemed, payment.id);
       // Money is sitting in escrow with the fundi unpaid — wake the founder.
       reportError('escrow.release.payout', new Error(`Fundi payout failed (status: ${payout.status})`), {
         paymentId: payment.id,
@@ -226,27 +234,6 @@ export async function releasePayment(paymentId: number): Promise<{
     .eq('id', payment.id);
   if (error) throw error;
 
-  // 4. Employer credit cashback — AFTER the release is committed so a
-  // cashback failure can never cause a double payout on retry. Failure is
-  // non-fatal: the employer's credit is restored (reversal row) and the
-  // release stands.
-  if (redemption.payerRedeemed > 0) {
-    try {
-      if (payment.payer_momo_phone) {
-        const cashback = await provider.payout({
-          phone: payment.payer_momo_phone,
-          amountUgx: redemption.payerRedeemed,
-          externalRef: `cashback_${payment.idempotency_key}`,
-          narration: `Tukola referral credit cashback ${receiptNumber}`,
-        });
-        if (cashback.status !== 'successful') throw new Error(`status: ${cashback.status}`);
-      }
-    } catch (e) {
-      console.warn(`[escrow] credit cashback failed for payment ${payment.id} — restoring employer credit:`, e);
-      await reverseRedemption(payment.payer_id, redemption.payerRedeemed, payment.id);
-    }
-  }
-
   track('payment_released', payment.payer_id, {
     paymentId: payment.id,
     jobId: payment.job_id,
@@ -254,7 +241,7 @@ export async function releasePayment(paymentId: number): Promise<{
     fundiPayout,
     commission,
     guaranteeAccrual: split.guaranteeAccrual,
-    referralCreditRedeemed: redemption.payerRedeemed + redemption.payeeRedeemed,
+    referralCreditRedeemed: payeeRedeemed,
     receiptNumber,
   });
 

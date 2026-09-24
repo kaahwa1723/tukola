@@ -4,8 +4,9 @@ import { getSessionUser } from '@/lib/session';
 import { getPaymentProvider } from '@/lib/payments/provider';
 import { normalizeUgPhone } from '@/lib/phone';
 import { reportError } from '@/lib/error-report';
-import { debitWallet, creditWallet, InsufficientFundsError } from '@/lib/wallet';
-import { transitionPayment } from '@/lib/escrow';
+import { debitWallet, InsufficientFundsError } from '@/lib/wallet';
+import { transitionPayment, computeSplit } from '@/lib/escrow';
+import { applyFundingCredit, restoreFundingCredit } from '@/lib/referrals';
 
 /**
  * GET /api/payments?jobId=xxx
@@ -83,10 +84,11 @@ export async function POST(req: NextRequest) {
 
     const sb = createServerSupabase();
 
-    // Load the job; only its employer can fund it
+    // Load the job; only its employer can fund it (is_b2b is needed for
+    // the funding-discount cap: discount ≤ commission − guarantee accrual)
     const { data: job } = await sb
       .from('jobs')
-      .select('id, employer_id, pay, status, title, pricing_type')
+      .select('id, employer_id, pay, status, title, pricing_type, is_b2b')
       .eq('id', jobId)
       .maybeSingle();
 
@@ -182,27 +184,13 @@ export async function POST(req: NextRequest) {
     const idempotencyKey = milestone ? `pay_${jobId}_m${milestone.idx}` : `pay_${jobId}`;
 
     // ── Wallet funding: the money is already on the platform ─────────
-    // Debit the employer's wallet, create the escrow row, move it
-    // straight to 'held' — no USSD prompt, no PIN, no waiting.
+    // Create the escrow row, apply any referral-credit discount (in-app
+    // only — never cash), then debit the wallet the DISCOUNTED amount and
+    // move straight to 'held' — no USSD prompt, no PIN, no waiting.
+    // Escrow row comes first so the discount's ledger row can reference
+    // the payment; the debit happens last so a failed insert never
+    // strands money.
     if (fromWallet) {
-      try {
-        await debitWallet(sb, {
-          userId: user.id,
-          kind: 'job_funding',
-          amountUgx,
-          idempotencyKey: `wallet_fund_${idempotencyKey}`,
-          note: milestone ? `Job funding — stage ${milestone.idx}` : 'Job funding',
-        });
-      } catch (e) {
-        if (e instanceof InsufficientFundsError) {
-          return NextResponse.json(
-            { error: `Your wallet has UGX ${e.balance.toLocaleString()} but this needs UGX ${e.required.toLocaleString()}. Top up first.`, balance: e.balance, required: e.required },
-            { status: 402 }
-          );
-        }
-        throw e;
-      }
-
       const { data: payment, error } = await sb
         .from('payments')
         .insert({
@@ -221,15 +209,44 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (error) {
-        // Never strand a debit: put the money back, then fail loudly
-        await creditWallet(sb, {
-          userId: user.id,
-          kind: 'refund',
-          amountUgx,
-          idempotencyKey: `wallet_fund_reversal_${idempotencyKey}`,
-          note: 'Reversal — escrow row could not be created',
-        });
+        // Unique idempotency_key: a concurrent request already created it
+        if (error.code === '23505') {
+          const { data: winner } = await sb.from('payments').select('*').eq('idempotency_key', idempotencyKey).single();
+          return NextResponse.json({ payment: winner, idempotent: true });
+        }
         throw error;
+      }
+
+      // Referral credit → funding discount. Capped at commission −
+      // guarantee accrual so the platform never dips into the reserve.
+      const split = computeSplit(amountUgx, (job as any).is_b2b ?? false);
+      const discount = await applyFundingCredit(
+        payment.id, user.id, Math.max(0, split.commission - split.guaranteeAccrual)
+      );
+
+      try {
+        await debitWallet(sb, {
+          userId: user.id,
+          kind: 'job_funding',
+          amountUgx: amountUgx - discount,
+          idempotencyKey: `wallet_fund_${idempotencyKey}`,
+          note: milestone ? `Job funding — stage ${milestone.idx}` : 'Job funding',
+        });
+      } catch (e) {
+        // Funding failed — restore the consumed credit and close the
+        // escrow row (pending → refunded: nothing was collected, so
+        // nothing is credited back)
+        await restoreFundingCredit(payment.id, user.id);
+        await sb.from('payments')
+          .update({ status: 'refunded', refunded_at: new Date().toISOString() })
+          .eq('id', payment.id);
+        if (e instanceof InsufficientFundsError) {
+          return NextResponse.json(
+            { error: `Your wallet has UGX ${e.balance.toLocaleString()} but this needs UGX ${e.required.toLocaleString()}. Top up first.`, balance: e.balance, required: e.required },
+            { status: 402 }
+          );
+        }
+        throw e;
       }
 
       if (milestone) {
@@ -249,7 +266,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         payment: { ...payment, status: 'held' },
         walletFunded: true,
-        message: 'Funded instantly from your wallet.',
+        creditAppliedUgx: discount,
+        message: discount > 0
+          ? `Funded instantly from your wallet — UGX ${discount.toLocaleString()} referral credit applied.`
+          : 'Funded instantly from your wallet.',
       }, { status: 201 });
     }
 
@@ -280,16 +300,36 @@ export async function POST(req: NextRequest) {
       throw error;
     }
 
+    // Referral credit → funding discount (in-app only — never cash).
+    // Capped at commission − guarantee accrual so a discounted job can
+    // never dip into the guarantee reserve. The escrow row keeps the FULL
+    // job price: the fundi's payout, receipt and guarantee accrual are
+    // computed from the undiscounted amount — the platform absorbs the
+    // discount from its commission.
+    const split = computeSplit(amountUgx, (job as any).is_b2b ?? false);
+    const discount = await applyFundingCredit(
+      payment.id, user.id, Math.max(0, split.commission - split.guaranteeAccrual)
+    );
+
     // Ask the customer's phone for the money (USSD push + PIN)
-    // (wallet source returned above — here momoPhone is guaranteed valid)
-    const tx = await provider.requestToPay({
-      phone: momoPhone as string,
-      amountUgx,
-      externalRef: idempotencyKey,
-      narration: milestone
-        ? `Tukola: ${job.title} — Stage ${milestone.idx} (${milestone.label})`
-        : `Tukola: ${job.title}`,
-    });
+    // (wallet source returned above — here momoPhone is guaranteed valid).
+    // If the request itself blows up, close the escrow row and restore
+    // the consumed credit so neither money nor credit is stranded.
+    let tx;
+    try {
+      tx = await provider.requestToPay({
+        phone: momoPhone as string,
+        amountUgx: amountUgx - discount,
+        externalRef: idempotencyKey,
+        narration: milestone
+          ? `Tukola: ${job.title} — Stage ${milestone.idx} (${milestone.label})`
+          : `Tukola: ${job.title}`,
+      });
+    } catch (e) {
+      await sb.from('payments').update({ status: 'refunded', refunded_at: new Date().toISOString() }).eq('id', payment.id);
+      await restoreFundingCredit(payment.id, user.id);
+      throw e;
+    }
 
     await sb.from('payments').update({ provider_ref: tx.providerRef }).eq('id', payment.id);
     // Link the stage to its escrow payment so status can be derived
@@ -299,13 +339,17 @@ export async function POST(req: NextRequest) {
 
     if (tx.status === 'failed') {
       await sb.from('payments').update({ status: 'refunded', refunded_at: new Date().toISOString() }).eq('id', payment.id);
+      await restoreFundingCredit(payment.id, user.id);
       return NextResponse.json({ error: 'The MoMo debit was declined. Please try again.' }, { status: 402 });
     }
 
     return NextResponse.json({
       payment: { ...payment, provider_ref: tx.providerRef },
       ussdPushSent: true,
-      message: 'Check the phone for the MoMo prompt and enter the PIN to approve.',
+      creditAppliedUgx: discount,
+      message: discount > 0
+        ? `UGX ${discount.toLocaleString()} referral credit applied — check the phone for the MoMo prompt and enter the PIN to approve the rest.`
+        : 'Check the phone for the MoMo prompt and enter the PIN to approve.',
     }, { status: 201 });
   } catch (err: any) {
     console.error('[POST /api/payments]', err);
