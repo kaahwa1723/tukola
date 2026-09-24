@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   MapPin, Clock, Banknote, Search, Wrench, Zap,
   Sparkles, Building2, Car, ChefHat, Leaf, Shield,
@@ -156,7 +155,6 @@ function JobCard({ job, applied, onApply }: { job: Job; applied: boolean; onAppl
 export default function WorkerHomePage() {
   const { user, jobs, applyToJob, applications } = useKola();
   const { t } = useI18n();
-  const router = useRouter();
   const [localApps, setLocalApps] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -182,12 +180,6 @@ export default function WorkerHomePage() {
   });
 
   const handleApply = (jobId: string) => {
-    // Incomplete profile → straight to the profile page (the server would
-    // reject the application anyway — don't fake an optimistic "applied")
-    if (!profileCompletion.canWork) {
-      router.push('/worker/profile');
-      return;
-    }
     applyToJob(jobId);
     setLocalApps(prev => [...prev, jobId]);
   };

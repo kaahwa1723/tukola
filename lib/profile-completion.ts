@@ -1,11 +1,13 @@
 import type { User } from './types';
 
 /**
- * Profile completion — the trust-layer gate (founder decision 24 Sep 2026).
+ * Profile completion — the trust-layer checklist (founder, 24 Sep 2026).
  *
- * A fundi CANNOT apply for (or accept) a job until every REQUIRED item is
- * done. Optional items only raise the percentage — "complete profiles win
- * more jobs" stays honest because the bar reflects real, checkable fields.
+ * STATUS: the hard gate is OFF while recruiting — fundis CAN apply with an
+ * incomplete profile. This checklist currently drives (a) the profile
+ * strength bar + dashboard nudge for fundis and (b) the admin document
+ * review queue. To re-enable the gate: 403 with PROFILE_INCOMPLETE in
+ * POST /api/jobs/[id]/apply when canWork is false (marked comment there).
  *
  *   Required (the gate):
  *     phone (implicit — OTP login), profile photo, area, about, skills,
