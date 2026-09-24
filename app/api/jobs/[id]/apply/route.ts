@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
 import { track } from '@/lib/analytics';
+import { computeProfileCompletion } from '@/lib/profile-completion';
 
 type Params = { params: { id: string } };
 
@@ -23,6 +24,20 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
     if (user.role !== 'worker') {
       return NextResponse.json({ error: 'Only worker accounts can apply to jobs' }, { status: 403 });
+    }
+
+    // Trust-layer gate (founder, 24 Sep 2026): a fundi cannot apply for —
+    // or accept an invitation to — a job until every REQUIRED profile item
+    // is done (photo, area, about, skills, MoMo payout number, national ID
+    // + ID photo, next of kin). Same rule for everyone, enforced server-side.
+    const completion = computeProfileCompletion(user);
+    if (!completion.canWork) {
+      track('application_blocked_profile', user.id, { jobId: params.id, missing: completion.missingRequired });
+      return NextResponse.json({
+        error: 'Complete the required items on your profile before applying for jobs.',
+        code: 'PROFILE_INCOMPLETE',
+        missing: completion.missingRequired,
+      }, { status: 403 });
     }
 
     // Consumed for correlation only — never trusted for identity

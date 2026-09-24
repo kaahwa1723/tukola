@@ -79,6 +79,13 @@ export function mapUser(r: any): User {
     payoutPreference: r.payout_preference ?? undefined,
     sex: r.sex ?? undefined,
     dateOfBirth: r.date_of_birth ?? undefined,
+    nationalIdNumber: r.national_id_number ?? undefined,
+    nationalIdPhotoUrl: r.national_id_photo_url ?? undefined,
+    nextOfKinName: r.next_of_kin_name ?? undefined,
+    nextOfKinPhone: r.next_of_kin_phone ?? undefined,
+    qualification: r.qualification ?? undefined,
+    certificatePhotoUrl: r.certificate_photo_url ?? undefined,
+    lcLetterPhotoUrl: r.lc_letter_photo_url ?? undefined,
   };
 }
 

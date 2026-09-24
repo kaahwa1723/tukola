@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, mapUser } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
 import { isAdmin } from '@/lib/admin-auth';
+import { normalizeUgPhone } from '@/lib/phone';
+
+/** URL or null — uploaded document/photo URLs come from /api/upload. */
+function docUrl(v: unknown): string | null {
+  if (v === null || v === undefined || v === '') return null;
+  const s = String(v).trim();
+  if (s.length > 500 || !/^https?:\/\//.test(s)) throw new Error('Invalid document URL');
+  return s;
+}
 
 type Params = { params: { id: string } };
 
@@ -24,6 +33,13 @@ export async function GET(req: NextRequest, { params }: Params) {
     const viewer = await getSessionUser(req);
     if (!isAdmin(req) && (!viewer || viewer.id !== data.id)) {
       user.phone = '';
+      // PDPO-sensitive fields — owner and admin/vetting team only
+      user.nationalIdNumber = undefined;
+      user.nationalIdPhotoUrl = undefined;
+      user.nextOfKinName = undefined;
+      user.nextOfKinPhone = undefined;
+      user.certificatePhotoUrl = undefined;
+      user.lcLetterPhotoUrl = undefined;
     }
 
     return NextResponse.json({ user });
@@ -99,6 +115,51 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         }
         updates.date_of_birth = d.toISOString().slice(0, 10);
       }
+    }
+
+    // ── Trust-layer fields (migration 022) — self-service evidence for
+    // the vetting queue. None of these confer a badge; is_verified stays
+    // admin-set. national ID + next of kin are REQUIRED before a fundi
+    // can apply for jobs (lib/profile-completion.ts).
+    if (body.nationalIdNumber !== undefined) {
+      const nin = String(body.nationalIdNumber ?? '').replace(/\s/g, '').toUpperCase();
+      // Ugandan NIN is 13–14 alphanumeric; accept a loose band, never block on format trivia
+      if (nin && !/^[A-Z0-9]{10,20}$/.test(nin)) {
+        return NextResponse.json({ error: 'Enter a valid National ID number (NIN), e.g. CM1234567890AB' }, { status: 400 });
+      }
+      updates.national_id_number = nin || null;
+    }
+    if (body.nationalIdPhotoUrl !== undefined) {
+      try { updates.national_id_photo_url = docUrl(body.nationalIdPhotoUrl); }
+      catch { return NextResponse.json({ error: 'Invalid ID photo' }, { status: 400 }); }
+    }
+    if (body.nextOfKinName !== undefined) {
+      const n = String(body.nextOfKinName ?? '').trim().slice(0, 100);
+      updates.next_of_kin_name = n || null;
+    }
+    if (body.nextOfKinPhone !== undefined) {
+      const raw = String(body.nextOfKinPhone ?? '').trim();
+      if (!raw) {
+        updates.next_of_kin_phone = null;
+      } else {
+        const p = normalizeUgPhone(raw);
+        if (!p) {
+          return NextResponse.json({ error: 'Enter a valid next-of-kin phone number (e.g. 0772 123 456)' }, { status: 400 });
+        }
+        updates.next_of_kin_phone = p;
+      }
+    }
+    if (body.qualification !== undefined) {
+      const q = String(body.qualification ?? '').trim().slice(0, 200);
+      updates.qualification = q || null;
+    }
+    if (body.certificatePhotoUrl !== undefined) {
+      try { updates.certificate_photo_url = docUrl(body.certificatePhotoUrl); }
+      catch { return NextResponse.json({ error: 'Invalid certificate photo' }, { status: 400 }); }
+    }
+    if (body.lcLetterPhotoUrl !== undefined) {
+      try { updates.lc_letter_photo_url = docUrl(body.lcLetterPhotoUrl); }
+      catch { return NextResponse.json({ error: 'Invalid LC letter photo' }, { status: 400 }); }
     }
 
     if (Object.keys(updates).length === 0) {

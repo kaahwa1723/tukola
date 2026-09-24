@@ -26,6 +26,9 @@ export type FunnelEvent =
   | 'referral_attributed'
   | 'referral_shared'
   | 'referral_credit_issued'
+  | 'referral_credit_redeemed'
+  // Trust layer — profile completion gate (24 Sep 2026)
+  | 'application_blocked_profile'
   // Phase 2 — guarantee claims
   | 'claim_submitted'
   | 'claim_approved'

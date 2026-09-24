@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MapPin, Star, CheckCircle, Clock, Zap, LogOut, Edit2, ChevronRight, Plus, Settings, Bell, FileText, HelpCircle, MessageSquareHeart, Tag, Wallet } from 'lucide-react';
+import { MapPin, Star, CheckCircle, Clock, Zap, LogOut, Edit2, ChevronRight, Plus, Settings, Bell, FileText, HelpCircle, MessageSquareHeart, Tag, Wallet, CreditCard, Users, Award, Upload } from 'lucide-react';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { useKola } from '@/lib/store';
 import { useI18n } from '@/lib/i18n';
 import { SKILL_GROUPS } from '@/lib/constants';
 import { UploadImagePicker } from '@/components/UploadImagePicker';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import { computeProfileCompletion } from '@/lib/profile-completion';
 
 export default function WorkerProfilePage() {
   const { user, logout, updateUser } = useKola();
@@ -25,15 +26,55 @@ export default function WorkerProfilePage() {
   const [sexVal, setSexVal] = useState<'male' | 'female' | undefined>(user?.sex);
   const [dobVal, setDobVal] = useState(user?.dateOfBirth ?? '');
   const [kycSaved, setKycSaved] = useState(false);
+  // Trust-layer fields (required: national ID + next of kin)
+  const [ninVal, setNinVal] = useState(user?.nationalIdNumber ?? '');
+  const [ninPhoto, setNinPhoto] = useState(user?.nationalIdPhotoUrl ?? '');
+  const [ninSaved, setNinSaved] = useState(false);
+  const [nokName, setNokName] = useState(user?.nextOfKinName ?? '');
+  const [nokPhone, setNokPhone] = useState(user?.nextOfKinPhone ?? '');
+  const [nokSaved, setNokSaved] = useState(false);
+  const [qualVal, setQualVal] = useState(user?.qualification ?? '');
+  const [certPhoto, setCertPhoto] = useState(user?.certificatePhotoUrl ?? '');
+  const [qualSaved, setQualSaved] = useState(false);
+  const [lcPhoto, setLcPhoto] = useState(user?.lcLetterPhotoUrl ?? '');
+  const [docUploading, setDocUploading] = useState<string | null>(null);
 
-  // Profile strength — honest checklist of fields employers actually see.
-  const checks = [
-    !!avatar, !!user?.location, !!about.trim(),
-    selectedSkills.length > 0, portfolioImages.length > 0,
-    !!user?.sex || !!sexVal, !!user?.dateOfBirth || !!dobVal,
-    !!user?.momoPayoutPhone,
-  ];
-  const strength = Math.round((checks.filter(Boolean).length / checks.length) * 100);
+  // Upload one document photo (ID, certificate, LC letter) and hand the
+  // URL back — same /api/upload pipeline as avatars, docs namespace.
+  const uploadDoc = async (file: File, tag: string): Promise<string | null> => {
+    setDocUploading(tag);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'profile-images');
+      formData.append('folder', `docs/${user?.id || 'guest'}`);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Upload failed');
+      const { url } = await res.json();
+      return url as string;
+    } catch (err) {
+      console.error(`[doc upload: ${tag}]`, err);
+      return null;
+    } finally {
+      setDocUploading(null);
+    }
+  };
+
+  // Profile strength — one shared computation (lib/profile-completion.ts)
+  // drives this bar, the dashboard banner AND the server-side apply gate.
+  // Local edit state is merged in so the bar grows the moment a field is
+  // filled, before it is even saved.
+  const completion = computeProfileCompletion({
+    ...user,
+    avatar, about, skills: selectedSkills, portfolioImages,
+    momoPayoutPhone: user?.momoPayoutPhone, // saved value only — the input pre-fills with the login phone
+    sex: sexVal, dateOfBirth: dobVal || undefined,
+    nationalIdNumber: ninVal, nationalIdPhotoUrl: ninPhoto,
+    nextOfKinName: nokName, nextOfKinPhone: nokPhone,
+    qualification: qualVal, certificatePhotoUrl: certPhoto,
+    lcLetterPhotoUrl: lcPhoto,
+  });
+  const strength = completion.percent;
 
   const profile = {
     // Honest trust surface: undefined rating = "New", never a fake 4.5.
@@ -133,7 +174,9 @@ export default function WorkerProfilePage() {
           </div>
         </div>
 
-        {/* Profile strength bar */}
+        {/* Profile strength bar — grows as real fields are completed.
+            Required items gate job applications (server-enforced);
+            optional items just raise the percentage. */}
         {strength < 100 && (
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm animate-slide-up-d1">
             <div className="flex items-center justify-between mb-2">
@@ -144,6 +187,19 @@ export default function WorkerProfilePage() {
               <div className="h-full rounded-full transition-all duration-500"
                 style={{ width: `${strength}%`, background: 'linear-gradient(90deg,#00C8FF,#2952E8)' }} />
             </div>
+            {!completion.canWork && (
+              <div className="mb-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                <p className="text-amber-800 text-xs font-bold mb-1">{t('prof.gateBanner')}</p>
+                <ul className="space-y-0.5">
+                  {completion.missingRequired.map(key => (
+                    <li key={key} className="text-amber-700 text-[11px] font-medium flex items-center gap-1.5">
+                      <span className="w-1 h-1 rounded-full bg-amber-500 flex-shrink-0" />
+                      {t(`prof.item.${key}` as any)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <p className="text-slate-400 text-[11px] leading-snug">{t('prof.strengthTip')}</p>
           </div>
         )}
@@ -298,6 +354,213 @@ export default function WorkerProfilePage() {
               {kycSaved ? t('prof.payoutSaved') : t('common.save')}
             </button>
           </div>
+        </div>
+
+        {/* National ID — REQUIRED before the fundi can apply for jobs.
+            Self-declared evidence for the vetting queue; never confers a badge. */}
+        <div
+          className="bg-white rounded-2xl p-4 shadow-sm animate-slide-up-d3"
+          style={{ border: user?.nationalIdNumber && user?.nationalIdPhotoUrl ? '1px solid #F0F4FF' : '1.5px solid #FCD34D' }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <CreditCard size={15} color="#2952E8" />
+            <h3 className="font-bold text-[#0A0F2C]">{t('prof.idTitle')}</h3>
+            {user?.nationalIdNumber && user?.nationalIdPhotoUrl && (
+              <CheckCircle size={14} className="text-green-600" />
+            )}
+          </div>
+          <p className="text-[#8B94B8] text-xs mt-0.5 mb-3">{t('prof.idSub')}</p>
+          <div className="flex gap-2 mb-2">
+            <input
+              type="text"
+              value={ninVal}
+              onChange={e => { setNinVal(e.target.value); setNinSaved(false); }}
+              placeholder={t('prof.idPh')}
+              className="flex-1 min-w-0 text-[#0A0F2C] text-sm rounded-xl px-3 py-2.5 focus:outline-none"
+              style={{ border: '1.5px solid #E2E6F0' }}
+              onFocus={e => e.target.style.borderColor = '#2952E8'}
+              onBlur={e => e.target.style.borderColor = '#E2E6F0'}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => document.getElementById('nin-photo-input')?.click()}
+              disabled={docUploading === 'nin'}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold border-2 border-dashed transition-colors disabled:opacity-60"
+              style={{ borderColor: ninPhoto ? '#86EFAC' : '#D1D9FF', color: ninPhoto ? '#16A34A' : '#4A5580', background: ninPhoto ? '#F0FDF4' : '#fff' }}
+            >
+              <Upload size={14} />
+              {docUploading === 'nin' ? t('prof.uploading') : ninPhoto ? t('prof.photoUploaded') : t('prof.idPhotoLabel')}
+            </button>
+            <input
+              id="nin-photo-input"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const url = await uploadDoc(file, 'nin');
+                if (url) { setNinPhoto(url); setNinSaved(false); }
+                e.target.value = '';
+              }}
+            />
+            <button
+              onClick={() => {
+                updateUser({ nationalIdNumber: ninVal.trim(), nationalIdPhotoUrl: ninPhoto || undefined });
+                setNinSaved(true);
+                setTimeout(() => setNinSaved(false), 2500);
+              }}
+              className="shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold text-white active:scale-95 transition-transform"
+              style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}
+            >
+              {ninSaved ? t('prof.payoutSaved') : t('common.save')}
+            </button>
+          </div>
+        </div>
+
+        {/* Next of kin — REQUIRED before the fundi can apply for jobs */}
+        <div
+          className="bg-white rounded-2xl p-4 shadow-sm animate-slide-up-d3"
+          style={{ border: user?.nextOfKinName && user?.nextOfKinPhone ? '1px solid #F0F4FF' : '1.5px solid #FCD34D' }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Users size={15} color="#2952E8" />
+            <h3 className="font-bold text-[#0A0F2C]">{t('prof.nokTitle')}</h3>
+            {user?.nextOfKinName && user?.nextOfKinPhone && (
+              <CheckCircle size={14} className="text-green-600" />
+            )}
+          </div>
+          <p className="text-[#8B94B8] text-xs mt-0.5 mb-3">{t('prof.nokSub')}</p>
+          <div className="flex gap-2 mb-2">
+            <input
+              type="text"
+              value={nokName}
+              onChange={e => { setNokName(e.target.value); setNokSaved(false); }}
+              placeholder={t('prof.nokNamePh')}
+              className="flex-1 min-w-0 text-[#0A0F2C] text-sm rounded-xl px-3 py-2.5 focus:outline-none"
+              style={{ border: '1.5px solid #E2E6F0' }}
+              onFocus={e => e.target.style.borderColor = '#2952E8'}
+              onBlur={e => e.target.style.borderColor = '#E2E6F0'}
+            />
+            <input
+              type="tel"
+              inputMode="tel"
+              value={nokPhone}
+              onChange={e => { setNokPhone(e.target.value); setNokSaved(false); }}
+              placeholder={t('prof.nokPhonePh')}
+              className="flex-1 min-w-0 text-[#0A0F2C] text-sm rounded-xl px-3 py-2.5 focus:outline-none"
+              style={{ border: '1.5px solid #E2E6F0' }}
+              onFocus={e => e.target.style.borderColor = '#2952E8'}
+              onBlur={e => e.target.style.borderColor = '#E2E6F0'}
+            />
+          </div>
+          <button
+            onClick={() => {
+              updateUser({ nextOfKinName: nokName.trim(), nextOfKinPhone: nokPhone.trim() });
+              setNokSaved(true);
+              setTimeout(() => setNokSaved(false), 2500);
+            }}
+            className="w-full py-2.5 rounded-xl text-sm font-bold text-white active:scale-95 transition-transform"
+            style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}
+          >
+            {nokSaved ? t('prof.payoutSaved') : t('common.save')}
+          </button>
+        </div>
+
+        {/* Qualification — optional, raises profile strength + feeds vetting */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm animate-slide-up-d3">
+          <div className="flex items-center gap-2 mb-1">
+            <Award size={15} color="#2952E8" />
+            <h3 className="font-bold text-[#0A0F2C]">{t('prof.qualTitle')}</h3>
+            {(user?.qualification || user?.certificatePhotoUrl) && (
+              <CheckCircle size={14} className="text-green-600" />
+            )}
+          </div>
+          <p className="text-[#8B94B8] text-xs mt-0.5 mb-3">{t('prof.qualSub')}</p>
+          <div className="flex gap-2 mb-2">
+            <input
+              type="text"
+              value={qualVal}
+              onChange={e => { setQualVal(e.target.value); setQualSaved(false); }}
+              placeholder={t('prof.qualPh')}
+              className="flex-1 min-w-0 text-[#0A0F2C] text-sm rounded-xl px-3 py-2.5 focus:outline-none"
+              style={{ border: '1.5px solid #E2E6F0' }}
+              onFocus={e => e.target.style.borderColor = '#2952E8'}
+              onBlur={e => e.target.style.borderColor = '#E2E6F0'}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => document.getElementById('cert-photo-input')?.click()}
+              disabled={docUploading === 'cert'}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold border-2 border-dashed transition-colors disabled:opacity-60"
+              style={{ borderColor: certPhoto ? '#86EFAC' : '#D1D9FF', color: certPhoto ? '#16A34A' : '#4A5580', background: certPhoto ? '#F0FDF4' : '#fff' }}
+            >
+              <Upload size={14} />
+              {docUploading === 'cert' ? t('prof.uploading') : certPhoto ? t('prof.photoUploaded') : t('prof.certPhotoLabel')}
+            </button>
+            <input
+              id="cert-photo-input"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const url = await uploadDoc(file, 'cert');
+                if (url) { setCertPhoto(url); setQualSaved(false); }
+                e.target.value = '';
+              }}
+            />
+            <button
+              onClick={() => {
+                updateUser({ qualification: qualVal.trim(), certificatePhotoUrl: certPhoto || undefined });
+                setQualSaved(true);
+                setTimeout(() => setQualSaved(false), 2500);
+              }}
+              className="shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold text-white active:scale-95 transition-transform"
+              style={{ background: 'linear-gradient(135deg,#2952E8,#1A2DB8)' }}
+            >
+              {qualSaved ? t('prof.payoutSaved') : t('common.save')}
+            </button>
+          </div>
+        </div>
+
+        {/* LC1 / area letter — optional, raises profile strength + feeds vetting */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm animate-slide-up-d3">
+          <div className="flex items-center gap-2 mb-1">
+            <FileText size={15} color="#2952E8" />
+            <h3 className="font-bold text-[#0A0F2C]">{t('prof.lcTitle')}</h3>
+            {user?.lcLetterPhotoUrl && <CheckCircle size={14} className="text-green-600" />}
+          </div>
+          <p className="text-[#8B94B8] text-xs mt-0.5 mb-3">{t('prof.lcSub')}</p>
+          <button
+            onClick={() => document.getElementById('lc-photo-input')?.click()}
+            disabled={docUploading === 'lc'}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold border-2 border-dashed transition-colors disabled:opacity-60"
+            style={{ borderColor: lcPhoto ? '#86EFAC' : '#D1D9FF', color: lcPhoto ? '#16A34A' : '#4A5580', background: lcPhoto ? '#F0FDF4' : '#fff' }}
+          >
+            <Upload size={14} />
+            {docUploading === 'lc' ? t('prof.uploading') : lcPhoto ? t('prof.photoUploaded') : t('prof.lcTitle')}
+          </button>
+          <input
+            id="lc-photo-input"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const url = await uploadDoc(file, 'lc');
+              if (url) {
+                setLcPhoto(url);
+                // Single-field section — save immediately on upload
+                updateUser({ lcLetterPhotoUrl: url });
+              }
+              e.target.value = '';
+            }}
+          />
         </div>
 
         {/* Mobile Money payout number — without it a release can't pay the fundi */}

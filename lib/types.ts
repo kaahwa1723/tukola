@@ -26,6 +26,19 @@ export interface User {
   sex?: 'male' | 'female';
   /** ISO date (YYYY-MM-DD); server enforces 18+. */
   dateOfBirth?: string;
+  /** National ID number (NIN). REQUIRED for fundis to apply for jobs. Never shown to non-owners. */
+  nationalIdNumber?: string;
+  /** Photo of the national ID. Never shown to non-owners. */
+  nationalIdPhotoUrl?: string;
+  /** Emergency contact. REQUIRED for fundis to apply for jobs. Never shown to non-owners. */
+  nextOfKinName?: string;
+  nextOfKinPhone?: string;
+  /** Trade qualification (e.g. DIT/UVTAB/UBTEB). Optional — raises profile strength. */
+  qualification?: string;
+  /** Photo of the trade certificate. Optional — raises profile strength. */
+  certificatePhotoUrl?: string;
+  /** Photo of the LC1 / area letter. Optional — raises profile strength. */
+  lcLetterPhotoUrl?: string;
 }
 
 export type JobUrgency = 'immediate' | 'scheduled';

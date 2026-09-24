@@ -2,16 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   MapPin, Clock, Banknote, Search, Wrench, Zap,
   Sparkles, Building2, Car, ChefHat, Leaf, Shield,
   Paintbrush, Package, Scissors, Truck, CheckCircle, ChevronRight,
-  Bell, TrendingUp, Star
+  Bell, TrendingUp, Star, AlertCircle
 } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { Job } from '@/lib/types';
 import { useI18n, translateCategory } from '@/lib/i18n';
 import InviteEarn from '@/app/components/InviteEarn';
+import { computeProfileCompletion } from '@/lib/profile-completion';
 
 const CATEGORIES = [
   { label: 'Plumbing', Icon: Wrench, color: '#2952E8', bg: '#EEF2FF' },
@@ -154,6 +156,7 @@ function JobCard({ job, applied, onApply }: { job: Job; applied: boolean; onAppl
 export default function WorkerHomePage() {
   const { user, jobs, applyToJob, applications } = useKola();
   const { t } = useI18n();
+  const router = useRouter();
   const [localApps, setLocalApps] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -167,6 +170,10 @@ export default function WorkerHomePage() {
   const openJobs = jobs.filter(j => j.status === 'open');
   const urgentCount = openJobs.filter(j => j.urgency === 'immediate').length;
 
+  // Trust-layer gate: same shared computation as the profile bar and the
+  // server-side apply route — a fundi below the bar sees the nudge banner.
+  const profileCompletion = computeProfileCompletion(user);
+
   const filtered = openJobs.filter(j => {
     const matchSearch = !search || j.title.toLowerCase().includes(search.toLowerCase()) || j.location.toLowerCase().includes(search.toLowerCase());
     // Stored category wins; keyword heuristic is the fallback for legacy rows
@@ -175,6 +182,12 @@ export default function WorkerHomePage() {
   });
 
   const handleApply = (jobId: string) => {
+    // Incomplete profile → straight to the profile page (the server would
+    // reject the application anyway — don't fake an optimistic "applied")
+    if (!profileCompletion.canWork) {
+      router.push('/worker/profile');
+      return;
+    }
     applyToJob(jobId);
     setLocalApps(prev => [...prev, jobId]);
   };
@@ -224,6 +237,28 @@ export default function WorkerHomePage() {
           style={{ color: '#0A0F2C' }}
         />
       </div>
+
+      {/* ── PROFILE GATE BANNER ──────────────────── */}
+      {/* Trust layer: a fundi with an incomplete profile cannot apply —
+          the server blocks the apply route; this banner is the nudge. */}
+      {user && !profileCompletion.canWork && (
+        <Link href="/worker/profile"
+          className="rounded-2xl px-4 py-3.5 flex items-center justify-between animate-slide-up-d1 cursor-pointer"
+          style={{ background: 'linear-gradient(135deg, #FFFBEB, #FFF7ED)', border: '1.5px solid rgba(217,119,6,0.25)' }}>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-amber-500">
+              <AlertCircle size={15} color="white" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-amber-800">{t('prof.gateBanner')}</p>
+              <p className="text-[11px] font-medium text-amber-700">
+                {t('prof.strength')}: {profileCompletion.percent}% · {profileCompletion.missingRequired.map(k => t(`prof.item.${k}` as any)).join(' · ')}
+              </p>
+            </div>
+          </div>
+          <ChevronRight size={16} color="#D97706" />
+        </Link>
+      )}
 
       {/* ── CATEGORIES ───────────────────────────── */}
       <div className="animate-slide-up-d2">

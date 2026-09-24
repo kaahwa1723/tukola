@@ -12,6 +12,7 @@ import {
 import { useKola } from '@/lib/store';
 import { useI18n } from '@/lib/i18n';
 import GuaranteeClaimBlock from '@/app/components/GuaranteeClaim';
+import { computeProfileCompletion } from '@/lib/profile-completion';
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Plumbing: Wrench, Electrical: Zap, Cleaning: Sparkles, Construction: Building2,
@@ -78,7 +79,16 @@ export default function JobDetailsPage() {
 
   const JobIcon = getJobIcon(job.title);
 
-  const handleApply = () => applyToJob(job.id);
+  const handleApply = () => {
+    // Trust-layer gate mirrors the server: incomplete-profile fundis go to
+    // their profile instead of getting an optimistic "applied" that the
+    // server then rejects (no fake states).
+    if (isWorker && !computeProfileCompletion(user).canWork) {
+      router.push('/worker/profile');
+      return;
+    }
+    applyToJob(job.id);
+  };
   const handleAccept = (applicantId: string) => acceptApplicant(job.id, applicantId);
 
   // Employer editing — allowed only while the job is still open (server
