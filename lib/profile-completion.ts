@@ -10,10 +10,11 @@ import type { User } from './types';
  *   Required (the gate):
  *     phone (implicit — OTP login), profile photo, area, about, skills,
  *     MoMo payout number (without it a release can't pay them),
- *     national ID (number + photo), next of kin (name + phone)
+ *     national ID (number + photo), next of kin (name + phone),
+ *     LC1 / area letter OR trade certificate photo (founder, 24 Sep 2026:
+ *     "no job can be accepted without at least LC confirmation")
  *   Optional (raise the %):
- *     sex + date of birth, qualification / certificate, LC1 / area letter,
- *     work portfolio photos
+ *     sex + date of birth, qualification text, work portfolio photos
  *
  * is_verified is deliberately NOT part of this — badges are admin-set and
  * never self-service. This checklist is self-reported evidence; the
@@ -48,10 +49,12 @@ export function computeProfileCompletion(u: Partial<User> | null | undefined): P
     { key: 'momo',           required: true,  done: !!u?.momoPayoutPhone },
     { key: 'nationalId',     required: true,  done: !!u?.nationalIdNumber?.trim() && !!u?.nationalIdPhotoUrl },
     { key: 'nextOfKin',      required: true,  done: !!u?.nextOfKinName?.trim() && !!u?.nextOfKinPhone },
+    // LC1 / area letter OR a trade certificate photo — either satisfies the
+    // founder's "at least LC confirmation" floor (24 Sep 2026)
+    { key: 'lcOrCert',       required: true,  done: !!u?.lcLetterPhotoUrl || !!u?.certificatePhotoUrl },
     // ── Optional — raise the percentage ───────────────────────────────
     { key: 'sexDob',         required: false, done: !!u?.sex && !!u?.dateOfBirth },
-    { key: 'qualification',  required: false, done: !!u?.qualification?.trim() || !!u?.certificatePhotoUrl },
-    { key: 'lcLetter',       required: false, done: !!u?.lcLetterPhotoUrl },
+    { key: 'qualification',  required: false, done: !!u?.qualification?.trim() },
     { key: 'portfolio',      required: false, done: (u?.portfolioImages?.length ?? 0) > 0 },
   ];
 

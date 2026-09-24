@@ -527,12 +527,15 @@ export default function WorkerProfilePage() {
           </div>
         </div>
 
-        {/* LC1 / area letter — optional, raises profile strength + feeds vetting */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm animate-slide-up-d3">
+        {/* LC1 / area letter — REQUIRED (a certificate photo above also counts) */}
+        <div
+          className="bg-white rounded-2xl p-4 shadow-sm animate-slide-up-d3"
+          style={{ border: (user?.lcLetterPhotoUrl || user?.certificatePhotoUrl) ? '1px solid #F0F4FF' : '1.5px solid #FCD34D' }}
+        >
           <div className="flex items-center gap-2 mb-1">
             <FileText size={15} color="#2952E8" />
             <h3 className="font-bold text-[#0A0F2C]">{t('prof.lcTitle')}</h3>
-            {user?.lcLetterPhotoUrl && <CheckCircle size={14} className="text-green-600" />}
+            {(user?.lcLetterPhotoUrl || user?.certificatePhotoUrl) && <CheckCircle size={14} className="text-green-600" />}
           </div>
           <p className="text-[#8B94B8] text-xs mt-0.5 mb-3">{t('prof.lcSub')}</p>
           <button
