@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MapPin, Star, CheckCircle, Clock, Zap, LogOut, Edit2, ChevronRight, Plus, Settings, Bell, FileText, HelpCircle, MessageSquareHeart, Tag, Wallet, CreditCard, Users, Award, Upload } from 'lucide-react';
@@ -38,6 +38,18 @@ export default function WorkerProfilePage() {
   const [qualSaved, setQualSaved] = useState(false);
   const [lcPhoto, setLcPhoto] = useState(user?.lcLetterPhotoUrl ?? '');
   const [docUploading, setDocUploading] = useState<string | null>(null);
+
+  // Own Verified+ vetting status (session-derived — /api/vetting).
+  const [vetting, setVetting] = useState<{
+    verifiedPlus: boolean;
+    latestReview: { status: string; notes: string | null; reviewedAt: string | null } | null;
+  } | null>(null);
+  useEffect(() => {
+    fetch('/api/vetting')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => d && setVetting(d))
+      .catch(() => {});
+  }, []);
 
   // Upload one document photo (ID, certificate, LC letter) and hand the
   // URL back — same /api/upload pipeline as avatars, docs namespace.
@@ -84,6 +96,9 @@ export default function WorkerProfilePage() {
     responseTime: user?.responseTime || null,
     lastActive: user?.lastActive || null,
     isVerified: user?.isVerified || false,
+    // Prefer the live flag from /api/vetting once loaded (the store's copy
+    // can be stale until the next profile refresh).
+    verifiedPlus: vetting?.verifiedPlus ?? user?.verifiedPlus ?? false,
   };
 
   const handleLogout = () => {
@@ -165,11 +180,24 @@ export default function WorkerProfilePage() {
               <MapPin size={13} />
               {user?.location || 'Kampala, Uganda'}
             </p>
-            {/* ID-verified chip — only when the admin team set the flag */}
-            {profile.isVerified && (
+            {/* Trust badge — Verified+ (full vetting) outranks ID-verified;
+                both are server-owned flags, never self-set. */}
+            {(profile.verifiedPlus || profile.isVerified) && (
               <div className="flex justify-center mt-2">
-                <VerifiedBadge variant="full" />
+                <VerifiedBadge variant="full" tier={profile.verifiedPlus ? 'plus' : 'id'} />
               </div>
+            )}
+            {/* Vetting status — own latest review, so the fundi always
+                knows where they stand (and why, on rejection). */}
+            {!profile.verifiedPlus && vetting?.latestReview?.status === 'in_review' && (
+              <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">
+                <Clock size={11} /> Vetting in review — our team is checking your documents.
+              </p>
+            )}
+            {!profile.verifiedPlus && vetting?.latestReview?.status === 'rejected' && (
+              <p className="mt-2 text-[11px] font-semibold px-3 py-2 rounded-xl bg-red-50 text-red-600 leading-snug">
+                Vetting not approved{vetting.latestReview.notes ? `: ${vetting.latestReview.notes}` : ''}. Update your documents below and we'll re-review.
+              </p>
             )}
           </div>
         </div>

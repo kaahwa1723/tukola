@@ -1,16 +1,16 @@
 'use client';
 
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, BadgeCheck } from 'lucide-react';
 
 /**
- * ID-verified badge — render ONLY when the fundi's `isVerified` flag is
- * true (server-owned; set by the admin team after checks, never by the
- * client or the worker).
+ * Trust badges — render ONLY from server-owned flags (isVerified /
+ * verifiedPlus), never from client state the worker controls.
  *
- * The copy is deliberately honest and specific: verification today means
- * a National ID check plus two reference calls, done by our team. Do not
- * inflate this into "background checked" or "police cleared" — that is
- * not what the process does.
+ * tier 'id'   — ID-verified: National ID + 2 reference calls, checked by
+ *               our team. Do not inflate this into "background checked".
+ * tier 'plus' — Verified+: full vetting via the admin queue — national ID,
+ *               LC1 letter, trade certificate verified WITH the issuer,
+ *               and police clearance. Only render when verifiedPlus is true.
  *
  * variant 'chip'  — compact inline pill for list rows / cards
  * variant 'full'  — pill + explanatory line for profile/hire pages
@@ -18,11 +18,28 @@ import { ShieldCheck } from 'lucide-react';
 export default function VerifiedBadge({
   variant = 'chip',
   dark = false,
+  tier = 'id',
 }: {
   variant?: 'chip' | 'full';
   dark?: boolean; // on dark/gradient backgrounds
+  tier?: 'id' | 'plus';
 }) {
-  const chip = (
+  const plus = tier === 'plus';
+
+  const chip = plus ? (
+    <span
+      className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full"
+      style={
+        dark
+          ? { background: 'rgba(16,185,129,0.22)', color: '#34D399' }
+          : { background: '#ECFDF5', color: '#047857' }
+      }
+      title="Verified+: National ID + LC1 letter + trade certificate verified with the issuer + police clearance"
+    >
+      <BadgeCheck size={12} strokeWidth={2.5} />
+      Verified+
+    </span>
+  ) : (
     <span
       className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full"
       style={
@@ -43,7 +60,9 @@ export default function VerifiedBadge({
     <div className="flex flex-col gap-1">
       {chip}
       <p className={`text-[11px] leading-snug ${dark ? 'text-white/60' : 'text-slate-500'}`}>
-        National ID + 2 reference calls, checked by our team.
+        {plus
+          ? 'Fully vetted: ID, LC1 letter, certificate checked with the issuer, and police clearance.'
+          : 'National ID + 2 reference calls, checked by our team.'}
       </p>
     </div>
   );

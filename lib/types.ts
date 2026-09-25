@@ -15,6 +15,8 @@ export interface User {
   responseTime?: string;
   lastActive?: string;
   isVerified?: boolean;
+  /** Verified+ badge: full vetting passed (ID + LC1 + certificate + issuer check + police clearance). Server-owned — set ONLY by the vetting queue. */
+  verifiedPlus?: boolean;
   blocked?: boolean;
   company?: string;
   portfolioImages?: string[];

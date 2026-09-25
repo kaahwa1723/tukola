@@ -22,7 +22,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const sb = createServerSupabase();
     const { data } = await sb
       .from('worker_services')
-      .select('*, profiles!worker_id(id, name, avatar, rating, completed_jobs, reliability_score, location, is_verified, skills, blocked, about)')
+      .select('*, profiles!worker_id(id, name, avatar, rating, completed_jobs, reliability_score, location, is_verified, verified_plus, skills, blocked, about)')
       .eq('id', params.id)
       .maybeSingle();
 
@@ -48,6 +48,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
           reliabilityScore: w.reliability_score != null ? Number(w.reliability_score) : null,
           location: w.location ?? undefined,
           isVerified: w.is_verified ?? false,
+          verifiedPlus: w.verified_plus ?? false,
           skills: w.skills ?? [],
           about: w.about ?? '',
         },

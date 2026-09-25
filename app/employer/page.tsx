@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Plus, Bell, ChevronRight, MapPin, Star, Users, Lightbulb, ShieldCheck, TrendingUp, Briefcase, Wrench } from 'lucide-react';
+import { Plus, Bell, ChevronRight, MapPin, Star, Users, Lightbulb, ShieldCheck, BadgeCheck, TrendingUp, Briefcase, Wrench } from 'lucide-react';
 import { useKola } from '@/lib/store';
 import { MOCK_WORKERS } from '@/lib/data';
 import { useI18n } from '@/lib/i18n';
@@ -28,7 +28,11 @@ function WorkerCard({ worker }: { worker: (typeof MOCK_WORKERS)[0] }) {
       )}
       <div className="flex items-center justify-center gap-1 mb-0.5">
         <p className="text-[#0A0F2C] font-bold text-sm text-center leading-tight truncate">{worker.name.split(' ')[0]}</p>
-        {worker.isVerified && (
+        {worker.verifiedPlus ? (
+          <span title="Verified+: ID, LC1 letter, certificate checked with the issuer, and police clearance">
+            <BadgeCheck size={11} color="#059669" strokeWidth={2} />
+          </span>
+        ) : worker.isVerified && (
           <span title="ID-verified: National ID + 2 reference calls, checked by our team">
             <ShieldCheck size={11} color="#2952E8" strokeWidth={2} />
           </span>

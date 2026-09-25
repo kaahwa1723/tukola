@@ -30,6 +30,7 @@ function mapService(row: any) {
       reliabilityScore: w.reliability_score != null ? Number(w.reliability_score) : null,
       location: w.location ?? undefined,
       isVerified: w.is_verified ?? false,
+      verifiedPlus: w.verified_plus ?? false,
       skills: w.skills ?? [],
     },
   };
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
 
     let query = sb
       .from('worker_services')
-      .select('*, profiles!worker_id(id, name, avatar, rating, completed_jobs, reliability_score, location, is_verified, skills, blocked)')
+      .select('*, profiles!worker_id(id, name, avatar, rating, completed_jobs, reliability_score, location, is_verified, verified_plus, skills, blocked)')
       .order('created_at', { ascending: false })
       .limit(200); // pre-filter cap; JS ranking trims to `limit`
 
@@ -165,7 +166,7 @@ export async function POST(req: NextRequest) {
         price_ugx: priceUgx,
         description,
       })
-      .select('*, profiles!worker_id(id, name, avatar, rating, completed_jobs, reliability_score, location, is_verified, skills, blocked)')
+      .select('*, profiles!worker_id(id, name, avatar, rating, completed_jobs, reliability_score, location, is_verified, verified_plus, skills, blocked)')
       .single();
     if (error) throw error;
 

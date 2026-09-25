@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Search, MapPin, Star, ShieldCheck, Navigation, Loader2, Award } from 'lucide-react';
+import { Search, MapPin, Star, ShieldCheck, BadgeCheck, Navigation, Loader2, Award } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface Fundi {
@@ -15,6 +15,7 @@ interface Fundi {
   skills: string[];
   location?: string;
   isVerified: boolean;
+  verifiedPlus?: boolean; // Verified+: full vetting passed (server-owned)
   topRated: boolean;
 }
 
@@ -180,7 +181,11 @@ export default function FundiFinder() {
               )}
               <div className="flex items-center justify-center gap-1 mb-0.5">
                 <p className="text-[#0A0F2C] font-bold text-sm text-center leading-tight truncate">{fundi.name.split(' ')[0]}</p>
-                {fundi.isVerified && (
+                {fundi.verifiedPlus ? (
+                  <span title="Verified+: ID, LC1 letter, certificate checked with the issuer, and police clearance">
+                    <BadgeCheck size={11} color="#059669" strokeWidth={2} />
+                  </span>
+                ) : fundi.isVerified && (
                   <span title="ID-verified: National ID + 2 reference calls, checked by our team">
                     <ShieldCheck size={11} color="#2952E8" strokeWidth={2} />
                   </span>

@@ -25,6 +25,7 @@ interface ServiceDetail {
     reliabilityScore: number | null;
     location?: string;
     isVerified: boolean;
+    verifiedPlus?: boolean;
     skills: string[];
     about: string;
   };
@@ -200,7 +201,7 @@ export default function BookServicePage() {
                 </span>
               </div>
             </div>
-            {service.worker.isVerified && <VerifiedBadge variant="chip" dark />}
+            {service.worker.isVerified && <VerifiedBadge variant="chip" dark tier={service.worker.verifiedPlus ? 'plus' : 'id'} />}
           </div>
         </div>
 

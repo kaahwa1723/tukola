@@ -188,11 +188,12 @@ export default function HireWorkerPage() {
               <div className="flex items-center gap-2 mb-0.5">
                 <h2 className="text-white font-black text-lg leading-tight">{worker.name}</h2>
               </div>
-              {/* Shown ONLY when the admin team has set is_verified — the
-                  copy states exactly what verification means, no more. */}
-              {worker.isVerified && (
+              {/* Shown ONLY from server-owned flags — Verified+ (full
+                  vetting) outranks ID-verified; the copy states exactly
+                  what each tier means, no more. */}
+              {(worker.verifiedPlus || worker.isVerified) && (
                 <div className="mb-1.5">
-                  <VerifiedBadge variant="full" dark />
+                  <VerifiedBadge variant="full" dark tier={worker.verifiedPlus ? 'plus' : 'id'} />
                 </div>
               )}
               <p className="text-blue-200 text-xs flex items-center gap-1 mb-2">
