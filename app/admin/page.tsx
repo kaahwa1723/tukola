@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useKola } from '@/lib/store';
-import { Users, Briefcase, CheckCircle, TrendingUp, AlertTriangle, Star, RefreshCw, Info } from 'lucide-react';
+import { Users, Briefcase, CheckCircle, TrendingUp, AlertTriangle, Star, RefreshCw, Info, Globe, EyeOff } from 'lucide-react';
 
 interface Stats {
   totalUsers: number; totalWorkers: number; totalEmployers: number;
@@ -19,6 +19,43 @@ export default function AdminDashboard() {
   const [workers, setWorkers] = useState<any[]>([]);
   const [signups, setSignups] = useState<SignupDay[]>([]);
   const [loading, setLoading] = useState(true);
+  // Site mode switch (coming soon ⇄ live) — flips the middleware gate.
+  const [siteMode, setSiteMode] = useState<'live' | 'coming_soon' | null>(null);
+  const [modeBusy, setModeBusy] = useState(false);
+  const [modeError, setModeError] = useState<string | null>(null);
+
+  const loadSiteMode = async () => {
+    const res = await fetch('/api/admin/site-mode').catch(() => null);
+    if (res?.ok) {
+      const data = await res.json().catch(() => null);
+      if (data?.mode) setSiteMode(data.mode);
+    }
+  };
+
+  const flipSiteMode = async () => {
+    if (!siteMode || modeBusy) return;
+    const next = siteMode === 'live' ? 'coming_soon' : 'live';
+    const message = next === 'live'
+      ? 'Take the marketplace LIVE? Everyone will see the full app again.'
+      : 'Shelve the marketplace? Visitors will see the Coming Soon page. Fundi sign-up stays open.';
+    if (!window.confirm(message)) return;
+    setModeBusy(true);
+    setModeError(null);
+    try {
+      const res = await fetch('/api/admin/site-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'failed');
+      setSiteMode(next);
+    } catch {
+      setModeError('Could not switch the site mode. Please try again.');
+    } finally {
+      setModeBusy(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -41,7 +78,7 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadSiteMode(); }, []);
 
   const completionRate = stats && stats.totalJobs
     ? Math.round((stats.completedJobs / stats.totalJobs) * 100)
@@ -83,6 +120,43 @@ export default function AdminDashboard() {
           <RefreshCw size={14} className={loading ? 'spin' : ''} />
           Refresh
         </button>
+      </div>
+
+      {/* Site mode — the coming-soon ⇄ live switch (middleware gate) */}
+      <div className="mb-8 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 animate-slide-up-d1">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${siteMode === 'live' ? 'bg-green-100' : 'bg-amber-100'}`}>
+              {siteMode === 'live' ? <Globe size={20} className="text-green-600" /> : <EyeOff size={20} className="text-amber-600" />}
+            </div>
+            <div>
+              <p className="font-black text-[#0A0F2C] flex items-center gap-2">
+                Site mode
+                {siteMode && (
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${siteMode === 'live' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {siteMode === 'live' ? 'LIVE' : 'COMING SOON'}
+                  </span>
+                )}
+              </p>
+              <p className="text-slate-500 text-xs mt-0.5">
+                {siteMode === 'live'
+                  ? 'The full marketplace is open to everyone.'
+                  : 'Visitors see the Coming 2027 page. Fundi sign-up and this admin panel stay open.'}
+              </p>
+              {modeError && <p className="text-red-600 text-xs font-semibold mt-1">{modeError}</p>}
+            </div>
+          </div>
+          <button
+            onClick={flipSiteMode}
+            disabled={!siteMode || modeBusy}
+            className={`text-xs font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-60 ${
+              siteMode === 'live' ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'text-white'
+            }`}
+            style={siteMode === 'live' ? {} : { background: 'linear-gradient(135deg,#059669,#047857)' }}
+          >
+            {modeBusy ? 'Switching…' : siteMode === 'live' ? 'Switch to Coming Soon' : 'Go Live'}
+          </button>
+        </div>
       </div>
 
       {/* KPIs */}
