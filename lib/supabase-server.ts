@@ -73,6 +73,7 @@ export function mapUser(r: any): User {
     lastActive: r.last_active ?? undefined,
     isVerified: r.is_verified ?? false,
     verifiedPlus: r.verified_plus ?? false,
+    availability: r.availability ?? undefined,
     blocked: r.blocked ?? false,
     company: r.company ?? undefined,
     portfolioImages: r.portfolio_images ?? [],

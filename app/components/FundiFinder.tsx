@@ -16,6 +16,7 @@ interface Fundi {
   location?: string;
   isVerified: boolean;
   verifiedPlus?: boolean; // Verified+: full vetting passed (server-owned)
+  availability?: 'available' | 'busy' | 'unavailable'; // self-declared; undefined = not set
   topRated: boolean;
 }
 
@@ -192,6 +193,25 @@ export default function FundiFinder() {
                 )}
               </div>
               <p className="text-[#8B94B8] text-[11px] text-center mb-1 truncate">{fundi.skills?.[0] ?? 'Fundi'}</p>
+              {/* Self-declared availability — only when the fundi set it */}
+              {fundi.availability && (
+                <p className="flex items-center justify-center gap-1 mb-1">
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    fundi.availability === 'available' ? 'bg-emerald-500'
+                    : fundi.availability === 'busy' ? 'bg-amber-500'
+                    : 'bg-slate-300'
+                  }`} />
+                  <span className={`text-[10px] font-bold ${
+                    fundi.availability === 'available' ? 'text-emerald-600'
+                    : fundi.availability === 'busy' ? 'text-amber-600'
+                    : 'text-slate-400'
+                  }`}>
+                    {fundi.availability === 'available' ? 'Available now'
+                    : fundi.availability === 'busy' ? 'Busy'
+                    : 'Not taking jobs'}
+                  </span>
+                </p>
+              )}
               {fundi.location && (
                 <p className="text-[#8B94B8] text-[10px] text-center mb-1.5 flex items-center justify-center gap-0.5 truncate">
                   <MapPin size={9} /> {fundi.location}

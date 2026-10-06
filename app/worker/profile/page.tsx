@@ -10,6 +10,7 @@ import { useI18n } from '@/lib/i18n';
 import { SKILL_GROUPS } from '@/lib/constants';
 import { UploadImagePicker } from '@/components/UploadImagePicker';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import ReviewsList from '@/components/ReviewsList';
 import { computeProfileCompletion } from '@/lib/profile-completion';
 
 export default function WorkerProfilePage() {
@@ -263,6 +264,38 @@ export default function WorkerProfilePage() {
             </p>
           </div>
         </div>
+
+        {/* Work status — self-declared availability, saved instantly.
+            Shown to employers on fundi cards and the hire page. */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm animate-slide-up-d1">
+          <h3 className="font-bold text-[#0A0F2C] text-sm mb-0.5">Work status</h3>
+          <p className="text-slate-400 text-[11px] mb-3 leading-snug">
+            Tell employers if you can take jobs right now. Tap your status again to hide it.
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { key: 'available',   label: 'Available now',   active: 'bg-emerald-50 border-emerald-300 text-emerald-700' },
+              { key: 'busy',        label: 'Busy',            active: 'bg-amber-50 border-amber-300 text-amber-700' },
+              { key: 'unavailable', label: 'Not taking jobs', active: 'bg-slate-100 border-slate-300 text-slate-500' },
+            ] as const).map(opt => {
+              const isOn = user?.availability === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => updateUser({ availability: isOn ? null : opt.key } as any)}
+                  className={`text-[11px] font-bold px-2 py-2.5 rounded-xl border transition-colors ${
+                    isOn ? opt.active : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* My reviews — what customers wrote after completed jobs */}
+        {user?.id && <ReviewsList userId={user.id} />}
 
         {/* Skills */}
         <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm animate-slide-up-d2">

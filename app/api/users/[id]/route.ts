@@ -42,7 +42,30 @@ export async function GET(req: NextRequest, { params }: Params) {
       user.lcLetterPhotoUrl = undefined;
     }
 
-    return NextResponse.json({ user });
+    // Category experience (workers only): completed-job counts per trade,
+    // computed from real history — accepted applications on completed jobs.
+    let categoryJobs: { category: string; count: number }[] = [];
+    if (user.role === 'worker') {
+      const { data: apps } = await sb
+        .from('applications')
+        .select('jobs!job_id(category, status)')
+        .eq('worker_id', params.id)
+        .eq('status', 'accepted')
+        .limit(500);
+      const counts = new Map<string, number>();
+      for (const a of apps ?? []) {
+        const j = (a as any).jobs;
+        if (j?.status === 'completed' && j.category) {
+          counts.set(j.category, (counts.get(j.category) ?? 0) + 1);
+        }
+      }
+      categoryJobs = Array.from(counts.entries())
+        .map(([category, count]) => ({ category, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 6);
+    }
+
+    return NextResponse.json({ user, categoryJobs });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -93,6 +116,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         return NextResponse.json({ error: 'Invalid payout preference' }, { status: 400 });
       }
       updates.payout_preference = body.payoutPreference;
+    }
+    // Self-declared availability (migration 025) — a hint for employers,
+    // not a trust field. null clears it (no badge shown).
+    if (body.availability !== undefined) {
+      if (body.availability !== null && !['available', 'busy', 'unavailable'].includes(body.availability)) {
+        return NextResponse.json({ error: 'Invalid availability' }, { status: 400 });
+      }
+      updates.availability = body.availability;
     }
     // Basic KYC — self-service, validated
     if (body.sex !== undefined) {

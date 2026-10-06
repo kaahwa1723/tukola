@@ -17,6 +17,8 @@ export interface User {
   isVerified?: boolean;
   /** Verified+ badge: full vetting passed (ID + LC1 + certificate + issuer check + police clearance). Server-owned — set ONLY by the vetting queue. */
   verifiedPlus?: boolean;
+  /** Self-declared work status. NULL/undefined = not set (no badge). A hint, not a guarantee. */
+  availability?: 'available' | 'busy' | 'unavailable';
   blocked?: boolean;
   company?: string;
   portfolioImages?: string[];

@@ -10,6 +10,7 @@ import { MOCK_WORKERS } from '@/lib/data';
 import type { User } from '@/lib/types';
 import { UploadImagePicker } from '@/components/UploadImagePicker';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import ReviewsList from '@/components/ReviewsList';
 import { formatUgx } from '@/lib/pricing';
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
@@ -29,6 +30,9 @@ export default function HireWorkerPage() {
   // FundiFinder can book a listed service (fixed price, one tap) instead
   // of writing a job description from scratch.
   const [services, setServices] = useState<{ id: string; title: string; unitLabel: string | null; priceUgx: number }[]>([]);
+  // Completed-job counts per category (e.g. "23 Plumbing jobs") — from
+  // GET /api/users/[id], computed server-side from real job history.
+  const [categoryJobs, setCategoryJobs] = useState<{ category: string; count: number }[]>([]);
 
   useEffect(() => {
     fetch(`/api/users/${workerId}`)
@@ -36,6 +40,7 @@ export default function HireWorkerPage() {
       .then(data => {
         if (data?.user) setWorker(data.user);
         else if (DEMO_MODE) setWorker(MOCK_WORKERS.find(w => w.id === workerId) ?? null);
+        if (Array.isArray(data?.categoryJobs)) setCategoryJobs(data.categoryJobs);
       })
       .catch(() => {
         if (DEMO_MODE) setWorker(MOCK_WORKERS.find(w => w.id === workerId) ?? null);
@@ -196,6 +201,22 @@ export default function HireWorkerPage() {
                   <VerifiedBadge variant="full" dark tier={worker.verifiedPlus ? 'plus' : 'id'} />
                 </div>
               )}
+              {/* Self-declared availability — shown only when the fundi
+                  has set it; a hint, never a guarantee. */}
+              {worker.availability && (
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full mb-1.5"
+                  style={
+                    worker.availability === 'available'
+                      ? { background: 'rgba(16,185,129,0.22)', color: '#34D399' }
+                      : worker.availability === 'busy'
+                        ? { background: 'rgba(245,158,11,0.22)', color: '#FBBF24' }
+                        : { background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)' }
+                  }>
+                  <span className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: worker.availability === 'available' ? '#34D399' : worker.availability === 'busy' ? '#FBBF24' : 'rgba(255,255,255,0.5)' }} />
+                  {worker.availability === 'available' ? 'Available now' : worker.availability === 'busy' ? 'Busy right now' : 'Not taking jobs'}
+                </span>
+              )}
               <p className="text-blue-200 text-xs flex items-center gap-1 mb-2">
                 <MapPin size={10} /> {worker.location}
               </p>
@@ -238,6 +259,22 @@ export default function HireWorkerPage() {
             </div>
           )}
         </div>
+
+        {/* Category experience — real completed-job counts per trade */}
+        {categoryJobs.length > 0 && (
+          <div className="bg-white rounded-2xl px-4 py-3 flex flex-wrap items-center gap-2"
+            style={{ border: '1px solid #E8EDF8', boxShadow: '0 2px 16px rgba(41,82,232,0.06)' }}>
+            <span className="text-[#8B94B8] text-[11px] font-semibold">Experience:</span>
+            {categoryJobs.map(c => (
+              <span key={c.category} className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-[#2952E8]">
+                {c.count} {c.category} {c.count === 1 ? 'job' : 'jobs'}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Customer reviews — the trust surface competitors lead with */}
+        <ReviewsList userId={workerId} />
 
         {/* Worker's price list — book a listed service in one tap */}
         {services.length > 0 && (

@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     const sb = createServerSupabase();
     let query = sb
       .from('profiles')
-      .select('id, name, avatar, rating, completed_jobs, skills, location, is_verified, verified_plus, about, reliability_score')
+      .select('id, name, avatar, rating, completed_jobs, skills, location, is_verified, verified_plus, availability, about, reliability_score')
       .eq('role', 'worker')
       .eq('blocked', false)
       .order('rating', { ascending: false, nullsFirst: false })
@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
       location: r.location ?? undefined,
       isVerified: r.is_verified ?? false,
       verifiedPlus: r.verified_plus ?? false,
+      availability: r.availability ?? undefined,
       about: r.about ?? '',
       topRated: i < 3 && (r.rating != null || (r.completed_jobs ?? 0) > 0),
     }));

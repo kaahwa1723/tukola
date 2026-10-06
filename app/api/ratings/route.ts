@@ -146,7 +146,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/** GET /api/ratings?userId=xxx — fetch all ratings received by a user */
+/**
+ * GET /api/ratings?userId=xxx — reviews received by a user, enriched for
+ * public display: stars, comment, date, the job's category, and the
+ * rater's FIRST name only. Raw rows (from_id etc.) never leave the server.
+ * Response key is `reviews`.
+ */
 export async function GET(req: NextRequest) {
   try {
     const userId = req.nextUrl.searchParams.get('userId');
@@ -157,13 +162,33 @@ export async function GET(req: NextRequest) {
     const sb = createServerSupabase();
     const { data, error } = await sb
       .from('ratings')
-      .select('*')
+      .select('job_id, from_id, stars, score, comment, created_at')
       .eq('to_id', userId)
-      .order('created_at', { ascending: false });
-
+      .order('created_at', { ascending: false })
+      .limit(100);
     if (error) throw error;
+    const rows = data ?? [];
 
-    return NextResponse.json({ ratings: data ?? [] });
+    // Enrich with job category + rater first name (two small lookups).
+    const jobIds   = Array.from(new Set(rows.map(r => r.job_id).filter(Boolean)));
+    const raterIds = Array.from(new Set(rows.map(r => r.from_id).filter(Boolean)));
+    const [{ data: jobs }, { data: raters }] = await Promise.all([
+      jobIds.length   ? sb.from('jobs').select('id, category').in('id', jobIds)         : Promise.resolve({ data: [] as any[] }),
+      raterIds.length ? sb.from('profiles').select('id, name').in('id', raterIds)       : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const categoryByJob = new Map((jobs ?? []).map((j: any) => [j.id, j.category ?? null]));
+    const firstNameById = new Map((raters ?? []).map((p: any) => [p.id, String(p.name ?? '').split(' ')[0] || 'Customer']));
+
+    const reviews = rows.map(r => ({
+      stars: typeof r.stars === 'number' ? r.stars : null,
+      score: r.score ?? null,
+      comment: r.comment ?? null,
+      createdAt: r.created_at,
+      jobCategory: categoryByJob.get(r.job_id) ?? null,
+      raterFirstName: firstNameById.get(r.from_id) ?? 'Customer',
+    }));
+
+    return NextResponse.json({ reviews });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
