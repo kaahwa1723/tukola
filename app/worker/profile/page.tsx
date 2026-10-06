@@ -52,15 +52,15 @@ export default function WorkerProfilePage() {
       .catch(() => {});
   }, []);
 
-  // Upload one document photo (ID, certificate, LC letter) and hand the
-  // URL back — same /api/upload pipeline as avatars, docs namespace.
+  // Upload one identity document (ID, certificate, LC letter) into the
+  // PRIVATE id-documents bucket — comes back as an /api/docs proxy path,
+  // never a public URL. Avatars/portfolio stay in public profile-images.
   const uploadDoc = async (file: File, tag: string): Promise<string | null> => {
     setDocUploading(tag);
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('bucket', 'profile-images');
-      formData.append('folder', `docs/${user?.id || 'guest'}`);
+      formData.append('bucket', 'id-documents');
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       if (!res.ok) throw new Error('Upload failed');
       const { url } = await res.json();

@@ -2,22 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { getSessionUser } from '@/lib/session';
 
-const ALLOWED_BUCKETS = new Set(['job-images', 'profile-images']);
+const ALLOWED_BUCKETS = new Set(['job-images', 'profile-images', 'id-documents']);
+// Private buckets: no public URL exists — the client gets a /api/docs proxy
+// path back instead, which re-checks authorization on every read.
+const PRIVATE_BUCKETS = new Set(['id-documents']);
 
 /**
  * POST /api/upload
  * Multipart form body:
  *   - file   : the image file
- *   - bucket : 'job-images' | 'profile-images'  (default: 'job-images')
+ *   - bucket : 'job-images' | 'profile-images' | 'id-documents'  (default: 'job-images')
  *
- * Returns: { url: string }
+ * Returns: { url: string } — a public URL for public buckets, or an
+ * /api/docs/<userId>/<file> proxy path for the private id-documents bucket.
  *
  * Requires a session; uploads are namespaced under the session user's ID.
  * Bucket and folder come from the server, not the client.
  *
- * WARNING: Create the buckets in Supabase Storage (public) before using this route:
- *   • job-images
- *   • profile-images
+ * WARNING: Buckets must exist in Supabase Storage before use:
+ *   • job-images (public), profile-images (public) — created manually
+ *   • id-documents (PRIVATE) — created by migration 026; identity documents
+ *     only, reads proxied + authorized through /api/docs/[...path]
  */
 export async function POST(req: NextRequest) {
   try {
@@ -62,6 +67,11 @@ export async function POST(req: NextRequest) {
       });
 
     if (uploadError) throw uploadError;
+
+    // Private bucket: hand back a proxy path, not a (nonexistent) public URL.
+    if (PRIVATE_BUCKETS.has(bucket)) {
+      return NextResponse.json({ url: `/api/docs/${fileName}` });
+    }
 
     const { data: urlData } = sb.storage.from(bucket).getPublicUrl(fileName);
 

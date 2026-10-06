@@ -44,7 +44,7 @@
 | M3 | X-Frame-Options: DENY | ✅ fixed 16 Sep | same (clickjacking) |
 | M4 | Referrer-Policy | ✅ fixed 16 Sep | `strict-origin-when-cross-origin` |
 | M5 | Content-Security-Policy | ⬜ hardening | Needs per-request nonces (middleware) — App Router hydration uses inline scripts. Do not set a naive `'self'` CSP; it will break the app |
-| M6 | File uploads | ⚠️ | Bucket allowlist + image-only + 5MB cap. MIME is client-asserted → add magic-byte sniffing (hardening) |
+| M6 | File uploads | ⚠️ | Bucket allowlist + image-only + 5MB cap. MIME is client-asserted → add magic-byte sniffing (hardening). **Found 6 Oct 2026: both buckets public — ID/LC1/certificate photos publicly readable.** Fix: private `id-documents` bucket (migration 026) + `/api/docs/[...path]` authz proxy (owner-or-admin, no signed URLs); verified 0 doc photos existed pre-fix |
 | M7 | Verbose error messages | ⚠️ low | Admin routes return `err.message` (admin-gated, low risk). Standardize generic client errors + server-side detail logs |
 | M8 | Sensitive data in logs | ✅ / guard | Only mock providers log OTP/phone (dev). **Pre-deploy gate: `SMS_PROVIDER` and `PAYMENT_PROVIDER` must not be `mock` in production** |
 | M9 | Session timeout | ✅ | `SESSION_TTL_MS` enforced; logout clears cookie |

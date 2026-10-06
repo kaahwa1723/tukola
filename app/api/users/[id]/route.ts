@@ -4,11 +4,14 @@ import { getSessionUser } from '@/lib/session';
 import { isAdmin } from '@/lib/admin-auth';
 import { normalizeUgPhone } from '@/lib/phone';
 
-/** URL or null — uploaded document/photo URLs come from /api/upload. */
+/** URL or null — document photos are either legacy public URLs (https) or
+    private-bucket proxy paths (/api/docs/...) returned by /api/upload. */
 function docUrl(v: unknown): string | null {
   if (v === null || v === undefined || v === '') return null;
   const s = String(v).trim();
-  if (s.length > 500 || !/^https?:\/\//.test(s)) throw new Error('Invalid document URL');
+  if (s.length > 500 || (!/^https?:\/\//.test(s) && !s.startsWith('/api/docs/'))) {
+    throw new Error('Invalid document URL');
+  }
   return s;
 }
 
